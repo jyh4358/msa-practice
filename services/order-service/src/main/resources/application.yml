@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orderdb
+    username: order
+    password: orderpw
+  jpa:
+    hibernate:
+      # 스키마는 Flyway가 소유한다. Hibernate는 검증만(불일치 시 부팅 실패 → 빠른 피드백).
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    enabled: true
+    # 기본 위치: classpath:db/migration
+
+server:
+  port: 8080
+  shutdown: graceful   # 진행 중 요청을 끝내고 종료 (계획 cross-cutting 규칙)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway
+  endpoint:
+    health:
+      show-details: always
