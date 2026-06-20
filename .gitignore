@@ -9,7 +9,7 @@
 *.iml
 *.ipr
 *.iws
-out/
+/out/
 
 # OS / logs / env
 .DS_Store
