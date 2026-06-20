@@ -1,0 +1,22 @@
+# 버전 카탈로그 — 모든 버전 핀의 단일 진실 공급원 (계획 §2)
+# 새 의존성/버전은 여기서만 바꾼다.
+
+[versions]
+springBoot = "3.5.15"          # 3.x 마지막 라인 (학습 친화)
+springDepMgmt = "1.1.7"
+springCloud = "2025.0.3"       # Northfields — Boot 3.5.x 공식 짝
+springdoc = "2.8.17"           # OpenAPI/Swagger UI — Boot 3.5 호환 (2.8.x = OpenAPI 3.1)
+
+[libraries]
+# Spring Cloud BOM (Phase 4+에서 본격 사용; 지금은 버전 관리만)
+spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "springCloud" }
+# Flyway (버전은 Spring Boot BOM이 관리)
+flyway-core = { module = "org.flywaydb:flyway-core" }
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+postgresql = { module = "org.postgresql:postgresql" }
+# Swagger UI + OpenAPI 문서 (웹 어댑터 전용 의존성)
+springdoc-openapi-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDepMgmt" }

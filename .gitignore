@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+**/build/
+# wrapper jar 는 커밋한다 (clone 후 바로 ./gradlew 동작)
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# OS / logs / env
+.DS_Store
+*.log
+.env
+
+# 로컬 도구 상태 (Claude Code / oh-my-claudecode)
+.claude/
+.omc/

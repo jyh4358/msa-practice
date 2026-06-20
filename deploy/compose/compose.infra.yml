@@ -1,0 +1,33 @@
+# Phase 0 인프라 — order-service의 DB 하나.
+# 일상 개발: 이 인프라만 띄우고 앱은 IntelliJ에서 실행 (계획 §10 하이브리드 전략).
+#   docker compose -f deploy/compose/compose.infra.yml up -d
+# 이후 Phase에서 서비스마다 DB를 추가하며 호스트 포트를 5433, 5434... 로 분리한다.
+
+name: shopsaga-infra
+
+services:
+  order-db:
+    image: postgres:18-alpine
+    restart: unless-stopped      # VM/머신 재시작 후 자동 복구
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: orderpw
+    ports:
+      - "5432:5432"
+    volumes:
+      # PostgreSQL 18+ 는 데이터를 버전별 하위 디렉터리(/var/lib/postgresql/18/docker)에 저장한다.
+      # 따라서 마운트는 옛 규칙 /var/lib/postgresql/data 가 아니라 /var/lib/postgresql 에 한다.
+      - order-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order -d orderdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  order-db-data:
