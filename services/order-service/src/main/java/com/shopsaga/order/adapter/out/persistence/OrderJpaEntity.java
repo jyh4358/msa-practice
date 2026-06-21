@@ -14,6 +14,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,10 +26,12 @@ import java.util.UUID;
 
 /**
  * 영속 모델(JPA). 도메인 Order와 분리된 어댑터 내부 타입.
- * Phase 1: 결제(payment)를 자식으로 보유(주문당 1건, cascade 저장).
+ * (Lombok: @Getter/@NoArgsConstructor만 — @ToString/@EqualsAndHashCode 는 JPA에서 위험하므로 미사용)
  */
 @Entity
 @Table(name = "orders")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 class OrderJpaEntity {
 
     @Id
@@ -52,10 +57,6 @@ class OrderJpaEntity {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private PaymentJpaEntity payment;
 
-    protected OrderJpaEntity() {
-        // JPA 전용
-    }
-
     OrderJpaEntity(UUID customerId, OrderStatus status, BigDecimal totalAmount, Instant createdAt) {
         this.customerId = customerId;
         this.status = status;
@@ -69,33 +70,5 @@ class OrderJpaEntity {
 
     void setPayment(BigDecimal amount, PaymentStatus status, Instant capturedAt) {
         this.payment = new PaymentJpaEntity(this, amount, status, capturedAt);
-    }
-
-    UUID getId() {
-        return id;
-    }
-
-    UUID getCustomerId() {
-        return customerId;
-    }
-
-    OrderStatus getStatus() {
-        return status;
-    }
-
-    BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    List<OrderItemJpaEntity> getItems() {
-        return items;
-    }
-
-    PaymentJpaEntity getPayment() {
-        return payment;
     }
 }

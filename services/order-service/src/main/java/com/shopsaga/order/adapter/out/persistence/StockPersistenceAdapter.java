@@ -1,35 +1,42 @@
 package com.shopsaga.order.adapter.out.persistence;
 
 import com.shopsaga.order.application.port.out.LoadStockPort;
-import com.shopsaga.order.application.port.out.SaveStockPort;
+import com.shopsaga.order.application.port.out.ReserveStockPort;
+import com.shopsaga.order.application.service.StockNotFoundException;
 import com.shopsaga.order.domain.StockItem;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.UUID;
 
-/** 아웃바운드 영속 어댑터: 재고 Load/Save 포트 구현. */
+/** 아웃바운드 영속 어댑터: 재고 조회(LoadStockPort) + 예약(ReserveStockPort). 예약은 비관적 락으로 차감. */
 @Component
-class StockPersistenceAdapter implements LoadStockPort, SaveStockPort {
+@RequiredArgsConstructor
+class StockPersistenceAdapter implements LoadStockPort, ReserveStockPort {
 
     private final StockItemJpaRepository repository;
-
-    StockPersistenceAdapter(StockItemJpaRepository repository) {
-        this.repository = repository;
-    }
+    private final StockQueryRepository queryRepository;
 
     @Override
     public Optional<StockItem> loadByProductId(UUID productId) {
-        return repository.findById(productId)
-                .map(e -> new StockItem(e.getProductId(), e.getAvailableQuantity()));
+        // 읽기 전용(재고 조회 엔드포인트) — 락 없음.
+        return repository.findById(productId).map(this::toDomain);
     }
 
     @Override
-    public void save(StockItem stockItem) {
-        // product_id 는 앱 할당 식별자(HEXAGONAL.md §3.2 "assigned id" 사례). 새 엔티티로 save()하면 merge:
-        // 행이 있으면 SELECT→UPDATE. 여기선 V2가 모든 재고 행을 미리 시드하고 차감(UPDATE)만 하므로 안전하다
-        // (INSERT 경로 없음 — 미존재 상품은 호출 전에 StockNotFound→404). 비용: merge 의 사전 SELECT 1회.
-        // 제거하려면 §3.3 load-then-mutate(dirty checking).
-        repository.save(new StockItemJpaEntity(stockItem.getProductId(), stockItem.getAvailableQuantity()));
+    public void reserve(UUID productId, int quantity) {
+        // 비관적 쓰기 락으로 행을 잠근 채 '관리(managed)' 엔티티를 로드 → 도메인 규칙으로 차감 →
+        // 같은 managed 엔티티를 직접 수정해 dirty checking 으로 UPDATE(락 걸린 그 행에 그대로 반영).
+        // 새 엔티티 merge 가 아니라 load-then-mutate 라, 락↔UPDATE 결합이 구조적으로 보장된다.
+        StockItemJpaEntity managed = queryRepository.findByProductIdForUpdate(productId)
+                .orElseThrow(() -> new StockNotFoundException(productId));
+        StockItem stock = toDomain(managed);
+        stock.reserve(quantity);   // 부족하면 InsufficientStockException → 트랜잭션 롤백
+        managed.setAvailableQuantity(stock.getAvailableQuantity());
+    }
+
+    private StockItem toDomain(StockItemJpaEntity entity) {
+        return new StockItem(entity.getProductId(), entity.getAvailableQuantity());
     }
 }

@@ -11,6 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,6 +22,8 @@ import java.util.UUID;
 /** 결제 영속 모델(JPA). Order 애그리거트의 자식(주문당 1건). */
 @Entity
 @Table(name = "payments")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 class PaymentJpaEntity {
 
     @Id
@@ -39,26 +44,10 @@ class PaymentJpaEntity {
     @Column(name = "captured_at", nullable = false)
     private Instant capturedAt;
 
-    protected PaymentJpaEntity() {
-        // JPA 전용
-    }
-
     PaymentJpaEntity(OrderJpaEntity order, BigDecimal amount, PaymentStatus status, Instant capturedAt) {
         this.order = order;
         this.amount = amount;
         this.status = status;
         this.capturedAt = capturedAt;
-    }
-
-    BigDecimal getAmount() {
-        return amount;
-    }
-
-    PaymentStatus getStatus() {
-        return status;
-    }
-
-    Instant getCapturedAt() {
-        return capturedAt;
     }
 }

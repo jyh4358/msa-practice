@@ -1,9 +1,7 @@
 package com.shopsaga.order.application.port.in;
 
-import com.shopsaga.order.domain.Order;
-
-/** 인바운드 포트(커맨드 측): 주문을 생성한다. */
+/** 인바운드 포트(커맨드 측): 주문을 생성한다. 출력은 도메인이 아니라 OrderView(불변 뷰). */
 public interface PlaceOrderUseCase {
 
-    Order placeOrder(PlaceOrderCommand command);
+    OrderView placeOrder(PlaceOrderCommand command);
 }

@@ -9,12 +9,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
 @Table(name = "order_items")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 class OrderItemJpaEntity {
 
     @Id
@@ -34,26 +39,10 @@ class OrderItemJpaEntity {
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
-    protected OrderItemJpaEntity() {
-        // JPA 전용
-    }
-
     OrderItemJpaEntity(OrderJpaEntity order, UUID productId, int quantity, BigDecimal unitPrice) {
         this.order = order;
         this.productId = productId;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
-    }
-
-    UUID getProductId() {
-        return productId;
-    }
-
-    int getQuantity() {
-        return quantity;
-    }
-
-    BigDecimal getUnitPrice() {
-        return unitPrice;
     }
 }

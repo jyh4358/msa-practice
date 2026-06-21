@@ -1,5 +1,7 @@
 package com.shopsaga.order.domain;
 
+import lombok.Getter;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -8,9 +10,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 주문 애그리거트 루트 — <b>순수 도메인</b>. 프레임워크 의존 없음.
+ * 주문 애그리거트 루트 — <b>순수 도메인</b>. 프레임워크 런타임 의존 없음(Lombok은 컴파일타임 전용).
  * Phase 1(모놀리스): 결제(Payment)를 이 애그리거트가 직접 보유하며 capturePayment()로 캡처+확정한다.
  */
+@Getter
 public class Order {
 
     /**
@@ -78,31 +81,8 @@ public class Order {
         this.status = OrderStatus.CONFIRMED;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getCustomerId() {
-        return customerId;
-    }
-
-    public OrderStatus getStatus() {
-        return status;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
+    /** 외부 변경 방지를 위해 불변 뷰를 반환 — Lombok @Getter 는 이미 존재하는 이 메서드를 덮어쓰지 않는다. */
     public List<OrderItem> getItems() {
         return Collections.unmodifiableList(items);
-    }
-
-    public Payment getPayment() {
-        return payment;
     }
 }
