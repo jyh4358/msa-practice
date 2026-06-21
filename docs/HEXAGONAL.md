@@ -58,9 +58,10 @@ com.shopsaga.<service>
 - **애그리거트당 애플리케이션 서비스 1개**가 그 애그리거트의 모든 in-port를 구현한다.
 - 어댑터가 HTTP 등으로 번역하는 애플리케이션 예외(`*NotFoundException`)는 **public**, 유스케이스 구현체는 **package-private**.
 - 포트 분리: 커맨드(`UseCase`) ↔ 쿼리(`Query`), 저장(`SavePort`) ↔ 조회(`LoadPort`). (Phase 11 CQRS 분리의 사전 포석)
+- **인바운드 포트는 도메인 애그리거트가 아니라 불변 출력 모델(`*View`/result record)을 반환**한다. 애플리케이션 서비스가 `OrderView.from(order)`처럼 도메인→뷰로 매핑 → 가변 애그리거트가 어댑터로 새지 않고, 어댑터가 실수로 도메인 변경 메서드를 호출할 수 없다. (입력은 이미 `web DTO → Command → domain` 으로 안쪽 보호)
 
 ### adapter (가장 바깥 — 세부사항)
-- **in/web**: 요청 DTO를 `*Command`로 변환해 in-port 호출, 도메인 → 응답 DTO로 변환. 도메인/엔티티를 와이어로 노출 금지. **OpenAPI/Swagger 문서화(springdoc `@Tag`/`@Operation` + `OpenApiConfig`)도 여기에만** 둔다 — 도메인·애플리케이션은 springdoc에 의존하지 않는다.
+- **in/web**: 요청 DTO를 `*Command`로 변환해 in-port 호출, 응답은 포트가 준 **불변 뷰(`*View`)를 그대로 반환**(도메인 애그리거트는 웹 어댑터에 들어오지 않음 — 도메인 예외→HTTP 번역만 예외적으로 허용). **OpenAPI/Swagger 문서화(springdoc `@Tag`/`@Operation` + `OpenApiConfig`)도 여기에만** 둔다 — 도메인·애플리케이션은 springdoc에 의존하지 않는다.
 - **in/messaging**: `@KafkaListener`가 이벤트를 받아 in-port 호출(멱등 처리는 Phase 10 outbox/처리이력 규칙).
 - **out/persistence**: out-port 구현. **도메인↔JPA 매핑을 어댑터 안에서 끝낸다**(애플리케이션·웹은 LAZY를 모르게).
 - **out/messaging**: 이벤트 발행/outbox 릴레이가 `Publish*EventPort`를 구현. 애플리케이션은 Kafka를 모른다.
@@ -78,11 +79,17 @@ com.shopsaga.<service>
 3. **저장 = INSERT 전용 아님.** 기존 애그리거트의 **상태 전이(예: PENDING→PAID)** 저장은
    **load-then-mutate**(관리 엔티티를 찾아 필드 갱신 → dirty checking으로 UPDATE)로 한다.
    새 엔티티를 만들어 `save()`하면 **새 행이 INSERT**된다. (Phase 12/13 Saga에서 핵심)
-4. **`open-in-view: false`** 가 모든 서비스 기본. 웹/메시징이 렌더링하는 애그리거트 연관은
-   리포지토리에서 **즉시 로딩**해야 한다(`@EntityGraph` 단건, **`distinct` fetch-join** 목록).
-   - ⚠️ `@OneToMany` List를 join fetch + 목록 조회하면 **카테시안 곱으로 루트가 중복**된다 →
-     `@Query("select distinct e from E e left join fetch e.children")` 또는 Set 사용.
+4. **커스텀 조회는 QueryDSL**(리포지토리 인터페이스에 JPQL `@Query`/`@Lock`/`@EntityGraph` 금지).
+   `@Configuration JPAQueryFactory` 빈 + `<Aggregate>QueryRepository`(@Repository)에 작성. Q-클래스는 APT가 생성(deps: `querydsl-jpa:jakarta` + `querydsl-apt:jakarta` + jakarta persistence/annotation API as annotationProcessor).
+   **`open-in-view: false`** 이므로 웹/메시징이 렌더링하는 연관은 **fetch join 으로 즉시 로딩**.
+   - ⚠️ `@OneToMany` List를 fetch join + 목록 조회 → 카테시안 곱으로 루트 중복 → `.distinct()`(단건도 동일). `@OneToOne`은 곱 없음. **컬렉션 fetch join은 1개만**(2개면 MultipleBagFetchException).
 5. **DB 스키마는 Flyway가 소유**(`ddl-auto: validate`). 엔티티 매핑과 마이그레이션이 정확히 일치해야 부팅된다.
+6. **동시성(재고 등) = DB 비관적 락**(단일 서비스·단일 DB이므로 분산락 아님).
+   - 락 메커니즘은 어댑터 뒤로 숨긴다: 애플리케이션은 `ReserveStockPort.reserve(id, qty)` 같은 **의도(intent)** 포트만 호출.
+   - 어댑터: QueryDSL `setLockMode(PESSIMISTIC_WRITE)`로 **managed 엔티티를 잠근 채 로드 → 도메인 규칙 적용 → 그 managed 엔티티를 직접 수정(dirty checking으로 UPDATE)**. 새 엔티티 `merge` 금지(락↔UPDATE 결합이 깨져 lost-update 위험).
+   - 여러 행을 잠그면 **전역 정렬 순서(예: id `TreeMap`)** 로 잠가 교착(deadlock) 회피 — 모든 writer가 동일 순서를 지켜야 함.
+   - ⚠️ Phase 2: 락을 **원격 호출(결제 등) 구간까지 들고 가지 말 것**. 원격 호출 전에 커밋(락 해제)하고, 교차 서비스 일관성은 Saga(보상)로.
+   - 회귀 가드로 **Testcontainers 동시성 테스트**를 함께 클론한다(N 동시 주문 → 정확히 재고만큼만 성공).
 
 ---
 
@@ -107,9 +114,14 @@ com.shopsaga.<service>
 
 ---
 
-## 7. 매퍼 / 스테레오타입
+## 7. 매퍼 / 스테레오타입 / Lombok
 - **매퍼는 무상태 static 유틸**(`OrderMapper`) — 주입 불필요·테스트 쉬움. 협력자가 필요해지면 그때 package-private `@Component`로 승격.
 - 스테레오타입: 애플리케이션 = `@UseCase`. (선택) 어댑터에 `@WebAdapter`/`@PersistenceAdapter`(둘 다 meta-@Component)를 두면 계층이 자기설명적이 된다 — 현재는 `@RestController`/`@Component` 사용.
+- **Lombok** (버전은 Boot BOM 관리; `compileOnly` + `annotationProcessor`, annotationProcessor 선언은 **QueryDSL APT 보다 먼저**):
+  - Spring 컴포넌트(서비스·어댑터·컨트롤러·쿼리리포지토리) → **`@RequiredArgsConstructor`**(final 필드 주입 생성자 제거).
+  - JPA 엔티티 → **`@Getter` + `@NoArgsConstructor(access = PROTECTED)`**. ⚠️ `@Data`/`@Setter`/`@ToString`/`@EqualsAndHashCode` **금지**(지연로딩 재귀·식별자 문제).
+  - 도메인 → **`@Getter`만**(불변성·행위·팩토리 보존; setter/data 금지). 커스텀 getter(예: `Order.getItems()` 불변 뷰)는 Lombok이 덮어쓰지 않으므로 그대로 유지.
+  - record(Command/View/요청 DTO) → Lombok 불필요.
 
 ---
 
