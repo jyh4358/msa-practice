@@ -19,7 +19,8 @@ Spring Cloud로 마이크로서비스 아키텍처를 단계별로 직접 만들
 - 구조: `domain`(Order·OrderItem·StockItem·Payment, 순수) / `application`(port.in·out, service) / `adapter`(in.web, out.persistence)
 - 가짜 결제 게이트웨이: 합계가 **`.99`로 끝나면 거절**(→ 402, 트랜잭션 롤백). 재고 부족 → 409.
 - PostgreSQL (자기 DB `orderdb`) + **Flyway**(V1 주문, V2 재고·결제+시드). `ddl-auto=validate`.
-- ⚠️ 동시성: 재고 차감에 락이 없어 동시 주문 시 oversell 가능(의도적 한계 — 추후 낙관적 락/Saga 단계 주제).
+- 동시성: 재고 차감에 **비관적 락**(QueryDSL `SELECT … FOR UPDATE`, 상품ID 정렬로 교착 회피) → oversell 방지. Testcontainers 동시성 테스트(`StockConcurrencyTest`)로 검증.
+- 커스텀 쿼리는 **QueryDSL**(리포지토리에 JPQL `@Query` 안 씀).
 - **API 문서(Swagger)**: `http://localhost:8080/swagger-ui/index.html` (OpenAPI JSON: `/v3/api-docs`) — springdoc, 웹 어댑터에만 적용.
 
 ```
@@ -55,11 +56,16 @@ docker run --rm --platform linux/arm64 alpine uname -m     # -> aarch64
 
 ## 실행 & 검증 (Phase 0 "동작 증명")
 
-### 1) 단위 테스트 (Docker 불필요)
+### 1) 빌드 & 테스트
 ```bash
 ./gradlew test
 ```
-도메인 단위 테스트가 통과하면 빌드 체인이 정상입니다.
+- 도메인 단위 테스트는 Docker 불필요.
+- **동시성 통합 테스트(`StockConcurrencyTest`)는 PostgreSQL 컨테이너 필요** → Docker 실행 중이어야 함.
+- **Colima 사용 시** Testcontainers가 소켓을 찾도록 환경변수 지정:
+  ```bash
+  DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./gradlew test
+  ```
 
 ### 2) DB 띄우고 앱 실행
 ```bash
