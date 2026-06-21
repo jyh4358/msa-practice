@@ -29,5 +29,27 @@ services:
         limits:
           memory: 256M
 
+  payment-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: paymentpw
+    ports:
+      - "5433:5432"            # order-db는 5432, payment-db는 5433 (서비스별 독립 DB)
+    volumes:
+      - payment-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment -d paymentdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
 volumes:
   order-db-data:
+  payment-db-data:
