@@ -9,6 +9,7 @@ import com.shopsaga.order.application.port.in.PlaceOrderUseCase;
 import com.shopsaga.order.application.port.in.StockView;
 import com.shopsaga.order.application.port.out.LoadOrderPort;
 import com.shopsaga.order.application.port.out.LoadStockPort;
+import com.shopsaga.order.application.port.out.PaymentGatewayPort;
 import com.shopsaga.order.application.port.out.ReserveStockPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
 import com.shopsaga.order.domain.Order;
@@ -21,9 +22,8 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * 유스케이스 구현. Phase 1 모놀리스: placeOrder 가 주문 생성 + 재고 차감 + 결제를
- * 하나의 @Transactional 안에서 처리한다 → 한 단계라도 실패하면 전부 롤백(ACID).
- * 반환은 도메인이 아니라 불변 뷰(OrderView/StockView) — 도메인이 어댑터로 새지 않는다.
+ * 유스케이스 구현. Phase 2: 결제가 원격(payment-service)이 되면서 단일 트랜잭션이 깨진다.
+ * 재고 차감은 로컬 트랜잭션이지만, 결제는 원격 REST 호출이라 같은 트랜잭션으로 묶이지 않는다.
  */
 @UseCase
 @RequiredArgsConstructor
@@ -33,28 +33,29 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery, GetStockQuery {
     private final LoadOrderPort loadOrderPort;
     private final LoadStockPort loadStockPort;
     private final ReserveStockPort reserveStockPort;
+    private final PaymentGatewayPort paymentGatewayPort;
 
     @Override
     @Transactional
     public OrderView placeOrder(PlaceOrderCommand command) {
-        // ── Phase 1 ACID 기준선 ──
-        // 재고 차감 + 결제 캡처 + 주문 저장이 하나의 로컬 DB 트랜잭션을 공유 → 원자적.
-        // (Phase 2에서 inventory/payment 가 원격 서비스로 분리되면 이 트랜잭션이 사라짐 → Phase 12 Saga.)
         Order order = Order.create(command.customerId());
         command.items().forEach(i -> order.addItem(i.productId(), i.quantity(), i.unitPrice()));
 
-        // (1) 재고 예약 — 상품ID 정렬 순서로 차감(어댑터가 비관적 락 적용):
-        //     · 락은 ReserveStockPort 뒤에 숨김(애플리케이션은 "예약" 의도만)
-        //     · 상품별 수량 합산(중복 차감 방지) + TreeMap 정렬로 다중 상품 교착(deadlock) 회피
+        // (1) 재고 예약 — 로컬, 비관적 락(상품ID 정렬로 교착 회피).
         Map<UUID, Integer> quantityByProduct = new TreeMap<>();
         command.items().forEach(i ->
                 quantityByProduct.merge(i.productId(), i.quantity(), Integer::sum));
         quantityByProduct.forEach(reserveStockPort::reserve);
 
-        // (2) 결제 캡처 — 거절되면 PaymentDeclinedException → (1)의 재고 차감까지 롤백.
-        order.capturePayment();
+        // (2) 결제 = 원격 호출(payment-service). 거절 → PaymentDeclinedException, 통신 실패 → PaymentGatewayException.
+        //     ⚠️ 단일 트랜잭션 소멸: 결제는 이 로컬 @Transactional 에 묶이지 않는다.
+        //        · 재고 비관적 락이 이 원격 호출 구간 내내 유지됨(원격 지연만큼 락 점유 → 처리량 저하).
+        //        · 결제 성공 후 (3) 저장이 실패하면 결제는 원격에 남아 자동 원복 불가(= orphaned payment).
+        //        이 잃어버린 원자성이 Phase 12 Saga(보상 트랜잭션)의 동기다.
+        UUID paymentId = paymentGatewayPort.capture(order.getId(), order.getTotalAmount());
 
-        // (3) 주문 저장(주문+항목+결제 한 번에). 같은 트랜잭션이므로 위 단계와 원자적.
+        // (3) 주문 확정 + 저장(로컬). 결제 거절/통신 실패 시엔 여기 도달 전에 예외 → 재고 차감은 로컬이라 롤백된다.
+        order.confirm(paymentId);
         return OrderView.from(saveOrderPort.save(order));
     }
 

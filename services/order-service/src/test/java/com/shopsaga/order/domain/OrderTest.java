@@ -23,7 +23,8 @@ class OrderTest {
         assertThat(order.getTotalAmount()).isEqualByComparingTo("25.50");
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getItems()).hasSize(2);
-        assertThat(order.getId()).isNull(); // 아직 영속되지 않음
+        assertThat(order.getId()).isNotNull();       // Phase 2: id는 앱에서 생성
+        assertThat(order.getPaymentId()).isNull();   // 아직 결제 전
     }
 
     @Test
@@ -39,27 +40,14 @@ class OrderTest {
     }
 
     @Test
-    void capturePayment_confirmsOrderAndRecordsPayment() {
+    void confirm_setsConfirmedAndPaymentId() {
         Order order = Order.create(UUID.randomUUID());
-        order.addItem(UUID.randomUUID(), 2, new BigDecimal("10.00")); // 20.00
+        order.addItem(UUID.randomUUID(), 1, new BigDecimal("10.00"));
+        UUID paymentId = UUID.randomUUID();
 
-        order.capturePayment();
+        order.confirm(paymentId);
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
-        assertThat(order.getPayment()).isNotNull();
-        assertThat(order.getPayment().getStatus()).isEqualTo(PaymentStatus.CAPTURED);
-        assertThat(order.getPayment().getAmount()).isEqualByComparingTo("20.00");
-    }
-
-    @Test
-    void capturePayment_isDeclinedWhenTotalEndsWith99() {
-        Order order = Order.create(UUID.randomUUID());
-        order.addItem(UUID.randomUUID(), 1, new BigDecimal("9.99")); // 9.99 -> 거절
-
-        assertThatThrownBy(order::capturePayment)
-                .isInstanceOf(PaymentDeclinedException.class);
-        // 거절 시 상태/결제는 변경되지 않아야 한다(롤백 의미는 영속 트랜잭션에서, 도메인은 미변경).
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
-        assertThat(order.getPayment()).isNull();
+        assertThat(order.getPaymentId()).isEqualTo(paymentId);
     }
 }

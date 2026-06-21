@@ -1,9 +1,10 @@
 package com.shopsaga.order.adapter.in.web;
 
 import com.shopsaga.order.application.service.OrderNotFoundException;
+import com.shopsaga.order.application.service.PaymentDeclinedException;
+import com.shopsaga.order.application.service.PaymentGatewayException;
 import com.shopsaga.order.application.service.StockNotFoundException;
 import com.shopsaga.order.domain.InsufficientStockException;
-import com.shopsaga.order.domain.PaymentDeclinedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,10 +28,16 @@ class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    /** 결제 거절 → 402 Payment Required. */
+    /** 원격 결제 거절 → 402 Payment Required. */
     @ExceptionHandler(PaymentDeclinedException.class)
     ProblemDetail handlePaymentDeclined(PaymentDeclinedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());
+    }
+
+    /** payment-service 통신 실패 → 502 Bad Gateway. */
+    @ExceptionHandler(PaymentGatewayException.class)
+    ProblemDetail handleGatewayError(PaymentGatewayException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 
     /** 도메인 불변식 위반(예: 수량/단가 ≤ 0) → 400. */
