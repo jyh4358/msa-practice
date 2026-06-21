@@ -20,6 +20,12 @@ dependencyManagement {
 }
 
 dependencies {
+    // Lombok (compile-time only). annotationProcessor 순서상 QueryDSL APT 보다 먼저 선언.
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+    testCompileOnly("org.projectlombok:lombok")
+    testAnnotationProcessor("org.projectlombok:lombok")
+
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -32,7 +38,17 @@ dependencies {
     implementation(libs.flyway.postgresql)
     runtimeOnly(libs.postgresql)
 
+    // QueryDSL (타입세이프 쿼리) — 리포지토리 JPQL/@Lock 대신 사용. jakarta classifier 필수.
+    implementation(variantOf(libs.querydsl.jpa) { classifier("jakarta") })
+    annotationProcessor(variantOf(libs.querydsl.apt) { classifier("jakarta") })
+    annotationProcessor(libs.jakarta.persistence.api)
+    annotationProcessor(libs.jakarta.annotation.api)
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // 동시성(oversell) 회귀 가드용 통합 테스트 — 실제 PostgreSQL 컨테이너 필요(Docker).
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

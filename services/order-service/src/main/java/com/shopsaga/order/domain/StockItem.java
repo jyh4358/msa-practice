@@ -1,11 +1,14 @@
 package com.shopsaga.order.domain;
 
+import lombok.Getter;
+
 import java.util.UUID;
 
 /**
  * 재고 애그리거트 — 순수 도메인. 상품별 가용 수량을 소유하고 예약(차감) 불변식을 보호한다.
  * (Phase 1 모놀리스에서는 order-service가 직접 차감; Phase 2+에서 inventory-service로 분리된다.)
  */
+@Getter
 public class StockItem {
 
     private final UUID productId;
@@ -31,13 +34,5 @@ public class StockItem {
             throw new InsufficientStockException(productId, quantity, availableQuantity);
         }
         this.availableQuantity -= quantity;
-    }
-
-    public UUID getProductId() {
-        return productId;
-    }
-
-    public int getAvailableQuantity() {
-        return availableQuantity;
     }
 }
