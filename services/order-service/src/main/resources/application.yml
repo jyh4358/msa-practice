@@ -16,6 +16,10 @@ spring:
     enabled: true
     # 기본 위치: classpath:db/migration
 
+payment:
+  service:
+    url: http://localhost:8081   # Phase 2: 하드코딩. Phase 4에서 서비스 디스커버리로 대체.
+
 server:
   port: 8080
   shutdown: graceful   # 진행 중 요청을 끝내고 종료 (계획 cross-cutting 규칙)

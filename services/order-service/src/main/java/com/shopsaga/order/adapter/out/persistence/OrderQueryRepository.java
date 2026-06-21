@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /**
  * 주문 조회 — QueryDSL(타입세이프). 리포지토리에 JPQL 문자열을 두지 않는다.
- * items(@OneToMany)는 fetch join + distinct 로 루트 중복 제거, payment(@OneToOne)는 곱 없이 fetch join.
+ * items(@OneToMany)는 fetch join + distinct 로 루트 중복 제거.
  */
 @Repository
 @RequiredArgsConstructor
@@ -23,7 +23,6 @@ class OrderQueryRepository {
         OrderJpaEntity result = query.selectFrom(order)
                 .distinct()
                 .leftJoin(order.items).fetchJoin()
-                .leftJoin(order.payment).fetchJoin()
                 .where(order.id.eq(id))
                 .fetchOne();
         return Optional.ofNullable(result);
@@ -34,7 +33,6 @@ class OrderQueryRepository {
         return query.selectFrom(order)
                 .distinct()
                 .leftJoin(order.items).fetchJoin()
-                .leftJoin(order.payment).fetchJoin()
                 .fetch();
     }
 }
