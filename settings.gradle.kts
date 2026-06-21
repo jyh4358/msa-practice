@@ -18,3 +18,4 @@ dependencyResolutionManagement {
 rootProject.name = "msa-platform"
 
 include(":services:order-service")
+include(":services:payment-service")
