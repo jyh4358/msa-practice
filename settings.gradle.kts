@@ -19,3 +19,4 @@ rootProject.name = "msa-platform"
 
 include(":services:order-service")
 include(":services:payment-service")
+include(":services:gateway-service")

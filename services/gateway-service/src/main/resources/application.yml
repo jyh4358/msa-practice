@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      # 2025.0.x 접두사: spring.cloud.gateway.server.webflux.* (구 spring.cloud.gateway.* 는 deprecated)
+      server:
+        webflux:
+          routes:
+            # /orders/** → order-service. 다운스트림이 이미 /orders 로 서빙하므로 경로를 그대로 전달
+            # (StripPrefix 등 필터 불필요 = 통과 라우팅).
+            - id: orders-route
+              uri: http://localhost:8080
+              predicates:
+                - Path=/orders/**
+            # 재고 조회도 order-service 소유.
+            - id: inventory-route
+              uri: http://localhost:8080
+              predicates:
+                - Path=/inventory/**
+            # /payments/** → payment-service.
+            - id: payments-route
+              uri: http://localhost:8081
+              predicates:
+                - Path=/payments/**
+
+server:
+  port: 8000
+  shutdown: graceful   # 진행 중 요청을 끝내고 종료 (프로젝트 공통 규칙)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      access: read-only   # GET /actuator/gateway/routes 로 라우트 점검 (런타임 변경은 막음)
