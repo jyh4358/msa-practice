@@ -1,127 +1,113 @@
 # ShopSaga — MSA 핸즈온 학습 플랫폼
 
-Spring Cloud로 마이크로서비스 아키텍처를 단계별로 직접 만들어 보는 학습 프로젝트.
+Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만들며 트레이드오프를 배우는** 학습 프로젝트.
 전체 로드맵(18단계)은 **[`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md)**,
-설치·실행 상세 가이드(트러블슈팅 포함)는 **[`docs/SETUP.md`](./docs/SETUP.md)**,
+설치·실행 상세(트러블슈팅 포함)는 **[`docs/SETUP.md`](./docs/SETUP.md)**,
 서비스 내부 아키텍처(**헥사고날**) 컨벤션은 **[`docs/HEXAGONAL.md`](./docs/HEXAGONAL.md)** 참고.
 
 - 스택: Java 21 LTS · Spring Boot 3.5.15 · Spring Cloud 2025.0.3 (Northfields) · Gradle 8.14
-- 빌드: Gradle 멀티모듈 모노레포 · 실행: 로컬 Docker Compose → 이후 Kubernetes
-- 도메인: 전자상거래 "ShopSaga" (order → inventory → payment → shipping)
+- 빌드: Gradle 멀티모듈 모노레포 · 실행: 로컬 Docker Compose(→ 이후 Kubernetes)
+- 도메인: 전자상거래 "ShopSaga" (order → inventory → payment)
 
 ---
 
-## 현재 상태: Phase 1 — 모놀리스 (주문+재고+결제, 단일 트랜잭션 ACID)
+## 현재 상태: Phase 5 — JWT 인증/인가까지 완료
 
-`order-service` 하나가 **의도적 모놀리스**입니다 (**헥사고날 아키텍처** — `docs/HEXAGONAL.md`).
-주문 생성 + **재고 차감** + **결제 캡처**가 **하나의 `@Transactional`** 안에서 일어나, 한 단계라도 실패하면 전부 롤백됩니다(ACID).
-- REST: `POST /orders`, `GET /orders/{id}`, `GET /orders`, `GET /inventory/{productId}`
-- 구조: `domain`(Order·OrderItem·StockItem·Payment, 순수) / `application`(port.in·out, service) / `adapter`(in.web, out.persistence)
-- 가짜 결제 게이트웨이: 합계가 **`.99`로 끝나면 거절**(→ 402, 트랜잭션 롤백). 재고 부족 → 409.
-- PostgreSQL (자기 DB `orderdb`) + **Flyway**(V1 주문, V2 재고·결제+시드). `ddl-auto=validate`.
-- 동시성: 재고 차감에 **비관적 락**(QueryDSL `SELECT … FOR UPDATE`, 상품ID 정렬로 교착 회피) → oversell 방지. Testcontainers 동시성 테스트(`StockConcurrencyTest`)로 검증.
-- 커스텀 쿼리는 **QueryDSL**(리포지토리에 JPQL `@Query` 안 씀).
-- **API 문서(Swagger)**: `http://localhost:8080/swagger-ui/index.html` (OpenAPI JSON: `/v3/api-docs`) — springdoc, 웹 어댑터에만 적용.
+5개 서비스가 **서비스 디스커버리(Eureka)** 로 서로를 이름으로 찾고, **API 게이트웨이**가 단일 진입점이며,
+**JWT(RS256)** 로 인증/인가가 걸려 있습니다.
 
-```
-.
-├── settings.gradle.kts / build.gradle.kts / gradle.properties
-├── gradle/libs.versions.toml          # 버전 핀 단일 출처
-├── gradlew (+ wrapper)                # ./gradlew 바로 동작
-├── services/order-service/            # 첫 서비스
-│   ├── build.gradle.kts
-│   └── src/main/{java,resources}, src/test/java   # 헥사고날 패키지 구조
-└── deploy/compose/compose.infra.yml   # order-db (postgres:18)
-```
+| 서비스 | 포트 | 역할 | DB |
+|---|---|---|---|
+| **discovery-service** | 8761 | Eureka 서버(서비스 레지스트리) | — |
+| **auth-service** | 9000 | RS256 JWT 발급(`/auth/login`) + JWKS(`/oauth2/jwks`) | — |
+| **gateway-service** | 8000 | 단일 진입점 라우팅 + 엣지 인증(리소스 서버) | — |
+| **order-service** | 8080 | 주문 + 재고, 결제는 payment 원격 호출 | `orderdb`@5432 |
+| **payment-service** | 8081 | 결제 캡처 | `paymentdb`@5433 |
+
+- 클라이언트는 **게이트웨이(8000)** 만 알면 됩니다. 서비스 위치는 Eureka가, 인증은 JWT가 처리.
+- 서비스 간 통신은 **이름 기반**(게이트웨이 `lb://order-service`, order→payment `http://payment-service` @LoadBalanced).
+- 데모 계정: `alice/secret`(USER), `admin/admin123`(USER+ADMIN).
+
+---
+
+## 단계별 진행 & 문서
+
+각 단계에서 **무엇을·왜 했는지**와 트레이드오프를 문서로 정리했습니다(초심자 친화).
+
+| Phase | 내용 | 문서 |
+|---|---|---|
+| **0** | 스캐폴드·툴체인(모노레포·버전 카탈로그·Flyway·Colima·동작 증명) | [PHASE-0-SCAFFOLD.md](./docs/PHASE-0-SCAFFOLD.md) |
+| **1** | 모놀리스: 주문+재고+결제 **단일 트랜잭션 ACID**, 비관적 락·QueryDSL·출력모델·Lombok | [PHASE-1-MONOLITH.md](./docs/PHASE-1-MONOLITH.md) |
+| **2** | payment-service **분리**(2-1) + **원격 결제 전환**(2-2, 단일 트랜잭션 소멸) | [PHASE-2-SPLIT-PAYMENT.md](./docs/PHASE-2-SPLIT-PAYMENT.md) |
+| **3** | **API Gateway**(단일 진입점, Spring Cloud Gateway) | [PHASE-3-GATEWAY.md](./docs/PHASE-3-GATEWAY.md) |
+| **4** | **서비스 디스커버리**(Eureka, 이름 기반 라우팅·호출) | [SERVICE-DISCOVERY.md](./docs/SERVICE-DISCOVERY.md) |
+| **5** | **보안**(RS256 JWT 인증 + 역할 인가 + 토큰 전파) | [SECURITY.md](./docs/SECURITY.md) |
+
+공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
+
+> 각 문서 끝에는 **"알려진 한계 → 해결 Phase"** 표가 있어, 그 단계에서 의도적으로 남긴 문제와
+> 그것이 어느 단계에서 해결되는지 볼 수 있습니다.
 
 ---
 
 ## 사전 준비 (1회)
 
-이 머신엔 **Docker가 없습니다.** 직접 설치하세요(`!` 프리픽스로 이 세션에서 실행 가능):
-
 ```bash
-# 1) 컨테이너 런타임 (Apple Silicon)
+# 컨테이너 런타임 (Apple Silicon)
 brew install colima docker docker-compose
-colima start --arch aarch64 --cpu 4 --memory 8 --disk 60
-docker run --rm --platform linux/arm64 alpine uname -m     # -> aarch64
-
-# 2) JDK 21 — 선택. 없으면 Gradle 툴체인이 자동으로 내려받음.
-#    brew install --cask temurin@21
+colima start --arch aarch64 --cpu 4 --memory 8
+# JDK 21 — 선택. 없으면 Gradle 툴체인이 자동으로 내려받음.
 ```
-
-> `./gradlew` 빌드는 현재 설치된 JDK 24로 실행되고, 컴파일/테스트 타깃만 21로 고정됩니다.
+> `./gradlew` 빌드는 설치된 JDK로 실행되고, 컴파일/테스트 타깃만 Java 21로 고정됩니다.
 
 ---
 
-## 실행 & 검증 (Phase 0 "동작 증명")
+## 실행 & 검증 (현재: Phase 5)
 
 ### 1) 빌드 & 테스트
 ```bash
-./gradlew test
-```
-- 도메인 단위 테스트는 Docker 불필요.
-- **동시성 통합 테스트(`StockConcurrencyTest`)는 PostgreSQL 컨테이너 필요** → Docker 실행 중이어야 함.
-- **Colima 사용 시** Testcontainers가 소켓을 찾도록 환경변수 지정:
-  ```bash
-  DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./gradlew test
-  ```
-
-### 2) DB 띄우고 앱 실행
-```bash
-# (a) order-db 기동
-docker compose -f deploy/compose/compose.infra.yml up -d
-
-# (b) order-service 실행 (Flyway가 부팅 시 스키마 생성)
-./gradlew :services:order-service:bootRun
-#   → IntelliJ에서 OrderServiceApplication 을 직접 실행해도 됨(권장 개발 루프)
+# 동시성 통합 테스트(StockConcurrencyTest)는 PostgreSQL 컨테이너 필요 → Docker 실행 중이어야 함.
+DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./gradlew build
 ```
 
-### 3) API 호출
+### 2) 인프라 + 서비스 기동 (순서 중요: discovery 먼저)
 ```bash
-# 주문 생성
-curl -s -X POST localhost:8080/orders \
-  -H 'Content-Type: application/json' \
-  -d '{
-        "customerId": "11111111-1111-1111-1111-111111111111",
-        "items": [
-          {"productId":"22222222-2222-2222-2222-222222222222","quantity":2,"unitPrice":10.00},
-          {"productId":"33333333-3333-3333-3333-333333333333","quantity":1,"unitPrice":5.50}
-        ]
-      }'
-# → 201, totalAmount: 25.50, status: PENDING, 생성된 id 반환
-
-# 조회
-curl -s localhost:8080/orders | jq
-curl -s localhost:8080/orders/<id> | jq
-
-# Flyway 적용 이력
-curl -s localhost:8080/actuator/flyway | jq
+# (a) DB
+docker compose -f deploy/compose/compose.infra.yml up -d order-db payment-db
+# (b) 레지스트리 먼저 → 인증 → 나머지
+./gradlew :services:discovery-service:bootRun   # 8761 (먼저)
+./gradlew :services:auth-service:bootRun        # 9000
+./gradlew :services:order-service:bootRun       # 8080
+./gradlew :services:payment-service:bootRun     # 8081
+./gradlew :services:gateway-service:bootRun     # 8000
+# 등록 확인: curl -H 'Accept: application/json' localhost:8761/eureka/apps
 ```
 
-### 4) ACID 시연 (Phase 1 핵심)
+### 3) 인증 → 호출 (게이트웨이 8000 통과)
 ```bash
+# 로그인 → JWT 획득
+TOKEN=$(curl -s -X POST localhost:8000/auth/login -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"secret"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+
+# 토큰 없이 → 401 (엣지 차단)
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8000/orders
+
+# 토큰으로 주문 생성 → 201 (order가 payment까지 토큰 전파)
 P2=22222222-2222-2222-2222-222222222222
-curl -s localhost:8080/inventory/$P2        # 재고 확인 (시드 100)
+curl -s -X POST localhost:8000/orders -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d "{\"customerId\":\"11111111-1111-1111-1111-111111111111\",\"items\":[{\"productId\":\"$P2\",\"quantity\":1,\"unitPrice\":10.00}]}"
 
-# (A) 해피패스: 합계 20.00 → 201 CONFIRMED + payment, 재고 -=2
-curl -s -X POST localhost:8080/orders -H 'Content-Type: application/json' \
-  -d "{\"customerId\":\"11111111-1111-1111-1111-111111111111\",\"items\":[{\"productId\":\"$P2\",\"quantity\":2,\"unitPrice\":10.00}]}"
-
-# (B) 결제 거절: 합계 9.99 → 402, 재고는 그대로(차감이 롤백됨) ← ACID 증거
-curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8080/orders -H 'Content-Type: application/json' \
-  -d "{\"customerId\":\"11111111-1111-1111-1111-111111111111\",\"items\":[{\"productId\":\"$P2\",\"quantity\":1,\"unitPrice\":9.99}]}"
-curl -s localhost:8080/inventory/$P2        # (A) 이후 값에서 변동 없음
-
-# (C) 재고 부족: 9999개 → 409 (아무것도 저장 안 됨)
+# 역할 인가: 주문 목록은 ADMIN 전용 → alice(USER) 는 403
+curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" localhost:8000/orders
 ```
 
-**Phase 1 완료 기준:** 해피패스 201·CONFIRMED·payment / 결제거절 402 **+ 재고 원복** / 재고부족 409 / 거절·부족 주문은 DB에 흔적 없음(완전 롤백).
+> Phase 1의 단일 트랜잭션 ACID 시연(해피/결제거절/재고부족)은 [PHASE-1-MONOLITH.md](./docs/PHASE-1-MONOLITH.md) 참고.
+> 각 서비스 Swagger: `http://localhost:<port>/swagger-ui/index.html` (order/payment).
 
 ---
 
-## 다음: Phase 2
-- `payment-service`를 별도 모듈·별도 DB·별도 프로세스로 분리 → 동기 REST 호출. **단일 트랜잭션 소멸**을 체감(결제 실패가 재고를 자동 원복 못 함 → Phase 12 Saga의 동기).
-- 공통 빌드 설정을 `build-logic/` 컨벤션 플러그인으로 추출. 새 서비스도 헥사고날(`docs/HEXAGONAL.md`).
+## 다음: Phase 6 — 중앙 설정 (Spring Cloud Config)
 
-자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) §5 참고.
+흩어진 설정(특히 시크릿: DB 비밀번호·`jwk-set-uri` 등)을 Config Server로 외부화합니다.
+이후 7 compose → 8 관측성 → 9 Kafka → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) 참고.

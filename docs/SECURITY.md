@@ -35,6 +35,9 @@ Phase 5는 여기에 **인증**(로그인 → 토큰)과 **인가**(역할 기�
 ### 2.2 JWT (JSON Web Token)
 서명된 문자열 하나에 "누구(sub), 언제까지 유효(exp), 무슨 역할(roles)"을 담는다. 세 부분(`header.payload.signature`)이 점으로 연결된다. **서버가 세션을 저장하지 않는다(stateless)** — 토큰 자체가 신원 증명서다.
 
+- **claim(클레임)**: payload 안의 각 항목(`sub`, `exp`, `roles` 등). "토큰이 주장하는 사실" 하나하나를 뜻한다.
+- **전달 방법**: 클라이언트는 이후 요청마다 JWT를 HTTP 헤더 `Authorization: Bearer <JWT>` 형태로 보낸다. `Bearer`(소지자)는 "이 토큰을 가진 사람을 그 신원으로 인정한다"는 인증 스킴 이름이다.
+
 ### 2.3 대칭키 vs 비대칭키(RS256) + JWKS
 - **HS256(대칭키)**: 발급자와 검증자가 **같은 비밀키**를 공유. 검증 서비스가 많아지면 비밀키가 여기저기 복사돼 위험.
 - **RS256(비대칭키, 이 프로젝트)**: 발급자만 **개인키(private)** 로 서명, 검증자는 **공개키(public)** 로 검증. 검증 서비스는 공개키만 있으면 되고 서명은 못 한다(안전).
@@ -45,6 +48,13 @@ Phase 5는 여기에 **인증**(로그인 → 토큰)과 **인가**(역할 기�
 - **엣지 인증**: 진입점(게이트웨이)에서 미인증 요청을 먼저 차단.
 - **defense in depth**: 게이트웨이만 믿지 않고 각 서비스도 다시 검증(게이트웨이 우회 대비).
 - **토큰 전파**: 게이트웨이 → order → payment 로 같은 Bearer 토큰을 넘겨 신원을 이어준다.
+
+> **리액티브 스택 vs 서블릿 스택 (설정 API가 다른 이유)**
+> 이 프로젝트에는 두 종류의 웹 스택이 섞여 있다.
+> - **게이트웨이 = 리액티브(WebFlux)** — 논블로킹 스택. 보안 설정에 `ServerHttpSecurity`·`authorizeExchange`를 쓴다.
+> - **order / payment = 서블릿(MVC)** — 전통적인 요청-스레드 스택. 보안 설정에 `HttpSecurity`·`authorizeHttpRequests`를 쓴다.
+>
+> **설정 API의 이름만 다를 뿐, 개념은 완전히 같다**: 셋 다 "JWT를 auth-service의 JWKS(공개키)로 검증하는 Resource Server"다. 아래 4.2(리액티브)와 4.3(서블릿)이 왜 다르게 보이는지는 이 스택 차이 때문이다.
 
 ### 2.5 역할(roles)과 `ROLE_` 규약
 Spring Security의 `hasRole('ADMIN')`은 내부적으로 권한 이름 `ROLE_ADMIN`을 찾는다.
@@ -77,6 +87,8 @@ Spring Security의 `hasRole('ADMIN')`은 내부적으로 권한 이름 `ROLE_ADM
 ---
 
 ## 4. 코드/설정 — 한 부분씩 해설
+
+> **이 절의 코드는 핵심만 보여주는 발췌/축약본이다.** import·예외 처리·빈 배선 등 곁가지는 생략했으므로, 그대로 복사-붙여넣기하면 컴파일되지 않을 수 있다. 전체 코드는 각 파일 경로(`config/...`, `adapter/...`)에서 확인하자.
 
 ### 4.1 auth-service — 토큰 발급 + JWKS
 
@@ -183,9 +195,14 @@ if (auth != null && auth.getCredentials() instanceof AbstractOAuth2Token token)
 ```java
 RestClient.builder().requestInterceptor(new BearerTokenRelayInterceptor());
 ```
-order→payment 는 요청 스레드에서 동기로 일어나므로 `SecurityContextHolder`의 토큰이 유효하다.
+`SecurityContextHolder`는 **요청별 스레드-로컬(thread-local, 스레드마다 따로 저장되는 저장소)** 로, Spring Security가 현재 요청을 처리하는 스레드에 인증 정보를 담아 둔다. order→payment 호출은 **같은 요청 스레드에서 동기(blocking)로** 일어나므로, 그 순간에도 `SecurityContextHolder`가 가리키는 토큰이 그대로 유효하다.
+
+> **`build()` 전에 등록하는 이유**: `RestClient.builder()`는 `build()`를 호출하는 순간의 설정을 스냅샷으로 굳혀 클라이언트를 만든다. 그래서 인터셉터는 반드시 `build()` **이전**에 붙여야 하고, `build()` 이후에 추가하면 이미 만들어진 클라이언트에는 반영되지 않아 무효다.
 
 ### 4.5 결정: `jwk-set-uri`는 왜 `lb://`가 아니라 직접 `localhost:9000`?
+
+> **먼저 `lb`가 뭔지 요약**: `lb://`는 Phase 4에서 도입한 스킴으로, Spring Cloud LoadBalancer가 **Eureka(서비스 레지스트리)에 등록된 서비스 이름**(예: `auth-service`)을 실제 `host:port`로 해석해 준다. 즉 `lb://auth-service`는 "Eureka에게 auth-service의 실제 주소를 물어봐 라우팅하라"는 뜻이다. 자세한 배경은 [SERVICE-DISCOVERY.md](SERVICE-DISCOVERY.md) 참고.
+
 JWT 검증기(`NimbusJwtDecoder`/reactive)는 **로드밸런싱 안 되는 평범한 HTTP 클라이언트**를 쓴다.
 그래서 `http://auth-service/...`(Eureka 이름)는 해석하지 못한다. 로컬 dev에선 **직접 host:port**로
 지정하는 게 가장 단순·확실하다. (프로퍼티라 Phase 7 compose에서 컨테이너 DNS로 바꾸면 코드 변경 불필요.)
@@ -278,6 +295,12 @@ POST :8000/orders  (Authorization: Bearer <JWT>)
 - **stateless**: 서버가 세션을 저장하지 않음(토큰이 상태).
 - **인증/인가**: 누구인지 / 무엇을 할 수 있는지.
 - **IDOR**: 소유권 검증 없이 ID로 남의 자원 접근.
+- **claim(클레임)**: JWT payload 안의 각 항목(`sub`·`exp`·`roles` 등). 토큰이 주장하는 사실 한 조각.
+- **Authorization / Bearer**: 토큰을 실어 보내는 HTTP 헤더(`Authorization: Bearer <JWT>`). `Bearer`(소지자)는 "토큰을 가진 자를 그 신원으로 인정"하는 인증 스킴.
+- **리액티브(WebFlux) vs 서블릿(MVC)**: 논블로킹 스택 vs 요청-스레드 스택. 보안 설정 API가 각각 `ServerHttpSecurity`·`authorizeExchange` / `HttpSecurity`·`authorizeHttpRequests`로 다르지만, JWT 검증 개념은 동일.
+- **lb / Eureka**: `lb://`는 Spring Cloud LoadBalancer 스킴. Eureka(서비스 레지스트리)에 등록된 서비스 이름을 실제 `host:port`로 해석해 라우팅(Phase 4).
+- **SecurityContextHolder**: 현재 요청의 인증 정보를 담는 **스레드-로컬** 저장소(스레드마다 별도). 동기 호출 중에는 같은 스레드라 토큰이 유효.
+- **스니펫(발췌)**: 문서의 코드 블록은 핵심만 추린 축약본. 그대로는 컴파일되지 않을 수 있으니 전체는 파일 경로에서 확인.
 
 ---
 

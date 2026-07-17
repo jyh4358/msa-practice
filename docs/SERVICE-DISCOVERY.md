@@ -3,6 +3,9 @@
 > **이 문서는 Phase 4 작업을 설명합니다.** 처음 보는 사람이 "왜 이게 필요하고, 무엇이, 어떻게
 > 동작하는지"를 끝까지 이해하도록 개념 → 그림 → 이 프로젝트의 실제 코드/설정 → 동작 원리 →
 > 검증 → 한계 순으로 정리했습니다.
+>
+> (본문의 코드/설정 블록은 핵심만 보여주는 **발췌**이며, 실제 파일과 다를 수 있습니다. 해설은
+> 작업을 마친 뒤 되짚어 정리한 **회고형** 설명입니다.)
 
 ---
 
@@ -15,6 +18,12 @@
 ---
 
 ## 1. 왜 필요한가? (Phase 3까지의 문제)
+
+> **먼저 알아둘 용어 — 게이트웨이(API Gateway).** 모든 외부 요청이 가장 먼저 거쳐가는 **단일
+> 진입점**이다. 들어온 요청의 경로(URL Path)를 보고 "이건 order-service로, 저건 payment-service로"
+> 하는 식으로 내부 서비스에 **라우팅(routing, 요청 전달)** 한다. 클라이언트는 내부 서비스 주소를
+> 몰라도 게이트웨이 주소 하나만 알면 된다. (Phase 3에서 도입 — 자세한 내용은
+> [PHASE-3-GATEWAY.md](PHASE-3-GATEWAY.md) 참고.)
 
 Phase 3까지 서비스 주소가 **소스/설정에 하드코딩**되어 있었다.
 
@@ -81,7 +90,8 @@ payment:
 
 ### 2.3 로드밸런서는 어디서 왔나
 
-Spring Cloud LoadBalancer(`spring-cloud-loadbalancer`)가 "목록에서 하나 고르기(기본 라운드로빈)"를
+Spring Cloud LoadBalancer(`spring-cloud-loadbalancer`)가 "목록에서 하나 고르기
+(기본 **라운드로빈(round-robin)** — 인스턴스를 1→2→3→1→… 순서로 순차 순환하며 고르게 분배)"를
 담당한다. **직접 의존성을 추가하지 않았는데도** 동작하는 이유는, `eureka-client` 스타터가
 이 라이브러리를 **전이 의존성(transitive)** 으로 함께 가져오기 때문이다.
 
@@ -89,27 +99,59 @@ Spring Cloud LoadBalancer(`spring-cloud-loadbalancer`)가 "목록에서 하나 �
 
 ## 3. 이 프로젝트의 구성
 
+```mermaid
+graph TD
+    subgraph reg[Eureka 서버]
+        E["discovery-service (8761)<br/>장부: GATEWAY / ORDER / PAYMENT"]
+    end
+
+    C["클라이언트 (브라우저/curl)"]
+    G["gateway (8000)<br/>lb://order-service<br/>lb://payment-service"]
+    O["order (8080)"]
+    P["payment (8081)"]
+
+    C -- "HTTP :8000" --> G
+    G -- "lb://order-service" --> O
+    O -- "http://payment-service" --> P
+
+    G -. "등록/하트비트 + 조회" .-> E
+    O -. "등록/하트비트 + 조회" .-> E
+    P -. "등록/하트비트" .-> E
 ```
-                       ┌──────────────────────────────┐
-                       │   discovery-service (8761)     │  ← Eureka 서버 = 전화번호부
-                       │   장부: ORDER/PAYMENT/GATEWAY   │
-                       └──────────────────────────────┘
-              등록/하트비트 ▲      ▲ 등록/하트비트     ▲ 등록/하트비트
-              + 조회         │      │                  │ + 조회
-                            │      │                  │
-   클라이언트              │      │                  │
-   ──HTTP :8000──▶ ┌───────────────┐     ┌──────────────┐     ┌──────────────┐
-                   │ gateway (8000) │     │ order (8080) │     │ payment(8081)│
-                   │  lb://order    │────▶│              │────▶│              │
-                   │  lb://payment  │──┐  │ http://       │     │              │
-                   └───────────────┘  │  │ payment-service     └──────────────┘
-                                       └──────────────▶ (payment 으로 직접)
+
+> 다이어그램 읽는 법: 실선(──▶)은 **실제 HTTP 호출**, 점선(‑‑▶)은 **Eureka와의 등록/하트비트/조회**다.
+> gateway는 `lb://payment-service` 라우트도 갖지만, `POST /orders` 흐름에서 payment는
+> order가 직접 호출하므로 위 그림의 주요 경로는 client → gateway → order → payment다.
+
+(Mermaid를 지원하지 않는 뷰어를 위한 텍스트 버전)
+
 ```
+                       ┌───────────────────────────────────┐
+                       │   discovery-service (8761)         │  ← Eureka 서버 = 전화번호부
+                       │   장부: GATEWAY / ORDER / PAYMENT   │
+                       └───────────────────────────────────┘
+                             ▲             ▲             ▲
+             등록/하트비트+조회 ┊  등록/하트비트+조회 ┊   등록/하트비트 ┊  (┊ = Eureka 연동)
+                             ┊             ┊             ┊
+   클라이언트                ┊             ┊             ┊
+   ──HTTP :8000──▶ ┌───────────┐   ┌───────────┐   ┌───────────┐
+                   │ gateway   │   │  order    │   │ payment   │
+                   │ (8000)    ├──▶│ (8080)    ├──▶│ (8081)    │
+                   │lb://order │   │           │   │           │
+                   │lb://pay…  │   │           │   │           │
+                   └───────────┘   └───────────┘   └───────────┘
+                        gateway→order       order→payment
+                     (lb://order-service) (http://payment-service)
+```
+
+  - `gateway ──▶ order` : gateway의 `lb://order-service` 라우트가 실제 호출.
+  - `order ──▶ payment` : order가 `http://payment-service`로 직접 호출.
+  - gateway·order·payment 세 서비스가 위쪽 점선(┊)으로 Eureka(8761)에 등록·하트비트한다. 이 중 장부를 조회해 호출에 쓰는 쪽은 gateway·order다(payment는 아무도 호출하지 않음).
 
 - **클라이언트(브라우저/curl)** 는 게이트웨이(8000)만 안다.
 - **게이트웨이**는 `lb://order-service`, `lb://payment-service`로 라우팅 → Eureka로 실제 주소 해석.
 - **order-service**는 결제를 위해 `http://payment-service`로 호출 → Eureka로 실제 주소 해석.
-- **네 서비스 모두** Eureka에 등록되어 있고, 호출하는 쪽(gateway, order)은 장부를 조회한다.
+- **gateway·order·payment 세 서비스**가 Eureka에 등록되고, 호출하는 쪽(gateway, order)이 장부를 조회해 주소를 해석한다. (discovery-service 자신은 등록하지 않는 단독 레지스트리다.)
 
 ---
 
@@ -166,6 +208,10 @@ eureka:
     hostname: localhost
 ```
 
+> 💡 **장부에 등록되는 "이름"은 어디서 오나.** 각 서비스의 `spring.application.name`
+> (예: `order-service`) 값이 그대로 레지스트리 등록 이름이 된다. 뒤에서 `lb://order-service`,
+> `http://payment-service`로 부를 때의 그 이름이 바로 이 값이다.
+
 > 💡 **애너테이션이 없다.** 예전 튜토리얼의 `@EnableEurekaClient`/`@EnableDiscoveryClient`는
 > 2025.0.x에서는 **불필요**하다. `eureka-client` 스타터가 클래스패스에 있으면
 > 부팅 시 **자동으로 등록**된다. (등록을 끄고 싶을 때만 `@EnableDiscoveryClient(autoRegister=false)`.)
@@ -177,6 +223,10 @@ eureka:
 > 안의 `localhost`는 자기 자신이라 그땐 서비스 이름/호스트로 바꿔야 한다.)
 
 ### 4.3 게이트웨이 라우팅 — `lb://`
+
+> 아래 설정의 **라우트(route)** 하나는 "어떤 요청을(predicate) 어디로 보낼지(uri)"의 한 쌍이다.
+> **predicate(조건)** 는 이 라우트가 담당할 요청을 고르는 규칙이고, `Path=/orders/**`는
+> "경로가 `/orders/`로 시작하는 요청을 이 라우트가 담당한다"는 뜻이다(`**`는 그 뒤 아무 경로나 매칭).
 
 **`gateway-service/application.yml`**
 ```yaml
@@ -196,7 +246,8 @@ spring:
                 - Path=/payments/**
 ```
 
-`lb://`는 **"load-balanced"** 스킴이다. 게이트웨이는 이 스킴을 보면
+`lb://`는 **"load-balanced"** 스킴(scheme — URL에서 `://` 앞에 오는 프로토콜 표시자, 예: `http`, `https`)이다.
+게이트웨이는 이 스킴을 보면
 "호스트(`order-service`)는 진짜 호스트가 아니라 **서비스 이름**이구나" 하고,
 Eureka에서 받은 인스턴스 목록 중 하나를 골라 실제 `http://localhost:8080`으로 바꿔 전달한다.
 (내부적으로 `ReactiveLoadBalancerClientFilter`라는 전역 필터가 처리.)
@@ -263,7 +314,7 @@ payment:
 2) gateway: Path=/orders/** 매칭 → uri=lb://order-service
 3) gateway: Eureka 캐시에서 order-service 인스턴스 목록 조회 → 하나 선택(라운드로빈)
             → 실제 http://localhost:8080/orders 로 전달
-4) order-service: 재고 차감(비관적 락) 후 결제 필요
+4) order-service: 재고 차감(비관적 락 — 행을 먼저 잠가 동시 수정을 막는 방식, 이 문서 주제 밖. [HEXAGONAL.md](HEXAGONAL.md) 참고) 후 결제 필요
 5) order: paymentRestClient.post("/payments")  (baseUrl=http://payment-service)
           → LoadBalancer가 payment-service 인스턴스 조회 → http://localhost:8081/payments 로 호출
 6) payment-service: 결제 캡처 → paymentId 반환
@@ -299,7 +350,8 @@ payment:
 - 새로 뜬 인스턴스가 호출 대상에 들어오기까지 약간 걸린다.
 - **죽은 인스턴스가 잠깐 목록에 남아**, 그쪽으로 보낸 요청이 실패할 수 있다.
 
-→ 그래서 디스커버리만으론 부족하고 **타임아웃·재시도·서킷브레이커**(Phase 13~14)가 짝이 된다.
+→ 그래서 디스커버리만으론 부족하고 **타임아웃·재시도·서킷브레이커**(circuit breaker — 특정 대상에
+호출 실패가 반복되면 잠시 호출을 아예 차단해 장애가 번지는 것을 막는 장치)(Phase 13~14)가 짝이 된다.
 이게 "분산 시스템은 최종 일관성을 전제로 설계한다"의 구체적 예다.
 
 ---
@@ -374,14 +426,21 @@ curl -X POST http://localhost:8000/orders -H 'Content-Type: application/json' \
 
 ## 10. 용어 사전
 
+- **게이트웨이(API Gateway)**: 모든 외부 요청이 거쳐가는 단일 진입점. 경로(Path)를 보고 어느 내부 서비스로 보낼지 라우팅한다.
+- **라우트(route)**: 게이트웨이에서 "어떤 요청을(predicate) 어디로 보낼지(uri)" 정의한 한 쌍.
+- **predicate(조건)**: 라우트가 담당할 요청을 고르는 규칙. 예: `Path=/orders/**`.
+- **Path 매칭**: 요청 경로로 라우트를 고르는 predicate. `/orders/**`는 `/orders/`로 시작하는 모든 경로.
+- **스킴(scheme)**: URL에서 `://` 앞의 프로토콜 표시자(예: `http`, `https`, `lb`).
+- **라운드로빈(round-robin)**: 인스턴스를 1→2→3→1→… 순으로 순차 순환하며 고르게 분배하는 방식.
 - **서비스 레지스트리**: "이름→주소 목록" 장부. 여기선 Eureka.
 - **등록(register)**: 인스턴스가 장부에 자기를 기록.
 - **하트비트(heartbeat/lease renew)**: 살아있다는 주기적 신호.
 - **lease 만료/eviction**: 신호가 끊긴 인스턴스를 장부에서 제거.
 - **디스커버리(fetch)**: 호출하는 쪽이 장부를 받아오는 것(보통 캐싱).
 - **클라이언트 사이드 LB**: 호출자가 직접 인스턴스를 고름(Spring Cloud LoadBalancer).
-- **VIP(serviceId)**: `spring.application.name`. 장부에 등록되는 서비스 이름.
+- **VIP(serviceId)**: 장부에 등록되는 서비스 이름. 각 서비스의 `spring.application.name` 값이 그대로 이 이름이 된다(예: `order-service`).
 - **`lb://`**: 게이트웨이에서 "이 호스트는 서비스 이름이니 로드밸런싱해라"는 스킴.
+- **서킷브레이커(circuit breaker)**: 특정 대상에 호출 실패가 반복되면 잠시 호출 자체를 차단해 장애 확산을 막는 장치(Phase 13~14).
 - **self-preservation**: 대량 하트비트 손실 시 제거를 멈추는 Eureka의 보수적 보호 모드.
 - **최종 일관성**: 장부가 즉시가 아니라 잠시 후 정확해지는 성질.
 
@@ -396,4 +455,4 @@ curl -X POST http://localhost:8000/orders -H 'Content-Type: application/json' \
 
 ---
 
-*관련 문서: [HEXAGONAL.md](HEXAGONAL.md)(아키텍처 컨벤션), [SETUP.md](SETUP.md)(설치·실행). 전체 로드맵: 루트 `MSA-LEARNING-PLAN.md`.*
+*관련 문서: [PHASE-3-GATEWAY.md](PHASE-3-GATEWAY.md)(API 게이트웨이·라우팅), [HEXAGONAL.md](HEXAGONAL.md)(아키텍처 컨벤션), [SETUP.md](SETUP.md)(설치·실행). 전체 로드맵: 루트 `MSA-LEARNING-PLAN.md`.*
