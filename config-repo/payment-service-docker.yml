@@ -1,0 +1,4 @@
+# Phase 7: payment-service docker 오버라이드 — DB 호스트를 compose 서비스명으로.
+spring:
+  datasource:
+    url: jdbc:postgresql://payment-db:5432/paymentdb   # localhost:5433(호스트) → payment-db:5432(컨테이너 내부)

@@ -1,0 +1,5 @@
+# Phase 7: order-service docker 오버라이드 — DB 호스트를 compose 서비스명으로.
+# (username·{cipher} password 는 order-service.yml 에서 그대로 상속.)
+spring:
+  datasource:
+    url: jdbc:postgresql://order-db:5432/orderdb   # localhost:5432 → order-db:5432

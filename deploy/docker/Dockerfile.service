@@ -1,0 +1,26 @@
+# 재사용 Dockerfile (Phase 7) — 모든 Spring Boot 서비스 공통.
+# prebuilt bootJar 를 레이어드로 분해해 담는다(캐시 효율). 빌드 컨텍스트 = 리포지토리 루트.
+#
+#   ./gradlew bootJar
+#   docker build --build-arg JAR_FILE=services/order-service/build/libs/order-service-0.0.1-SNAPSHOT.jar \
+#                -f deploy/docker/Dockerfile.service -t shopsaga/order-service:latest .
+#
+# base = eclipse-temurin:21-jre-alpine (arm64 지원, busybox wget 내장 → 헬스체크 가능, 경량).
+
+# ── 1단계: bootJar 를 레이어로 분해 ──
+FROM eclipse-temurin:21-jre-alpine AS builder
+WORKDIR /builder
+ARG JAR_FILE
+COPY ${JAR_FILE} application.jar
+# jarmode=tools 는 Spring Boot 3.3+ 방식(구 layertools 대체). 4개 레이어 디렉터리 생성.
+RUN java -Djarmode=tools -jar application.jar extract --layers --destination extracted
+
+# ── 2단계: 런타임 이미지 (레이어 순서 = 변경 빈도 낮은 것부터) ──
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /application
+COPY --from=builder /builder/extracted/dependencies/ ./
+COPY --from=builder /builder/extracted/spring-boot-loader/ ./
+COPY --from=builder /builder/extracted/snapshot-dependencies/ ./
+COPY --from=builder /builder/extracted/application/ ./
+# exec 로 java 를 PID 1 로 → SIGTERM 이 JVM 에 전달되어 graceful shutdown 동작. JAVA_OPTS 로 힙 제어.
+ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS:-} -jar application.jar"]

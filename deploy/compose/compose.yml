@@ -1,0 +1,207 @@
+# Phase 7: 전체 스택 로컬 오케스트레이션 — 2 DB + 6 서비스를 한 번에.
+#
+#   ./gradlew bootJar                                        # 먼저 각 서비스 jar 빌드
+#   cp deploy/compose/.env.example deploy/compose/.env       # ENCRYPT_KEY 준비
+#   docker compose -f deploy/compose/compose.yml up --build  # 이미지 빌드 + 기동
+#
+# 로컬(호스트) ./gradlew bootRun 워크플로와 공존한다(프로파일 default vs docker). 단 포트가 겹치므로 동시 실행 X.
+name: shopsaga
+
+networks:
+  shopsaga-net:
+    driver: bridge
+
+volumes:
+  order-db-data:
+  payment-db-data:
+
+# 4개 앱 클라이언트(auth/order/payment/gateway) 공통 설정 (YAML 앵커).
+x-app-common: &app-common
+  networks: [shopsaga-net]
+  restart: unless-stopped
+  environment: &app-env
+    SPRING_PROFILES_ACTIVE: docker
+    # 부트스트랩 값(Config Server 자신을 가리킴)이라 중앙 config가 아닌 env로 주입.
+    SPRING_CONFIG_IMPORT: "configserver:http://config-service:8888"
+    JAVA_OPTS: "-Xms128m -Xmx320m"
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+
+services:
+  # ── 인프라 DB (내부 전용, 호스트 포트 미공개) ──
+  order-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: orderpw
+    volumes:
+      - order-db-data:/var/lib/postgresql   # PG18: /var/lib/postgresql 에 마운트
+    networks: [shopsaga-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order -d orderdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  payment-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: paymentpw
+    volumes:
+      - payment-db-data:/var/lib/postgresql
+    networks: [shopsaga-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment -d paymentdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ── Config Server (먼저 떠야 함) ──
+  config-service:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/config-service/build/libs/config-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/config-service:latest
+    restart: unless-stopped
+    networks: [shopsaga-net]
+    ports:
+      - "8888:8888"        # 설정 확인용 공개
+    environment:
+      ENCRYPT_KEY: "${ENCRYPT_KEY:?ENCRYPT_KEY 필요 (deploy/compose/.env 참고)}"
+      # native 검색 경로를 마운트된 컨테이너 경로로 오버라이드(로컬은 절대 호스트 경로).
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: "file:/config-repo"
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_ADD_LABEL_LOCATIONS: "false"
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+    volumes:
+      - ../../config-repo:/config-repo:ro   # config-repo 를 읽기전용 마운트
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # ── Eureka (config 클라이언트 아님, 독립) ──
+  discovery-service:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/discovery-service/build/libs/discovery-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/discovery-service:latest
+    restart: unless-stopped
+    networks: [shopsaga-net]
+    ports:
+      - "8761:8761"        # Eureka 대시보드 공개
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # ── 앱 서비스 (config·discovery healthy 이후) ──
+  auth-service:
+    <<: *app-common
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/auth-service/build/libs/auth-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/auth-service:latest
+    depends_on:
+      config-service: { condition: service_healthy }
+      discovery-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9000/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  order-service:
+    <<: *app-common
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/order-service/build/libs/order-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/order-service:latest
+    depends_on:
+      config-service: { condition: service_healthy }
+      discovery-service: { condition: service_healthy }
+      order-db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  payment-service:
+    <<: *app-common
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/payment-service/build/libs/payment-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/payment-service:latest
+    depends_on:
+      config-service: { condition: service_healthy }
+      discovery-service: { condition: service_healthy }
+      payment-db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  gateway-service:
+    <<: *app-common
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/gateway-service/build/libs/gateway-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/gateway-service:latest
+    ports:
+      - "8000:8000"        # 단일 진입점만 공개
+    depends_on:
+      config-service: { condition: service_healthy }
+      discovery-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8000/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
