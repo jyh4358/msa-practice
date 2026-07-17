@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>README (프로젝트 개요) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="shopsaga--msa-핸즈온-학습-플랫폼">ShopSaga — MSA 핸즈온 학습 플랫폼</h1>
+<p>Spring Cloud로 마이크로서비스 아키텍처를 <strong>한 단계씩 직접 만들며 트레이드오프를 배우는</strong> 학습 프로젝트.
+전체 로드맵(18단계)은 <strong><a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a></strong>,
+설치·실행 상세(트러블슈팅 포함)는 <strong><a href="SETUP.html"><code>docs/SETUP.md</code></a></strong>,
+서비스 내부 아키텍처(<strong>헥사고날</strong>) 컨벤션은 <strong><a href="HEXAGONAL.html"><code>docs/HEXAGONAL.md</code></a></strong> 참고.</p>
+<ul>
+<li>스택: Java 21 LTS · Spring Boot 3.5.15 · Spring Cloud 2025.0.3 (Northfields) · Gradle 8.14</li>
+<li>빌드: Gradle 멀티모듈 모노레포 · 실행: 로컬 Docker Compose(→ 이후 Kubernetes)</li>
+<li>도메인: 전자상거래 &quot;ShopSaga&quot; (order → inventory → payment)</li>
+</ul>
+<hr>
+<h2 id="현재-상태-phase-7--전체-스택을-docker-compose로-기동">현재 상태: Phase 7 — 전체 스택을 Docker Compose로 기동</h2>
+<p>6개 서비스가 <strong>중앙 설정(Config Server)</strong> 에서 설정을 받고, <strong>서비스 디스커버리(Eureka)</strong> 로 서로를
+이름으로 찾으며, <strong>API 게이트웨이</strong>가 단일 진입점이고, <strong>JWT(RS256)</strong> 로 인증/인가가 걸려 있습니다.
+DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</strong> 되어 중앙 관리됩니다.
+이제 이 전체 스택(6 서비스 + 2 DB)을 <strong><code>docker compose up</code> 한 번으로</strong> 컨테이너로 띄울 수 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>서비스</th>
+<th>포트</th>
+<th>역할</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>config-service</strong></td>
+<td>8888</td>
+<td>Config Server(중앙 설정, native 백엔드 + 시크릿 암호화)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>discovery-service</strong></td>
+<td>8761</td>
+<td>Eureka 서버(서비스 레지스트리)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>auth-service</strong></td>
+<td>9000</td>
+<td>RS256 JWT 발급(<code>/auth/login</code>) + JWKS(<code>/oauth2/jwks</code>)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>gateway-service</strong></td>
+<td>8000</td>
+<td>단일 진입점 라우팅 + 엣지 인증(리소스 서버)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>order-service</strong></td>
+<td>8080</td>
+<td>주문 + 재고, 결제는 payment 원격 호출</td>
+<td><code>orderdb</code>@5432</td>
+</tr>
+<tr>
+<td><strong>payment-service</strong></td>
+<td>8081</td>
+<td>결제 캡처</td>
+<td><code>paymentdb</code>@5433</td>
+</tr>
+</tbody></table>
+<ul>
+<li>클라이언트는 <strong>게이트웨이(8000)</strong> 만 알면 됩니다. 서비스 위치는 Eureka가, 인증은 JWT가 처리.</li>
+<li>서비스 간 통신은 <strong>이름 기반</strong>(게이트웨이 <code>lb://order-service</code>, order→payment <code>http://payment-service</code> @LoadBalanced).</li>
+<li>설정은 <strong>config-service(8888)</strong> 에서 받습니다(로컬엔 이름·import·포트만). DB 비번은 <code>{cipher}</code> 암호문으로 중앙 저장.</li>
+<li>데모 계정: <code>alice/secret</code>(USER), <code>admin/admin123</code>(USER+ADMIN).</li>
+</ul>
+<hr>
+<h2 id="단계별-진행--문서">단계별 진행 &amp; 문서</h2>
+<p>각 단계에서 <strong>무엇을·왜 했는지</strong>와 트레이드오프를 문서로 정리했습니다(초심자 친화).</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>내용</th>
+<th>문서</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>0</strong></td>
+<td>스캐폴드·툴체인(모노레포·버전 카탈로그·Flyway·Colima·동작 증명)</td>
+<td><a href="PHASE-0-SCAFFOLD.html">PHASE-0-SCAFFOLD.md</a></td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>모놀리스: 주문+재고+결제 <strong>단일 트랜잭션 ACID</strong>, 비관적 락·QueryDSL·출력모델·Lombok</td>
+<td><a href="PHASE-1-MONOLITH.html">PHASE-1-MONOLITH.md</a></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>payment-service <strong>분리</strong>(2-1) + <strong>원격 결제 전환</strong>(2-2, 단일 트랜잭션 소멸)</td>
+<td><a href="PHASE-2-SPLIT-PAYMENT.html">PHASE-2-SPLIT-PAYMENT.md</a></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>API Gateway</strong>(단일 진입점, Spring Cloud Gateway)</td>
+<td><a href="PHASE-3-GATEWAY.html">PHASE-3-GATEWAY.md</a></td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>서비스 디스커버리</strong>(Eureka, 이름 기반 라우팅·호출)</td>
+<td><a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY.md</a></td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>보안</strong>(RS256 JWT 인증 + 역할 인가 + 토큰 전파)</td>
+<td><a href="SECURITY.html">SECURITY.md</a></td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>중앙 설정</strong>(Spring Cloud Config, native 백엔드 + 시크릿 암호화)</td>
+<td><a href="PHASE-6-CONFIG.html">PHASE-6-CONFIG.md</a></td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>로컬 오케스트레이션</strong>(Docker Compose — 이미지 빌드·서비스명 DNS·기동순서)</td>
+<td><a href="PHASE-7-COMPOSE.html">PHASE-7-COMPOSE.md</a></td>
+</tr>
+</tbody></table>
+<p>공통 아키텍처 컨벤션은 <a href="HEXAGONAL.html">HEXAGONAL.md</a>, 설치/실행은 <a href="SETUP.html">SETUP.md</a>.</p>
+<blockquote>
+<p>각 문서 끝에는 <strong>&quot;알려진 한계 → 해결 Phase&quot;</strong> 표가 있어, 그 단계에서 의도적으로 남긴 문제와
+그것이 어느 단계에서 해결되는지 볼 수 있습니다.</p>
+<p>📖 <strong>파트 A(Phase 0~7) 1차 복습</strong>: <a href="REVIEW-PART-A.html">REVIEW-PART-A.md</a> — 큰 그림·개념 자가진단·셀프 퀴즈·재현 체크리스트.</p>
+</blockquote>
+<hr>
+<h2 id="사전-준비-1회">사전 준비 (1회)</h2>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># 컨테이너 런타임 (Apple Silicon)</span>
+brew install colima docker docker-compose
+colima start --<span class="hljs-built_in">arch</span> aarch64 --cpu 4 --memory 8
+<span class="hljs-comment"># JDK 21 — 선택. 없으면 Gradle 툴체인이 자동으로 내려받음.</span>
+</code></pre><blockquote>
+<p><code>./gradlew</code> 빌드는 설치된 JDK로 실행되고, 컴파일/테스트 타깃만 Java 21로 고정됩니다.</p>
+</blockquote>
+<hr>
+<h2 id="실행--검증-현재-phase-7">실행 &amp; 검증 (현재: Phase 7)</h2>
+<h3 id="0-한-번에-전체-스택-docker-compose--권장">0) 한 번에 전체 스택 (Docker Compose — 권장)</h3>
+<pre><code class="hljs language-bash">./gradlew bootJar
+<span class="hljs-built_in">cp</span> deploy/compose/.env.example deploy/compose/.env            <span class="hljs-comment"># ENCRYPT_KEY 준비</span>
+docker compose -f deploy/compose/compose.yml up -d --build    <span class="hljs-comment"># 6 서비스 + 2 DB</span>
+<span class="hljs-comment"># 호스트 공개 포트: 게이트웨이 :8000, Eureka :8761, Config :8888 (나머지 내부 전용)</span>
+<span class="hljs-comment"># 상태: docker compose -f deploy/compose/compose.yml ps   |   정지: ... down (볼륨까지: down -v)</span>
+</code></pre><p>아래 1)~3)은 컨테이너 없이 호스트에서 개별 실행하는 개발 루프입니다(둘 중 하나만 — 포트 충돌).</p>
+<h3 id="1-빌드--테스트">1) 빌드 &amp; 테스트</h3>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># 동시성 통합 테스트(StockConcurrencyTest)는 PostgreSQL 컨테이너 필요 → Docker 실행 중이어야 함.</span>
+DOCKER_HOST=unix://<span class="hljs-variable">$HOME</span>/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=<span class="hljs-literal">true</span> ./gradlew build
+</code></pre><h3 id="2-인프라--서비스-기동-순서-중요-configdiscovery-먼저">2) 인프라 + 서비스 기동 (순서 중요: config·discovery 먼저)</h3>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># (a) DB</span>
+docker compose -f deploy/compose/compose.infra.yml up -d order-db payment-db
+<span class="hljs-comment"># (b) 설정 서버 먼저(시크릿 복호화 키를 env로 주입) → 레지스트리 → 인증 → 나머지</span>
+<span class="hljs-built_in">export</span> ENCRYPT_KEY=<span class="hljs-string">&#x27;shopsaga-dev-encrypt-key-0123456789ab&#x27;</span>   <span class="hljs-comment"># dev 키(운영은 절대 커밋/공유 X)</span>
+./gradlew --no-daemon :services:config-service:bootRun   <span class="hljs-comment"># 8888 (먼저, ENCRYPT_KEY 필요)</span>
+./gradlew :services:discovery-service:bootRun   <span class="hljs-comment"># 8761</span>
+./gradlew :services:auth-service:bootRun        <span class="hljs-comment"># 9000</span>
+./gradlew :services:order-service:bootRun       <span class="hljs-comment"># 8080</span>
+./gradlew :services:payment-service:bootRun     <span class="hljs-comment"># 8081</span>
+./gradlew :services:gateway-service:bootRun     <span class="hljs-comment"># 8000</span>
+<span class="hljs-comment"># 설정 확인: curl localhost:8888/order-service/default   |   등록 확인: curl -H &#x27;Accept: application/json&#x27; localhost:8761/eureka/apps</span>
+</code></pre><h3 id="3-인증--호출-게이트웨이-8000-통과">3) 인증 → 호출 (게이트웨이 8000 통과)</h3>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># 로그인 → JWT 획득</span>
+TOKEN=$(curl -s -X POST localhost:8000/auth/login -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="hljs-string">&#x27;{&quot;username&quot;:&quot;alice&quot;,&quot;password&quot;:&quot;secret&quot;}&#x27;</span> | python3 -c <span class="hljs-string">&#x27;import sys,json;print(json.load(sys.stdin)[&quot;token&quot;])&#x27;</span>)
+
+<span class="hljs-comment"># 토큰 없이 → 401 (엣지 차단)</span>
+curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</span> localhost:8000/orders
+
+<span class="hljs-comment"># 토큰으로 주문 생성 → 201 (order가 payment까지 토큰 전파)</span>
+P2=22222222-2222-2222-2222-222222222222
+curl -s -X POST localhost:8000/orders -H <span class="hljs-string">&quot;Authorization: Bearer <span class="hljs-variable">$TOKEN</span>&quot;</span> -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="hljs-string">&quot;{\&quot;customerId\&quot;:\&quot;11111111-1111-1111-1111-111111111111\&quot;,\&quot;items\&quot;:[{\&quot;productId\&quot;:\&quot;<span class="hljs-variable">$P2</span>\&quot;,\&quot;quantity\&quot;:1,\&quot;unitPrice\&quot;:10.00}]}&quot;</span>
+
+<span class="hljs-comment"># 역할 인가: 주문 목록은 ADMIN 전용 → alice(USER) 는 403</span>
+curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</span> -H <span class="hljs-string">&quot;Authorization: Bearer <span class="hljs-variable">$TOKEN</span>&quot;</span> localhost:8000/orders
+</code></pre><blockquote>
+<p>Phase 1의 단일 트랜잭션 ACID 시연(해피/결제거절/재고부족)은 <a href="PHASE-1-MONOLITH.html">PHASE-1-MONOLITH.md</a> 참고.
+각 서비스 Swagger: <code>http://localhost:&lt;port&gt;/swagger-ui/index.html</code> (order/payment).</p>
+</blockquote>
+<hr>
+<h2 id="다음-phase-8--관측성-observability">다음: Phase 8 — 관측성 (Observability)</h2>
+<p>로그·메트릭·분산 트레이싱을 수집·시각화합니다(여러 서비스를 거치는 요청을 추적).
+이후 9 Kafka → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+자세한 단계는 <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> 참고.</p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-7--전체-스택을-docker-compose로-기동">현재 상태: Phase 7 — 전체 스택을 Docker Compose로 기동</a></li>
+<li class="toc-h2"><a href="#단계별-진행--문서">단계별 진행 &amp; 문서</a></li>
+<li class="toc-h2"><a href="#사전-준비-1회">사전 준비 (1회)</a></li>
+<li class="toc-h2"><a href="#실행--검증-현재-phase-7">실행 &amp; 검증 (현재: Phase 7)</a></li>
+<li class="toc-h3"><a href="#0-한-번에-전체-스택-docker-compose--권장">0) 한 번에 전체 스택 (Docker Compose — 권장)</a></li>
+<li class="toc-h3"><a href="#1-빌드--테스트">1) 빌드 &amp; 테스트</a></li>
+<li class="toc-h3"><a href="#2-인프라--서비스-기동-순서-중요-configdiscovery-먼저">2) 인프라 + 서비스 기동 (순서 중요: config·discovery 먼저)</a></li>
+<li class="toc-h3"><a href="#3-인증--호출-게이트웨이-8000-통과">3) 인증 → 호출 (게이트웨이 8000 통과)</a></li>
+<li class="toc-h2"><a href="#다음-phase-8--관측성-observability">다음: Phase 8 — 관측성 (Observability)</a></li></ul></nav></aside>
+</body>
+</html>

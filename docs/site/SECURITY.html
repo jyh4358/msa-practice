@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 5 · 보안(JWT) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li class="active"><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="보안--jwt-인증인가-resource-server-패턴">보안 — JWT 인증/인가 (Resource Server 패턴)</h1>
+<blockquote>
+<p><strong>이 문서는 Phase 5 작업을 설명합니다.</strong> 보안이 처음이어도 끝까지 이해하도록 개념 → 그림 →
+이 프로젝트의 실제 코드/설정 → 동작 원리 → 검증 → 알려진 한계 순으로 정리했습니다.</p>
+</blockquote>
+<hr>
+<h2 id="0-한-줄-요약">0. 한 줄 요약</h2>
+<blockquote>
+<p><strong>누구나 호출하던 API에 &quot;로그인해서 받은 토큰(JWT)이 있어야 통과&quot;를 붙였다.</strong>
+토큰은 <code>auth-service</code>가 <strong>개인키로 서명(RS256)</strong> 해 발급하고, 각 서비스는 <code>auth-service</code>가
+<strong>공개키(JWKS)</strong> 로 노출한 키로 <strong>서명을 검증</strong>한다. 게이트웨이가 진입점에서 1차로 막고,
+각 서비스도 다시 검증한다(defense in depth). 토큰 안의 <strong>역할(roles)</strong> 로 권한도 구분한다.</p>
+</blockquote>
+<hr>
+<h2 id="1-왜-필요한가-phase-4까지의-문제">1. 왜 필요한가? (Phase 4까지의 문제)</h2>
+<p>Phase 4까지는 <strong>누구나</strong> 게이트웨이/서비스를 호출할 수 있었다. 토큰도, 로그인도 없었다.
+서비스 간 호출(order→payment)도 신뢰 경계가 없었다. 즉:</p>
+<ul>
+<li>인증(authentication) 없음 → &quot;당신이 누구인지&quot; 모른다.</li>
+<li>인가(authorization) 없음 → &quot;무엇을 할 수 있는지&quot; 구분이 없다.</li>
+</ul>
+<p>Phase 5는 여기에 <strong>인증</strong>(로그인 → 토큰)과 <strong>인가</strong>(역할 기반 접근 제어)를 넣는다.</p>
+<hr>
+<h2 id="2-핵심-개념">2. 핵심 개념</h2>
+<h3 id="21-인증-vs-인가">2.1 인증 vs 인가</h3>
+<ul>
+<li><strong>인증(Authentication)</strong>: &quot;너 누구야?&quot; — 로그인해서 신원을 증명(→ 토큰 발급).</li>
+<li><strong>인가(Authorization)</strong>: &quot;그걸 할 권한 있어?&quot; — 신원에 따라 접근 허용/거부(역할·소유권 등).</li>
+</ul>
+<h3 id="22-jwt-json-web-token">2.2 JWT (JSON Web Token)</h3>
+<p>서명된 문자열 하나에 &quot;누구(sub), 언제까지 유효(exp), 무슨 역할(roles)&quot;을 담는다. 세 부분(<code>header.payload.signature</code>)이 점으로 연결된다. <strong>서버가 세션을 저장하지 않는다(stateless)</strong> — 토큰 자체가 신원 증명서다.</p>
+<ul>
+<li><strong>claim(클레임)</strong>: payload 안의 각 항목(<code>sub</code>, <code>exp</code>, <code>roles</code> 등). &quot;토큰이 주장하는 사실&quot; 하나하나를 뜻한다.</li>
+<li><strong>전달 방법</strong>: 클라이언트는 이후 요청마다 JWT를 HTTP 헤더 <code>Authorization: Bearer &lt;JWT&gt;</code> 형태로 보낸다. <code>Bearer</code>(소지자)는 &quot;이 토큰을 가진 사람을 그 신원으로 인정한다&quot;는 인증 스킴 이름이다.</li>
+</ul>
+<h3 id="23-대칭키-vs-비대칭키rs256--jwks">2.3 대칭키 vs 비대칭키(RS256) + JWKS</h3>
+<ul>
+<li><strong>HS256(대칭키)</strong>: 발급자와 검증자가 <strong>같은 비밀키</strong>를 공유. 검증 서비스가 많아지면 비밀키가 여기저기 복사돼 위험.</li>
+<li><strong>RS256(비대칭키, 이 프로젝트)</strong>: 발급자만 <strong>개인키(private)</strong> 로 서명, 검증자는 <strong>공개키(public)</strong> 로 검증. 검증 서비스는 공개키만 있으면 되고 서명은 못 한다(안전).</li>
+<li><strong>JWKS(JSON Web Key Set)</strong>: 공개키를 JSON으로 노출하는 표준 엔드포인트(<code>/oauth2/jwks</code>). 검증 서비스는 이 URL(<code>jwk-set-uri</code>)만 알면 공개키를 받아 검증한다. 키에는 <code>kid</code>(key id)가 있어 여러 키를 구분한다.</li>
+</ul>
+<h3 id="24-resource-server--엣지-인증--토큰-전파">2.4 Resource Server / 엣지 인증 / 토큰 전파</h3>
+<ul>
+<li><strong>Resource Server</strong>: JWT를 검증해 보호하는 서비스(우리의 gateway·order·payment).</li>
+<li><strong>엣지 인증</strong>: 진입점(게이트웨이)에서 미인증 요청을 먼저 차단.</li>
+<li><strong>defense in depth</strong>: 게이트웨이만 믿지 않고 각 서비스도 다시 검증(게이트웨이 우회 대비).</li>
+<li><strong>토큰 전파</strong>: 게이트웨이 → order → payment 로 같은 Bearer 토큰을 넘겨 신원을 이어준다.</li>
+</ul>
+<blockquote>
+<p><strong>리액티브 스택 vs 서블릿 스택 (설정 API가 다른 이유)</strong>
+이 프로젝트에는 두 종류의 웹 스택이 섞여 있다.</p>
+<ul>
+<li><strong>게이트웨이 = 리액티브(WebFlux)</strong> — 논블로킹 스택. 보안 설정에 <code>ServerHttpSecurity</code>·<code>authorizeExchange</code>를 쓴다.</li>
+<li><strong>order / payment = 서블릿(MVC)</strong> — 전통적인 요청-스레드 스택. 보안 설정에 <code>HttpSecurity</code>·<code>authorizeHttpRequests</code>를 쓴다.</li>
+</ul>
+<p><strong>설정 API의 이름만 다를 뿐, 개념은 완전히 같다</strong>: 셋 다 &quot;JWT를 auth-service의 JWKS(공개키)로 검증하는 Resource Server&quot;다. 아래 4.2(리액티브)와 4.3(서블릿)이 왜 다르게 보이는지는 이 스택 차이 때문이다.</p>
+</blockquote>
+<h3 id="25-역할roles과-role_-규약">2.5 역할(roles)과 <code>ROLE_</code> 규약</h3>
+<p>Spring Security의 <code>hasRole(&#39;ADMIN&#39;)</code>은 내부적으로 권한 이름 <code>ROLE_ADMIN</code>을 찾는다.
+그래서 <strong>토큰에는 순수 역할명</strong>(<code>[&quot;USER&quot;,&quot;ADMIN&quot;]</code>)만 담고, <strong>검증하는 쪽이 <code>ROLE_</code>을 붙인다</strong>.</p>
+<hr>
+<h2 id="3-이-프로젝트의-구성">3. 이 프로젝트의 구성</h2>
+<pre><code>                          ┌──────────────────────────────┐
+              ┌──JWKS 조회─▶│  auth-service (9000)          │  RSA 개인키로 서명
+              │           │  POST /auth/login → JWT 발급   │  공개키를 /oauth2/jwks 로 노출
+              │           │  GET  /oauth2/jwks (공개키)     │
+              │           └──────────────────────────────┘
+              │ (공개키로 서명 검증)      ▲ 로그인
+              │                          │
+   클라이언트 │  ①로그인                 │
+   ──────────┼──POST :8000/auth/login──▶│ (게이트웨이가 lb://auth-service 로 전달, /auth/** 는 공개)
+             │
+             │  ②이후 요청에 Authorization: Bearer &lt;JWT&gt;
+   ──────────┴──▶ ┌───────────────┐  검증+전파  ┌──────────────┐  전파  ┌──────────────┐
+                  │ gateway (8000) │──────────▶│ order (8080) │──────▶│ payment(8081)│
+                  │ 리소스 서버     │  Bearer   │ 리소스 서버   │ Bearer│ 리소스 서버   │
+                  │ (엣지 인증)     │  통과     │ +역할 인가    │       │              │
+                  └───────────────┘           └──────────────┘       └──────────────┘
+                  세 리소스 서버 모두 auth-service의 JWKS(공개키)로 토큰 서명을 검증한다.
+</code></pre><hr>
+<h2 id="4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</h2>
+<blockquote>
+<p><strong>이 절의 코드는 핵심만 보여주는 발췌/축약본이다.</strong> import·예외 처리·빈 배선 등 곁가지는 생략했으므로, 그대로 복사-붙여넣기하면 컴파일되지 않을 수 있다. 전체 코드는 각 파일 경로(<code>config/...</code>, <code>adapter/...</code>)에서 확인하자.</p>
+</blockquote>
+<h3 id="41-auth-service--토큰-발급--jwks">4.1 auth-service — 토큰 발급 + JWKS</h3>
+<p><strong>RSA 키페어 생성 + JWKS 소스</strong> (<code>config/RsaKeyConfig.java</code>)</p>
+<pre><code class="hljs language-java"><span class="hljs-type">RSAKey</span> <span class="hljs-variable">rsaKey</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RSAKey</span>.Builder(pub).privateKey(priv).keyID(UUID.randomUUID()).build();
+JWKSource&lt;SecurityContext&gt; jwkSource = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ImmutableJWKSet</span>&lt;&gt;(<span class="hljs-keyword">new</span> <span class="hljs-title class_">JWKSet</span>(rsaKey));
+</code></pre><p>부팅 시 RSA 2048 키페어를 만든다. <code>kid</code>는 UUID. (인메모리라 재시작하면 <code>kid</code>가 바뀌어 이전 토큰은 무효 → 재로그인 필요. 학습용.)</p>
+<p><strong>서명기</strong> (<code>config/JwtConfig.java</code>)</p>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Bean</span> JwtEncoder <span class="hljs-title function_">jwtEncoder</span><span class="hljs-params">(JWKSource&lt;SecurityContext&gt; jwkSource)</span> {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">NimbusJwtEncoder</span>(jwkSource);   <span class="hljs-comment">// 개인키로 RS256 서명</span>
+}
+</code></pre><p><strong>토큰 발급</strong> (<code>service/TokenService.java</code>)</p>
+<pre><code class="hljs language-java"><span class="hljs-type">JwsHeader</span> <span class="hljs-variable">header</span> <span class="hljs-operator">=</span> JwsHeader.with(SignatureAlgorithm.RS256).build();
+<span class="hljs-type">JwtClaimsSet</span> <span class="hljs-variable">claims</span> <span class="hljs-operator">=</span> JwtClaimsSet.builder()
+        .subject(subject).issuedAt(now).expiresAt(now.plus(<span class="hljs-number">60</span>, MINUTES))
+        .claim(<span class="hljs-string">&quot;roles&quot;</span>, roles)          <span class="hljs-comment">// 순수 역할명(접두사 없음)</span>
+        .build();
+jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+</code></pre><p><strong>로그인</strong> (<code>web/AuthController.java</code>) — 실패 시 <strong>명시적 401</strong>(컨트롤러에서 던진 예외는 자동 401 변환이 안 되므로):</p>
+<pre><code class="hljs language-java"><span class="hljs-keyword">if</span> (user 없음 || !passwordEncoder.matches(pw, user.getPassword()))
+    <span class="hljs-keyword">return</span> ResponseEntity.status(<span class="hljs-number">401</span>).build();
+<span class="hljs-comment">// 성공: ROLE_ 접두사를 떼고 roles 클레임으로 → 토큰 발급</span>
+</code></pre><p><strong>JWKS 노출</strong> (<code>web/JwksController.java</code>)</p>
+<pre><code class="hljs language-java"><span class="hljs-meta">@GetMapping(&quot;/oauth2/jwks&quot;)</span>
+Map&lt;String,Object&gt; <span class="hljs-title function_">jwks</span><span class="hljs-params">()</span> { <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">JWKSet</span>(rsaKey).toPublicJWKSet().toJSONObject(); }
+<span class="hljs-comment">// toPublicJWKSet() 이 개인키 성분(d,p,q,...)을 제거 → 공개키만 노출</span>
+</code></pre><h3 id="42-게이트웨이--리액티브-리소스-서버엣지-인증">4.2 게이트웨이 — 리액티브 리소스 서버(엣지 인증)</h3>
+<p><code>config/SecurityConfig.java</code> (리액티브라 <code>ServerHttpSecurity</code>·<code>@EnableWebFluxSecurity</code>):</p>
+<pre><code class="hljs language-java">http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+    .authorizeExchange(ex -&gt; ex
+        .pathMatchers(<span class="hljs-string">&quot;/auth/**&quot;</span>).permitAll()        <span class="hljs-comment">// 로그인은 공개(순서상 먼저!)</span>
+        .pathMatchers(<span class="hljs-string">&quot;/actuator/health&quot;</span>).permitAll()
+        .anyExchange().authenticated())              <span class="hljs-comment">// 그 외엔 유효한 JWT 필요</span>
+    .oauth2ResourceServer(o -&gt; o.jwt(j -&gt; j.jwtAuthenticationConverter(...roles...)));
+</code></pre><p><code>application.yml</code>:</p>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">security:</span>
+    <span class="hljs-attr">oauth2:</span>
+      <span class="hljs-attr">resourceserver:</span>
+        <span class="hljs-attr">jwt:</span>
+          <span class="hljs-attr">jwk-set-uri:</span> <span class="hljs-string">http://localhost:9000/oauth2/jwks</span>   <span class="hljs-comment"># auth-service 공개키</span>
+</code></pre><h3 id="43-order--payment--서블릿-리소스-서버">4.3 order / payment — 서블릿 리소스 서버</h3>
+<p><code>adapter/in/web/SecurityConfig.java</code> (서블릿이라 <code>HttpSecurity</code>·<code>@EnableWebSecurity</code>):</p>
+<pre><code class="hljs language-java"><span class="hljs-meta">@EnableWebSecurity</span>
+<span class="hljs-meta">@EnableMethodSecurity</span>                                  <span class="hljs-comment">// order 만: @PreAuthorize 활성화</span>
+<span class="hljs-meta">@ConditionalOnWebApplication(type = SERVLET)</span>           <span class="hljs-comment">// 비-웹 테스트(NONE)에선 로딩 안 함</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">SecurityConfig</span> {
+  SecurityFilterChain(HttpSecurity http) {
+    http.sessionManagement(STATELESS).csrf(disable)
+        .authorizeHttpRequests(a -&gt; a.requestMatchers(<span class="hljs-string">&quot;/actuator/health&quot;</span>).permitAll()
+                                     .anyRequest().authenticated())
+        .oauth2ResourceServer(o -&gt; o.jwt(j -&gt; j.jwtAuthenticationConverter(conv())));
+  }
+  <span class="hljs-comment">// roles 클레임 → ROLE_ 권한</span>
+  JwtAuthenticationConverter <span class="hljs-title function_">conv</span><span class="hljs-params">()</span> {
+    <span class="hljs-type">var</span> <span class="hljs-variable">a</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">JwtGrantedAuthoritiesConverter</span>();
+    a.setAuthoritiesClaimName(<span class="hljs-string">&quot;roles&quot;</span>); a.setAuthorityPrefix(<span class="hljs-string">&quot;ROLE_&quot;</span>);
+    <span class="hljs-type">var</span> <span class="hljs-variable">c</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">JwtAuthenticationConverter</span>(); c.setJwtGrantedAuthoritiesConverter(a); <span class="hljs-keyword">return</span> c;
+  }
+}
+</code></pre><blockquote>
+<p><strong><code>@ConditionalOnWebApplication(SERVLET)</code> 이유</strong>: <code>StockConcurrencyTest</code>는 <code>webEnvironment=NONE</code>
+(비-웹)이라 <code>HttpSecurity</code> 빈이 없어 컨텍스트가 깨진다. 이 조건으로 비-웹 컨텍스트에선 보안 설정을
+로딩하지 않아 도메인/동시성 테스트가 그대로 돈다. 운영(서블릿 웹앱)에서는 항상 활성이다.</p>
+</blockquote>
+<p><strong>역할 인가 데모</strong> (<code>OrderController.all()</code>):</p>
+<pre><code class="hljs language-java"><span class="hljs-meta">@GetMapping</span> <span class="hljs-meta">@PreAuthorize(&quot;hasRole(&#x27;ADMIN&#x27;)&quot;)</span>   <span class="hljs-comment">// ROLE_ADMIN 필요 → USER 토큰이면 403</span>
+List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="hljs-params">()</span> { ... }
+</code></pre><h3 id="44-토큰-전파--order--payment">4.4 토큰 전파 — order → payment</h3>
+<p><code>adapter/out/payment/BearerTokenRelayInterceptor.java</code>:</p>
+<pre><code class="hljs language-java"><span class="hljs-type">Authentication</span> <span class="hljs-variable">auth</span> <span class="hljs-operator">=</span> SecurityContextHolder.getContext().getAuthentication();
+<span class="hljs-keyword">if</span> (auth != <span class="hljs-literal">null</span> &amp;&amp; auth.getCredentials() <span class="hljs-keyword">instanceof</span> AbstractOAuth2Token token)
+    request.getHeaders().setBearerAuth(token.getTokenValue());  <span class="hljs-comment">// 인바운드 토큰을 그대로 붙임</span>
+</code></pre><p><code>PaymentClientConfig.java</code> — 인터셉터는 <strong><code>build()</code> 전에</strong> 등록:</p>
+<pre><code class="hljs language-java">RestClient.builder().requestInterceptor(<span class="hljs-keyword">new</span> <span class="hljs-title class_">BearerTokenRelayInterceptor</span>());
+</code></pre><p><code>SecurityContextHolder</code>는 <strong>요청별 스레드-로컬(thread-local, 스레드마다 따로 저장되는 저장소)</strong> 로, Spring Security가 현재 요청을 처리하는 스레드에 인증 정보를 담아 둔다. order→payment 호출은 <strong>같은 요청 스레드에서 동기(blocking)로</strong> 일어나므로, 그 순간에도 <code>SecurityContextHolder</code>가 가리키는 토큰이 그대로 유효하다.</p>
+<blockquote>
+<p><strong><code>build()</code> 전에 등록하는 이유</strong>: <code>RestClient.builder()</code>는 <code>build()</code>를 호출하는 순간의 설정을 스냅샷으로 굳혀 클라이언트를 만든다. 그래서 인터셉터는 반드시 <code>build()</code> <strong>이전</strong>에 붙여야 하고, <code>build()</code> 이후에 추가하면 이미 만들어진 클라이언트에는 반영되지 않아 무효다.</p>
+</blockquote>
+<h3 id="45-결정-jwk-set-uri는-왜-lb가-아니라-직접-localhost9000">4.5 결정: <code>jwk-set-uri</code>는 왜 <code>lb://</code>가 아니라 직접 <code>localhost:9000</code>?</h3>
+<blockquote>
+<p><strong>먼저 <code>lb</code>가 뭔지 요약</strong>: <code>lb://</code>는 Phase 4에서 도입한 스킴으로, Spring Cloud LoadBalancer가 <strong>Eureka(서비스 레지스트리)에 등록된 서비스 이름</strong>(예: <code>auth-service</code>)을 실제 <code>host:port</code>로 해석해 준다. 즉 <code>lb://auth-service</code>는 &quot;Eureka에게 auth-service의 실제 주소를 물어봐 라우팅하라&quot;는 뜻이다. 자세한 배경은 <a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY.md</a> 참고.</p>
+</blockquote>
+<p>JWT 검증기(<code>NimbusJwtDecoder</code>/reactive)는 <strong>로드밸런싱 안 되는 평범한 HTTP 클라이언트</strong>를 쓴다.
+그래서 <code>http://auth-service/...</code>(Eureka 이름)는 해석하지 못한다. 로컬 dev에선 <strong>직접 host:port</strong>로
+지정하는 게 가장 단순·확실하다. (프로퍼티라 Phase 7 compose에서 컨테이너 DNS로 바꾸면 코드 변경 불필요.)</p>
+<h3 id="46-스킴규약-정리-헷갈림-방지">4.6 스킴/규약 정리 (헷갈림 방지)</h3>
+<table>
+<thead>
+<tr>
+<th>위치</th>
+<th>이름 표기</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>게이트웨이 라우트 <code>uri</code> (Phase 4)</td>
+<td><code>lb://order-service</code></td>
+</tr>
+<tr>
+<td><code>@LoadBalanced RestClient</code> (Phase 4)</td>
+<td><code>http://payment-service</code></td>
+</tr>
+<tr>
+<td><strong>리소스 서버 <code>jwk-set-uri</code> (Phase 5)</strong></td>
+<td><strong><code>http://localhost:9000/...</code></strong> (직접)</td>
+</tr>
+<tr>
+<td>토큰 역할 클레임</td>
+<td>순수 역할명 → 검증 시 <code>ROLE_</code> 부여</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-요청-흐름">5. 요청 흐름</h2>
+<h3 id="51-로그인">5.1 로그인</h3>
+<pre><code>POST :8000/auth/login {alice, secret}
+  → 게이트웨이(/auth/** 공개) → lb://auth-service
+  → auth-service: 비번 검증 → RS256 서명 JWT(sub=alice, roles=[USER], exp=+60m) 반환
+</code></pre><h3 id="52-인증된-요청--전파">5.2 인증된 요청 + 전파</h3>
+<pre><code>POST :8000/orders  (Authorization: Bearer &lt;JWT&gt;)
+  → 게이트웨이: JWKS 공개키로 서명·만료 검증 → 통과 → order 로 전달(Authorization 헤더 유지)
+  → order: 다시 검증 → 재고 차감 → payment 호출 시 인터셉터가 같은 Bearer 전파
+  → payment: 다시 검증 → 결제 캡처 → 201
+</code></pre><p>토큰이 없거나 위조/만료면 게이트웨이(또는 서비스)가 <strong>401</strong>. 역할이 모자라면 <strong>403</strong>.</p>
+<hr>
+<h2 id="6-동작-원리-더-깊게">6. 동작 원리 더 깊게</h2>
+<ul>
+<li><strong>서명 검증</strong>: auth-service가 개인키로 서명 → 리소스 서버가 JWKS의 공개키로 검증. 위조 불가.</li>
+<li><strong>JWKS lazy fetch</strong>: 리소스 서버는 첫 토큰 검증 시 JWKS를 가져와 캐싱하고, 모르는 <code>kid</code>가 오면
+다시 가져온다. 그래서 auth-service가 부팅 시 꺼져 있어도 다른 서비스는 정상 기동한다(자가 치유).</li>
+<li><strong>stateless + CSRF off</strong>: 세션 없이 매 요청 토큰으로 인증 → 서버가 세션을 안 쓰므로 CSRF 방어
+대상(쿠키 기반 세션)이 아니라서 CSRF를 끈다. Bearer 토큰 API의 정석.</li>
+<li><strong>엣지 + 서비스 이중 검증</strong>: 게이트웨이만 믿지 않는다. 서비스가 직접 호출돼도(게이트웨이 우회) 막힌다
+— 실제로 <code>POST :8081/payments</code>를 토큰 없이 부르면 401.</li>
+</ul>
+<hr>
+<h2 id="7-검증-실제로-실행한-스모크">7. 검증 (실제로 실행한 스모크)</h2>
+<pre><code>0) JWKS: RSA 공개키만 노출(개인키 d 없음)               ✅
+1) 로그인(게이트웨이→auth) alice/admin → 토큰            ✅
+2) 잘못된 비밀번호 → 401                                 ✅
+3) 토큰 없이 /orders·/inventory → 401 (엣지 차단)        ✅
+4) alice 토큰 → /inventory 200                           ✅
+5) /orders(ADMIN 전용): alice=403, admin=200            ✅ (method security)
+6) POST /orders (alice) → 201 CONFIRMED + paymentId     ✅ (order→payment 토큰 전파)
+7) payment 직접 호출(토큰 없이) → 401                    ✅ (서비스도 강제)
+8) 변조 토큰 → 401                                       ✅
+9) /actuator/health → 200 (공개)                         ✅
+</code></pre><blockquote>
+<p>#6(201)과 #7(401)의 조합이 <strong>토큰 전파가 실제로 동작</strong>한다는 결정적 증거다.</p>
+</blockquote>
+<p>데모 계정: <code>alice/secret</code>(USER), <code>admin/admin123</code>(USER+ADMIN).</p>
+<hr>
+<h2 id="8-알려진-한계--해결-phase-적대적-보안-리뷰-결과">8. 알려진 한계 → 해결 Phase (적대적 보안 리뷰 결과)</h2>
+<p>이번 단계는 <strong>인증 + 기본 역할 인가</strong>까지다. 아래는 리뷰에서 확정된, 의도적으로 <strong>다음 단계로 미룬</strong> 항목이다.</p>
+<table>
+<thead>
+<tr>
+<th>한계 / 갭</th>
+<th>성격</th>
+<th>해결 Phase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>payment 캡처가 공개 게이트웨이로 노출</strong> — 인증된 USER면 <code>/payments</code> 직접 호출로 임의 결제 생성 가능(서비스 신원/스코프 없음)</td>
+<td>인가 깊이(A01/A04)</td>
+<td><strong>Phase 15</strong>(하드닝: 서비스 스코프/내부 전용화) — 또는 게이트웨이에서 <code>/payments</code> 라우트 제거</td>
+</tr>
+<tr>
+<td><strong>소유권 검증 없음(IDOR)</strong> — 아무 인증 사용자나 <code>GET /orders/{id}</code>로 남의 주문 조회 가능. 주문이 토큰 subject에 묶이지 않음(customerId를 클라가 지정)</td>
+<td>인가 깊이(A01)</td>
+<td><strong>Phase 15</strong> (+주문-사용자 바인딩 도입)</td>
+</tr>
+<tr>
+<td>JWT <strong>issuer/audience 미검증</strong>(서명·만료만 검증) — 방어 심화 부족</td>
+<td>하드닝</td>
+<td><strong>Phase 15</strong> (issuer/audience validator)</td>
+</tr>
+<tr>
+<td>게이트웨이 <code>permitAll(/auth/**)</code>가 <code>/auth/login</code>보다 넓음(현재 노출 없음, 잠재적)</td>
+<td>하드닝</td>
+<td><strong>Phase 15</strong> (정확히 <code>/auth/login</code>만)</td>
+</tr>
+<tr>
+<td><code>/actuator/health</code> <code>show-details: always</code> 공개</td>
+<td>하드닝/관측성</td>
+<td><strong>Phase 8/15</strong></td>
+</tr>
+<tr>
+<td>DB 비밀번호·인메모리 키가 코드/설정에 하드코딩(재시작 시 키 회전)</td>
+<td>시크릿 관리</td>
+<td><strong>Phase 6</strong>(Config) + <strong>Phase 7</strong>(keystore/compose)</td>
+</tr>
+<tr>
+<td>서비스간 호출이 사용자 토큰 재전파에 의존(서비스 자체 신원 없음)</td>
+<td>서비스 인증</td>
+<td><strong>Phase 15</strong> (client-credentials/mTLS)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>리뷰에서 <strong>정상 확인</strong>된 것들: 리액티브/서블릿 배선, CSRF off+stateless 적절, <code>@ConditionalOnWebApplication</code>이
+운영 보안을 끄지 않음, auth-service가 리소스 서버로 오작동하지 않음, 토큰 전파 스레드 안전성.</p>
+</blockquote>
+<hr>
+<h2 id="9-용어-사전">9. 용어 사전</h2>
+<ul>
+<li><strong>JWT</strong>: 서명된 토큰(신원 증명서). <code>header.payload.signature</code>.</li>
+<li><strong>RS256</strong>: RSA 개인키 서명 / 공개키 검증(비대칭).</li>
+<li><strong>JWKS</strong>: 공개키를 노출하는 표준 JSON 엔드포인트. <code>kid</code>로 키 구분.</li>
+<li><strong>Resource Server</strong>: JWT를 검증해 접근을 보호하는 서비스.</li>
+<li><strong>엣지 인증</strong>: 진입점(게이트웨이)에서의 1차 인증.</li>
+<li><strong>토큰 전파(relay)</strong>: 인바운드 토큰을 다운스트림 호출로 넘김.</li>
+<li><strong>stateless</strong>: 서버가 세션을 저장하지 않음(토큰이 상태).</li>
+<li><strong>인증/인가</strong>: 누구인지 / 무엇을 할 수 있는지.</li>
+<li><strong>IDOR</strong>: 소유권 검증 없이 ID로 남의 자원 접근.</li>
+<li><strong>claim(클레임)</strong>: JWT payload 안의 각 항목(<code>sub</code>·<code>exp</code>·<code>roles</code> 등). 토큰이 주장하는 사실 한 조각.</li>
+<li><strong>Authorization / Bearer</strong>: 토큰을 실어 보내는 HTTP 헤더(<code>Authorization: Bearer &lt;JWT&gt;</code>). <code>Bearer</code>(소지자)는 &quot;토큰을 가진 자를 그 신원으로 인정&quot;하는 인증 스킴.</li>
+<li><strong>리액티브(WebFlux) vs 서블릿(MVC)</strong>: 논블로킹 스택 vs 요청-스레드 스택. 보안 설정 API가 각각 <code>ServerHttpSecurity</code>·<code>authorizeExchange</code> / <code>HttpSecurity</code>·<code>authorizeHttpRequests</code>로 다르지만, JWT 검증 개념은 동일.</li>
+<li><strong>lb / Eureka</strong>: <code>lb://</code>는 Spring Cloud LoadBalancer 스킴. Eureka(서비스 레지스트리)에 등록된 서비스 이름을 실제 <code>host:port</code>로 해석해 라우팅(Phase 4).</li>
+<li><strong>SecurityContextHolder</strong>: 현재 요청의 인증 정보를 담는 <strong>스레드-로컬</strong> 저장소(스레드마다 별도). 동기 호출 중에는 같은 스레드라 토큰이 유효.</li>
+<li><strong>스니펫(발췌)</strong>: 문서의 코드 블록은 핵심만 추린 축약본. 그대로는 컴파일되지 않을 수 있으니 전체는 파일 경로에서 확인.</li>
+</ul>
+<hr>
+<h2 id="10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</h2>
+<ul>
+<li>Spring Security — OAuth2 Resource Server(JWT): <a href="https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html">https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html</a></li>
+<li>Reactive Resource Server: <a href="https://docs.spring.io/spring-security/reference/reactive/oauth2/resource-server/jwt.html">https://docs.spring.io/spring-security/reference/reactive/oauth2/resource-server/jwt.html</a></li>
+<li>Spring Security — Method Security(@PreAuthorize): <a href="https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html">https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html</a></li>
+<li>Nimbus JOSE + JWT / JWKS: <a href="https://connect2id.com/products/nimbus-jose-jwt">https://connect2id.com/products/nimbus-jose-jwt</a></li>
+</ul>
+<hr>
+<p><em>관련 문서: <a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY.md</a>(Phase 4), <a href="HEXAGONAL.html">HEXAGONAL.md</a>(아키텍처), <a href="SETUP.html">SETUP.md</a>(실행). 전체 로드맵: 루트 <code>MSA-LEARNING-PLAN.md</code>.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
+<li class="toc-h2"><a href="#1-왜-필요한가-phase-4까지의-문제">1. 왜 필요한가? (Phase 4까지의 문제)</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념">2. 핵심 개념</a></li>
+<li class="toc-h3"><a href="#21-인증-vs-인가">2.1 인증 vs 인가</a></li>
+<li class="toc-h3"><a href="#22-jwt-json-web-token">2.2 JWT (JSON Web Token)</a></li>
+<li class="toc-h3"><a href="#23-대칭키-vs-비대칭키rs256--jwks">2.3 대칭키 vs 비대칭키(RS256) + JWKS</a></li>
+<li class="toc-h3"><a href="#24-resource-server--엣지-인증--토큰-전파">2.4 Resource Server / 엣지 인증 / 토큰 전파</a></li>
+<li class="toc-h3"><a href="#25-역할roles과-role_-규약">2.5 역할(roles)과 ROLE_ 규약</a></li>
+<li class="toc-h2"><a href="#3-이-프로젝트의-구성">3. 이 프로젝트의 구성</a></li>
+<li class="toc-h2"><a href="#4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</a></li>
+<li class="toc-h3"><a href="#41-auth-service--토큰-발급--jwks">4.1 auth-service — 토큰 발급 + JWKS</a></li>
+<li class="toc-h3"><a href="#42-게이트웨이--리액티브-리소스-서버엣지-인증">4.2 게이트웨이 — 리액티브 리소스 서버(엣지 인증)</a></li>
+<li class="toc-h3"><a href="#43-order--payment--서블릿-리소스-서버">4.3 order / payment — 서블릿 리소스 서버</a></li>
+<li class="toc-h3"><a href="#44-토큰-전파--order--payment">4.4 토큰 전파 — order → payment</a></li>
+<li class="toc-h3"><a href="#45-결정-jwk-set-uri는-왜-lb가-아니라-직접-localhost9000">4.5 결정: jwk-set-uri는 왜 lb://가 아니라 직접 localhost:9000?</a></li>
+<li class="toc-h3"><a href="#46-스킴규약-정리-헷갈림-방지">4.6 스킴/규약 정리 (헷갈림 방지)</a></li>
+<li class="toc-h2"><a href="#5-요청-흐름">5. 요청 흐름</a></li>
+<li class="toc-h3"><a href="#51-로그인">5.1 로그인</a></li>
+<li class="toc-h3"><a href="#52-인증된-요청--전파">5.2 인증된 요청 + 전파</a></li>
+<li class="toc-h2"><a href="#6-동작-원리-더-깊게">6. 동작 원리 더 깊게</a></li>
+<li class="toc-h2"><a href="#7-검증-실제로-실행한-스모크">7. 검증 (실제로 실행한 스모크)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase-적대적-보안-리뷰-결과">8. 알려진 한계 → 해결 Phase (적대적 보안 리뷰 결과)</a></li>
+<li class="toc-h2"><a href="#9-용어-사전">9. 용어 사전</a></li>
+<li class="toc-h2"><a href="#10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</a></li></ul></nav></aside>
+</body>
+</html>

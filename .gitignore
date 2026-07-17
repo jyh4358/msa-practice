@@ -19,3 +19,6 @@
 # 로컬 도구 상태 (Claude Code / oh-my-claudecode)
 .claude/
 .omc/
+
+# 문서 사이트 생성기 의존성 (docs/site 생성물은 커밋, 의존성은 제외)
+docs/tools/node_modules/

@@ -456,7 +456,7 @@ curl -s http://localhost:8080/inventory/22222222-2222-2222-2222-222222222222
 - **포트(Port) / 어댑터(Adapter)**: 포트=유스케이스가 바깥과 대화하는 인터페이스(계약), 어댑터=포트의 실제 구현(기술 세부).
 - **인바운드 / 아웃바운드**: 인바운드=들어오는 요청 진입점(컨트롤러·UseCase), 아웃바운드=DB·외부로 나가는 계약(`*Port`)과 그 구현.
 - **애그리거트**: 일관성 경계를 가진 도메인 객체 묶음(여기선 Order가 Payment·Item을 소유).
-- **출력 모델(*View)**: 유스케이스가 도메인 대신 반환하는 불변 read model. 도메인 누수 방지.
+- **출력 모델(\*View)**: 유스케이스가 도메인 대신 반환하는 불변 read model. 도메인 누수 방지.
 - **QueryDSL / Q타입**: 타입세이프 쿼리 라이브러리. `QStockItemJpaEntity` 같은 Q타입은 애노테이션 프로세서가 엔티티로부터 컴파일 타임에 생성. 리포지토리 JPQL/@Lock 대신 사용.
 - **cascade**: 연관 엔티티 전이 저장. 부모 저장 시 자식(order_items·payment)도 함께 INSERT.
 - **`@GeneratedValue`(UUID)**: JPA가 INSERT 시 UUID 식별자를 자동 부여하는 애노테이션.

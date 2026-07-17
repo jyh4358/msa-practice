@@ -102,7 +102,7 @@ dependencyManagement {
 }
 ```
 
-> **버전 선택 메모:** 학습 마찰을 줄이려 **Boot 3.5 라인**을 선택했습니다(튜토리얼·SO 답변 대다수가 Boot 3.x 기준이라 1:1로 따라 하기 쉬움). Boot 3.5 / Spring Cloud 2025.0의 OSS 지원은 2026-06-30경 종료되지만 **학습용으론 무방**(API 안정). 안정화된 최신인 **Boot 4.1 + Spring Cloud 2025.1(Oakwood)** 이전은 Jackson 3(`com.fasterxml.jackson`→`tools.jackson`)·Jakarta EE 11·JSpecify·Spring Framework 7을 동반하며 **캡스톤(Phase 18)**에서 실습합니다.
+> **버전 선택 메모:** 학습 마찰을 줄이려 **Boot 3.5 라인**을 선택했습니다(튜토리얼·SO 답변 대다수가 Boot 3.x 기준이라 1:1로 따라 하기 쉬움). Boot 3.5 / Spring Cloud 2025.0의 OSS 지원은 2026-06-30경 종료되지만 **학습용으론 무방**(API 안정). 안정화된 최신인 **Boot 4.1 + Spring Cloud 2025.1(Oakwood)** 이전은 Jackson 3(`com.fasterxml.jackson`→`tools.jackson`)·Jakarta EE 11·JSpecify·Spring Framework 7을 동반하며 **캡스톤**(Phase 18)에서 실습합니다.
 
 ---
 
@@ -385,7 +385,7 @@ msa-platform/
 - **보상은 rollback이 아니라 semantic undo** — 보낸 확정 메일은 "취소 메일"로, DB 롤백이 아니다.
 - **비가역 단계는 맨 뒤로** — 배송(shipping)을 Saga 마지막에. 결제를 배송 뒤에 캡처하면 발송된 택배를 보상할 수 없다.
 - **트레이싱은 Phase 2부터 계측, 백엔드는 Phase 8** — 계측 코드는 거의 config뿐. outbox 홉엔 `traceparent` 보존(Phase 12).
-- **18GB 예산:** 컨테이너 예산 ~10~12GB로 간주. **전 Phase를 동시에 띄우지 않는다.** compose `--profile`로 개념별 on/off. 개발 시 앱 JVM은 **IntelliJ에서**(Docker 아님) `-XX:MaxRAMPercentage=70`, `mem_limit: 512m`. 세션 끝나면 `colima stop`.
+- **18GB 예산:** 컨테이너 예산 약 10~12GB로 간주. **전 Phase를 동시에 띄우지 않는다.** compose `--profile`로 개념별 on/off. 개발 시 앱 JVM은 **IntelliJ에서**(Docker 아님) `-XX:MaxRAMPercentage=70`, `mem_limit: 512m`. 세션 끝나면 `colima stop`.
 
 ### 18GB RAM 운용 표
 

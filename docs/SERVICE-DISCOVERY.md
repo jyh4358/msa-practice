@@ -366,7 +366,7 @@ payment:
 | `@EnableEurekaClient`/`@EnableDiscoveryClient` | **불필요**(스타터만 있으면 자동 등록) |
 | LoadBalancer 의존성 | eureka-client에 **전이 포함** → 따로 추가 안 함 |
 | `defaultZone` | Map 키라 **camelCase 필수**(kebab-case 안 됨) |
-| 게이트웨이 스킴 | `lb://이름` / RestClient 스킴 | `http://이름` |
+| 스킴(게이트웨이 vs RestClient) | 게이트웨이=`lb://이름` · RestClient=`http://이름` |
 | 버전은 BOM이 관리 | `spring-cloud-dependencies:2025.0.3` (개별 버전 명시 X) |
 
 ---

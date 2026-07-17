@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 0 · 스캐폴드 · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li class="active"><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="프로젝트-스캐폴드--툴체인-phase-0">프로젝트 스캐폴드 &amp; 툴체인 (Phase 0)</h1>
+<blockquote>
+<p><strong>이 문서는 Phase 0 작업을 설명합니다.</strong> 아무것도 없는 빈 폴더에서 &quot;빌드되고, 부팅되고, DB에
+스키마를 스스로 만드는 서비스 1개&quot;까지 어떻게 도달했는지를, 처음 보는 사람이 끝까지 이해하도록
+개념 → 구성 → 실제 파일/설정 → 동작 흐름 → 원리/트레이드오프 → 검증 → 한계 순으로 정리했습니다.</p>
+<p><strong>이 문서의 성격(꼭 읽으세요):</strong> 이 문서는 이미 완성된 Phase 0 결과물을 되짚어 설명하는 <strong>회고형</strong>
+문서입니다. 아래 §4의 코드 스니펫은 핵심만 <strong>발췌</strong>한 것이며(<code>// ...</code>·<code>...</code> 로 생략된 부분이 있음),
+전체 소스는 저장소의 실제 파일을 참고하세요. 처음부터 직접 셋업/실행해 보려면 <strong><a href="SETUP.html">SETUP.md</a></strong> 를
+따르세요.</p>
+</blockquote>
+<hr>
+<h2 id="0-한-줄-요약">0. 한 줄 요약</h2>
+<blockquote>
+<p><strong>&quot;빈 폴더 → <code>git clone</code> 후 <code>./gradlew</code>만 치면 똑같이 빌드/실행되는 재현 가능한 서비스&quot;의 토대를 깔았다.</strong>
+빌드 도구(Gradle 멀티모듈 모노레포), 버전 고정(버전 카탈로그), 언어 고정(Java 21 툴체인 자동
+프로비저닝), DB 스키마 소유권(Flyway가 소유, Hibernate는 <code>validate</code>만), 컨테이너 런타임(Colima +
+per-service Postgres)까지 — 이후 모든 Phase가 올라탈 <strong>바닥</strong>을 만드는 단계다.</p>
+</blockquote>
+<hr>
+<h2 id="1-왜-이-단계인가-직전까지의-문제">1. 왜 이 단계인가? (직전까지의 문제)</h2>
+<p>직전이랄 게 없다. <strong>빈 디렉터리</strong>가 출발점이다. 하지만 &quot;일단 되게&quot; 아무렇게나 시작하면 곧
+아래 문제들이 터진다.</p>
+<ul>
+<li><strong>&quot;내 컴퓨터에선 되는데요.&quot;</strong> JDK 버전, Gradle 버전, 라이브러리 버전이 사람/머신마다 달라
+빌드가 재현되지 않는다.</li>
+<li><strong>버전 지옥.</strong> Spring Boot와 Spring Cloud를 짝이 안 맞게 섞으면 클래스패스 오류가 난다.
+버전을 파일마다 흩뿌려두면 올릴 때 하나만 빠뜨려 깨진다.</li>
+<li><strong>스키마 표류(drift).</strong> 앱이 실행될 때마다 ORM이 테이블을 제멋대로 만들거나 바꾸면, 개발/운영
+DB가 서로 달라지고 &quot;어떤 컬럼이 언제 왜 생겼는지&quot;를 아무도 모른다.</li>
+<li><strong>서비스가 늘어날 것을 안다.</strong> 이 학습 로드맵은 최종적으로 여러 서비스로 자란다. 처음부터
+&quot;새 서비스 = include 한 줄&quot;이 되도록 구조를 잡아둬야 나중이 편하다.</li>
+</ul>
+<p>Phase 0은 코드를 많이 짜는 단계가 아니라 <strong>이 함정들을 미리 막는 규칙과 뼈대</strong>를 세우는 단계다.
+그래서 뒤의 모든 Phase(디스커버리·보안·Saga···)가 &quot;바닥이 흔들리는&quot; 걱정 없이 올라탈 수 있다.</p>
+<blockquote>
+<p>헥사고날(Ports &amp; Adapters) 아키텍처를 서비스 내부 구조로 채택한 것도 이 단계다. 다만 그 내용은
+중복 서술하지 않고 <strong><a href="HEXAGONAL.html">HEXAGONAL.md</a></strong> 로 넘긴다(이 문서는 &quot;서비스 바깥의 뼈대&quot;에 집중).</p>
+</blockquote>
+<hr>
+<h2 id="2-핵심-개념-초심자용">2. 핵심 개념 (초심자용)</h2>
+<h3 id="21-모노레포monorepo--gradle-멀티모듈">2.1 모노레포(monorepo) + Gradle 멀티모듈</h3>
+<p>여러 서비스를 <strong>하나의 git 저장소</strong> 안에서 관리하는 방식이 모노레포다. Gradle에서는 이를
+<strong>멀티모듈</strong>로 표현한다 — 루트 프로젝트 하나 아래에 <code>:services:order-service</code> 같은 서브프로젝트를
+매단다. 새 서비스는 <code>settings.gradle.kts</code>에 <code>include(...)</code> <strong>한 줄</strong>로 추가된다.</p>
+<h3 id="22-버전-카탈로그version-catalog--단일-진실-공급원">2.2 버전 카탈로그(version catalog) = 단일 진실 공급원</h3>
+<p>라이브러리/플러그인 버전을 <strong>한 파일(<code>gradle/libs.versions.toml</code>)</strong> 에만 적고, 각 모듈은 이름으로
+참조한다(<code>libs.springdoc.openapi.ui</code>). 버전을 올릴 때 <strong>한 곳만</strong> 고치면 되므로 &quot;여기저기 흩어진
+버전이 어긋나서 깨지는&quot; 사고를 막는다.</p>
+<h3 id="23-bombill-of-materials">2.3 BOM(Bill of Materials)</h3>
+<p>&quot;이 라이브러리 묶음은 이 버전들로 서로 호환됨&quot;을 보증하는 <strong>버전 목록표</strong>다. Spring Boot/Spring
+Cloud는 BOM을 제공하므로, 우리는 <strong>개별 라이브러리 버전을 적지 않고</strong> &quot;BOM 하나만 고정&quot;하면
+Flyway·Postgres 드라이버 등의 버전은 BOM이 알아서 맞춰준다.</p>
+<h3 id="24-gradle-툴체인toolchain--foojay-자동-프로비저닝">2.4 Gradle 툴체인(toolchain) + foojay 자동 프로비저닝</h3>
+<p>&quot;빌드를 <strong>어떤 JDK로 실행</strong>하느냐&quot;와 &quot;코드를 <strong>어떤 Java 버전으로 컴파일</strong>하느냐&quot;는 별개다.
+(예: 개발자 머신의 <strong>실행 JDK는 24</strong>여도 <strong>컴파일 타깃은 21</strong>로 고정 — 자세한 건 §6.3.)
+툴체인은 컴파일/테스트 타깃을 <strong>Java 21</strong>로 고정한다(재현성). 로컬에 JDK 21이 없으면 <strong>foojay
+resolver</strong> 플러그인이 부팅 시 알아서 21을 내려받는다 — &quot;아무것도 설치 안 해도 똑같이 21로 빌드&quot;.</p>
+<h3 id="25-스키마는-코드다--flyway-소유--ddl-autovalidate">2.5 스키마는 코드다 — Flyway 소유 + <code>ddl-auto=validate</code></h3>
+<p>DB 테이블을 만드는 주체를 <strong>Flyway</strong>(마이그레이션 도구)로 못박는다. <code>db/migration/V1__init.sql</code>
+같은 <strong>버전이 매겨진 SQL 파일</strong>이 스키마의 진실이다. Hibernate(JPA 명세의 대표 구현체 — JPA는
+&quot;이렇게 하라&quot;는 표준 명세이고 Hibernate는 그걸 실제로 구현한 라이브러리다)는 자바 <strong>엔티티</strong>
+클래스(=DB 테이블에 매핑되는 객체)와 실제 테이블 구조를 <strong>만들지 않고</strong> <code>validate</code>로 &quot;일치하는지
+검증만&quot; 한다. 불일치면 <strong>부팅 실패</strong>로 즉시 알려준다.</p>
+<h3 id="26-database-per-service">2.6 database-per-service</h3>
+<p>각 서비스가 <strong>자기 DB만</strong> 소유한다. 남의 DB를 직접 만지지 않는 것이 MSA의 대원칙. Phase 0에선
+<code>order-service</code>가 <code>orderdb</code> 하나를 갖는 것으로 그 습관을 시작한다.</p>
+<h3 id="27-colima--로컬-컨테이너-런타임">2.7 Colima = 로컬 컨테이너 런타임</h3>
+<p>Docker Desktop 대신 쓰는 경량 CLI 런타임(Apple Silicon·저메모리 친화). DB(Postgres)는 컨테이너로
+띄우고, <strong>앱은 IDE/CLI에서</strong> 실행하는 &quot;하이브리드 개발 루프&quot;가 표준이다.</p>
+<blockquote>
+<p>Docker 기본 어휘(이 문서 전반에서 씀): <strong>컨테이너</strong>=격리된 실행 단위, <strong>이미지</strong>=컨테이너를 찍어내는
+템플릿, <strong>볼륨</strong>=컨테이너가 죽어도 남는 데이터 저장소(여기선 DB 데이터), <strong>docker compose</strong>=이들을
+YAML 한 파일로 정의·기동하는 도구. (더 자세한 Docker 개념은 <a href="SETUP.html">SETUP.md</a> 참고.)</p>
+</blockquote>
+<hr>
+<h2 id="3-이-단계의-구성">3. 이 단계의 구성</h2>
+<pre><code>msa/  (git 루트 = 모노레포)
+├── settings.gradle.kts          ← 모듈 등록 + repositories(mavenCentral) + foojay 플러그인
+├── build.gradle.kts             ← 루트: Phase 0에선 (거의) 비어 있음
+├── gradle.properties            ← caching/parallel ON, configuration-cache OFF
+├── gradle/
+│   ├── libs.versions.toml       ← 버전 핀 단일 출처 (Boot/Cloud/springdoc…)
+│   └── wrapper/                 ← gradle-wrapper.jar(커밋함) + 8.14 지정
+├── gradlew / gradlew.bat        ← 래퍼 스크립트 (clone 후 바로 ./gradlew)
+├── services/
+│   └── order-service/           ← 첫 서비스 (헥사고날) · orderdb
+│       ├── build.gradle.kts
+│       └── src/main/resources/db/migration/  ← V1__init.sql / V2__…
+└── deploy/compose/compose.infra.yml   ← order-db (postgres:18-alpine, :5432)
+
+
+개발 루프(하이브리드):
+   [Colima VM] ── docker compose ──▶ (order-db 컨테이너, :5432)
+                                          ▲ jdbc
+   [IntelliJ 또는 ./gradlew bootRun] ── OrderServiceApplication (:8080)
+                                          │ 부팅 시 Flyway가 스키마 적용
+</code></pre><hr>
+<h2 id="4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</h2>
+<h3 id="41-모듈-등록--settingsgradlekts">4.1 모듈 등록 — <code>settings.gradle.kts</code></h3>
+<pre><code class="hljs language-kotlin">plugins {
+    <span class="hljs-comment">// Java 21 툴체인을 자동으로 내려받게 해 주는 resolver.</span>
+    id(<span class="hljs-string">&quot;org.gradle.toolchains.foojay-resolver-convention&quot;</span>) version <span class="hljs-string">&quot;0.9.0&quot;</span>
+}
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()          <span class="hljs-comment">// ← 모든 모듈이 공유하는 단일 저장소 선언</span>
+    }
+}
+rootProject.name = <span class="hljs-string">&quot;msa-platform&quot;</span>
+include(<span class="hljs-string">&quot;:services:order-service&quot;</span>)   <span class="hljs-comment">// ← 새 서비스는 여기 한 줄로 추가</span>
+</code></pre><ul>
+<li><code>foojay-resolver-convention</code>이 <strong>여기(settings)</strong> 에 있는 이유: 툴체인 프로비저닝은 빌드 초기에
+결정돼야 하므로 settings 플러그인으로 둔다.</li>
+<li><code>mavenCentral()</code>을 <strong>여기서 중앙 선언</strong>한다. 이게 빠지면 의존성을 못 받아 <code>no repositories are defined</code>로 빌드가 실패한다(§7의 실제 함정).</li>
+</ul>
+<h3 id="42-루트-빌드--buildgradlekts-의도적으로-비움">4.2 루트 빌드 — <code>build.gradle.kts</code> (의도적으로 비움)</h3>
+<pre><code class="hljs language-kotlin"><span class="hljs-comment">// 루트 빌드 — Phase 0에서는 비워 둔다.</span>
+<span class="hljs-comment">// 서비스가 1개뿐이라 공통 설정 중복이 아직 없다.</span>
+<span class="hljs-comment">// 2번째 서비스가 생기는 Phase 2에서 공통 설정을 build-logic/ 컨벤션 플러그인으로 추출한다.</span>
+</code></pre><p>&quot;중복이 아플 때 추출&quot; 원칙이다. 지금 미리 컨벤션 플러그인을 만들면 과설계다.</p>
+<blockquote>
+<p>ℹ️ <strong>후속 변화:</strong> 실제로 두 번째 서비스(payment-service)는 <strong>Phase 2</strong>에서 추가됐지만, 공통 설정의
+<code>build-logic/</code> 추출은 이 문서 작성 시점 기준 아직 이뤄지지 않았다(각 서비스 <code>build.gradle.kts</code>가
+여전히 개별적으로 플러그인/BOM을 선언). 계획상 예고된 리팩터로, 필요할 때 진행할 항목이다.</p>
+</blockquote>
+<h3 id="43-버전-핀--gradlelibsversionstoml">4.3 버전 핀 — <code>gradle/libs.versions.toml</code></h3>
+<pre><code class="hljs language-toml"><span class="hljs-section">[versions]</span>
+<span class="hljs-attr">springBoot</span>   = <span class="hljs-string">&quot;3.5.15&quot;</span>      <span class="hljs-comment"># 3.x 마지막 라인 (학습 친화)</span>
+<span class="hljs-attr">springDepMgmt</span> = <span class="hljs-string">&quot;1.1.7&quot;</span>
+<span class="hljs-attr">springCloud</span>  = <span class="hljs-string">&quot;2025.0.3&quot;</span>    <span class="hljs-comment"># Northfields — Boot 3.5.x 공식 짝</span>
+<span class="hljs-attr">springdoc</span>    = <span class="hljs-string">&quot;2.8.17&quot;</span>      <span class="hljs-comment"># OpenAPI/Swagger UI — Boot 3.5 호환</span>
+
+<span class="hljs-section">[libraries]</span>
+<span class="hljs-attr">spring-cloud-dependencies</span> = { module = <span class="hljs-string">&quot;org.springframework.cloud:spring-cloud-dependencies&quot;</span>, version.ref = <span class="hljs-string">&quot;springCloud&quot;</span> }
+<span class="hljs-attr">flyway-core</span>       = { module = <span class="hljs-string">&quot;org.flywaydb:flyway-core&quot;</span> }               <span class="hljs-comment"># 버전은 Boot BOM이 관리</span>
+<span class="hljs-attr">flyway-postgresql</span> = { module = <span class="hljs-string">&quot;org.flywaydb:flyway-database-postgresql&quot;</span> }
+<span class="hljs-attr">postgresql</span>        = { module = <span class="hljs-string">&quot;org.postgresql:postgresql&quot;</span> }
+<span class="hljs-attr">springdoc-openapi-ui</span> = { module = <span class="hljs-string">&quot;org.springdoc:springdoc-openapi-starter-webmvc-ui&quot;</span>, version.ref = <span class="hljs-string">&quot;springdoc&quot;</span> }
+
+<span class="hljs-section">[plugins]</span>
+<span class="hljs-attr">spring-boot</span> = { id = <span class="hljs-string">&quot;org.springframework.boot&quot;</span>, version.ref = <span class="hljs-string">&quot;springBoot&quot;</span> }
+<span class="hljs-attr">spring-dependency-management</span> = { id = <span class="hljs-string">&quot;io.spring.dependency-management&quot;</span>, version.ref = <span class="hljs-string">&quot;springDepMgmt&quot;</span> }
+</code></pre><ul>
+<li><strong>Boot와 Cloud는 짝</strong>이다(3.5.15 ↔ 2025.0.3 = Northfields). 독립적으로 핀하면 안 된다.
+(Northfields는 Spring Cloud 릴리스에 붙는 <strong>코드네임</strong>일 뿐 — Spring Cloud는 릴리스마다 지명 이름을
+붙이는 관행이 있고, 우리는 버전 번호 <code>2025.0.3</code>으로 핀한다.)</li>
+<li>Flyway·Postgres 드라이버는 <strong>버전을 안 적었다</strong> — Boot BOM이 맞춰준다(§2.3).</li>
+<li><code>springdoc</code>만 버전을 명시하는 건 Boot BOM 밖의 라이브러리라서.</li>
+</ul>
+<h3 id="44-서비스-빌드--servicesorder-servicebuildgradlekts">4.4 서비스 빌드 — <code>services/order-service/build.gradle.kts</code></h3>
+<pre><code class="hljs language-kotlin">plugins {
+    java
+    alias(libs.plugins.spring.boot)                     <span class="hljs-comment">// 카탈로그 참조</span>
+    alias(libs.plugins.spring.dependency.management)
+}
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(<span class="hljs-number">21</span>) }  <span class="hljs-comment">// JDK로 실행, 21로 컴파일</span>
+}
+dependencyManagement {
+    imports {
+        mavenBom(<span class="hljs-string">&quot;org.springframework.cloud:spring-cloud-dependencies:<span class="hljs-subst">${libs.versions.springCloud.get()}</span>&quot;</span>)
+    }
+}
+dependencies {
+    implementation(<span class="hljs-string">&quot;org.springframework.boot:spring-boot-starter-web&quot;</span>)
+    implementation(<span class="hljs-string">&quot;org.springframework.boot:spring-boot-starter-data-jpa&quot;</span>)
+    implementation(<span class="hljs-string">&quot;org.springframework.boot:spring-boot-starter-validation&quot;</span>)
+    implementation(<span class="hljs-string">&quot;org.springframework.boot:spring-boot-starter-actuator&quot;</span>)
+    implementation(libs.springdoc.openapi.ui)           <span class="hljs-comment">// 웹 어댑터 문서화 전용</span>
+
+    <span class="hljs-comment">// 스키마는 Flyway가 소유한다 (ddl-auto=validate). Phase 0 핵심 습관.</span>
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.postgresql)
+    runtimeOnly(libs.postgresql)
+
+    testImplementation(<span class="hljs-string">&quot;org.springframework.boot:spring-boot-starter-test&quot;</span>)
+    testRuntimeOnly(<span class="hljs-string">&quot;org.junit.platform:junit-platform-launcher&quot;</span>)
+}
+</code></pre><ul>
+<li>Spring Cloud BOM은 이 시점에 &quot;<strong>버전 관리만</strong>&quot; 한다(실제 Cloud 스타터 의존성은 Phase 3~4부터).</li>
+<li><code>flyway-database-postgresql</code>이 별도 아티팩트인 것은 Flyway 10부터 DB별 모듈이 분리됐기 때문.</li>
+</ul>
+<h3 id="45-앱-설정--applicationyml-스키마-소유권의-핵심">4.5 앱 설정 — <code>application.yml</code> (스키마 소유권의 핵심)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">application:</span>
+    <span class="hljs-attr">name:</span> <span class="hljs-string">order-service</span>
+  <span class="hljs-attr">datasource:</span>
+    <span class="hljs-attr">url:</span> <span class="hljs-string">jdbc:postgresql://localhost:5432/orderdb</span>
+    <span class="hljs-attr">username:</span> <span class="hljs-string">order</span>
+    <span class="hljs-attr">password:</span> <span class="hljs-string">orderpw</span>
+  <span class="hljs-attr">jpa:</span>
+    <span class="hljs-attr">hibernate:</span>
+      <span class="hljs-attr">ddl-auto:</span> <span class="hljs-string">validate</span>     <span class="hljs-comment"># ← Hibernate는 만들지 않고 &quot;검증만&quot;. 불일치 시 부팅 실패</span>
+    <span class="hljs-attr">open-in-view:</span> <span class="hljs-literal">false</span>      <span class="hljs-comment"># ← LAZY 로딩이 뷰까지 새지 않게(§7.4 함정과 연결)</span>
+  <span class="hljs-attr">flyway:</span>
+    <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span>            <span class="hljs-comment"># 기본 위치 classpath:db/migration</span>
+<span class="hljs-attr">server:</span>
+  <span class="hljs-attr">port:</span> <span class="hljs-number">8080</span>
+  <span class="hljs-attr">shutdown:</span> <span class="hljs-string">graceful</span>         <span class="hljs-comment"># 진행 중 요청을 끝내고 종료</span>
+<span class="hljs-attr">management:</span>
+  <span class="hljs-attr">endpoints:</span>
+    <span class="hljs-attr">web:</span>
+      <span class="hljs-attr">exposure:</span>
+        <span class="hljs-attr">include:</span> <span class="hljs-string">health,info,flyway</span>   <span class="hljs-comment"># /actuator/flyway 로 마이그레이션 이력 확인 가능</span>
+</code></pre><blockquote>
+<p><code>ddl-auto: validate</code> + <code>flyway.enabled: true</code>의 조합이 <strong>&quot;스키마는 코드다&quot;</strong> 를 강제하는 장치다.
+앱은 절대 테이블을 만들지 않고, 엔티티가 스키마와 안 맞으면 뜨지도 않는다(빠른 실패).</p>
+</blockquote>
+<ul>
+<li><strong><code>ddl-auto</code></strong>: 앱이 뜰 때 Hibernate가 스키마를 어떻게 다룰지 정하는 Spring 설정이다. 선택지는
+<code>create</code>(매번 새로 만듦)·<code>update</code>(차이만 반영)·<code>create-drop</code>(종료 시 삭제)·<code>validate</code>(대조만)·
+<code>none</code>(아무것도 안 함). 우리는 표류를 막으려고 <code>validate</code>를 쓴다(선택지 비교는 §6.2).</li>
+<li><strong><code>open-in-view</code>(OSIV, Open Session In View)</strong>: 기본값(true)은 HTTP 응답을 만드는 동안에도 DB 세션을
+열어둔다. <code>false</code>로 끄면 트랜잭션이 끝난 뒤엔 <strong>LAZY(지연) 로딩</strong> 연관을 못 읽는다 — 그래서 엔티티→DTO
+변환은 반드시 <code>@Transactional</code> 메서드 안에서 끝내야 한다(안 그러면 §7.4의 500 함정 발생).</li>
+<li><strong>actuator <code>exposure.include</code></strong>: 스프링 부트 Actuator는 앱 상태를 들여다보는 관리용 엔드포인트
+(<code>/actuator/*</code>)를 제공하는데, 보안상 기본은 대부분 숨김이다. 여기선 <code>health,info,flyway</code>만 골라 노출한다.</li>
+</ul>
+<h3 id="46-마이그레이션--dbmigrationv1__initsql-v2__">4.6 마이그레이션 — <code>db/migration/V1__init.sql</code>, <code>V2__…</code></h3>
+<pre><code class="hljs language-sql"><span class="hljs-comment">-- V1__init.sql : order-service가 소유하는 테이블 (database-per-service)</span>
+<span class="hljs-keyword">CREATE TABLE</span> orders (
+    id UUID <span class="hljs-keyword">PRIMARY KEY</span>, customer_id UUID <span class="hljs-keyword">NOT NULL</span>,
+    status <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">30</span>) <span class="hljs-keyword">NOT NULL</span>, total_amount <span class="hljs-type">NUMERIC</span>(<span class="hljs-number">12</span>,<span class="hljs-number">2</span>) <span class="hljs-keyword">NOT NULL</span>,
+    created_at TIMESTAMPTZ <span class="hljs-keyword">NOT NULL</span>
+);
+<span class="hljs-keyword">CREATE TABLE</span> order_items (
+    id UUID <span class="hljs-keyword">PRIMARY KEY</span>,
+    order_id UUID <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">REFERENCES</span> orders(id) <span class="hljs-keyword">ON</span> <span class="hljs-keyword">DELETE</span> CASCADE,
+    product_id UUID <span class="hljs-keyword">NOT NULL</span>, quantity <span class="hljs-type">INTEGER</span> <span class="hljs-keyword">NOT NULL</span>, unit_price <span class="hljs-type">NUMERIC</span>(<span class="hljs-number">12</span>,<span class="hljs-number">2</span>) <span class="hljs-keyword">NOT NULL</span>
+);
+</code></pre><ul>
+<li><strong>파일명 규약:</strong> <code>V&lt;버전&gt;__&lt;설명&gt;.sql</code>. Flyway가 순서대로 적용하고 <code>flyway_schema_history</code>에 이력을 남긴다.</li>
+<li><code>V2__inventory_and_payment.sql</code>은 <code>stock_items</code>/<code>payments</code> + 데모 시드 재고를 넣는다. 이 테이블들은
+Phase 0 스캐폴드가 아니라 <strong>Phase 1(모놀리스)</strong> 에서 order-service가 재고·결제를 직접 소유하며 생긴 것이고,
+주석에도 &quot;Phase 2+에서 payment-service로 이동&quot;이라 예고돼 있다. (실제로 결제는 <strong>Phase 2-2에서
+원격 호출로 전환</strong>됐다.)</li>
+</ul>
+<h3 id="47-인프라--deploycomposecomposeinfrayml">4.7 인프라 — <code>deploy/compose/compose.infra.yml</code></h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga-infra</span>
+<span class="hljs-attr">services:</span>
+  <span class="hljs-attr">order-db:</span>
+    <span class="hljs-attr">image:</span> <span class="hljs-string">postgres:18-alpine</span>
+    <span class="hljs-attr">restart:</span> <span class="hljs-string">unless-stopped</span>
+    <span class="hljs-attr">environment:</span> { <span class="hljs-attr">POSTGRES_DB:</span> <span class="hljs-string">orderdb</span>, <span class="hljs-attr">POSTGRES_USER:</span> <span class="hljs-string">order</span>, <span class="hljs-attr">POSTGRES_PASSWORD:</span> <span class="hljs-string">orderpw</span> }
+    <span class="hljs-attr">ports:</span> [<span class="hljs-string">&quot;5432:5432&quot;</span>]
+    <span class="hljs-attr">volumes:</span>
+      <span class="hljs-comment"># PostgreSQL 18+ 는 데이터를 버전별 하위 디렉터리에 저장 →</span>
+      <span class="hljs-comment"># 마운트는 옛 /var/lib/postgresql/data 가 아니라 /var/lib/postgresql 에 한다.</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">order-db-data:/var/lib/postgresql</span>
+    <span class="hljs-attr">healthcheck:</span>
+      <span class="hljs-attr">test:</span> [<span class="hljs-string">&quot;CMD-SHELL&quot;</span>, <span class="hljs-string">&quot;pg_isready -U order -d orderdb&quot;</span>]
+      <span class="hljs-string">...</span>
+</code></pre><ul>
+<li><strong>한 서비스 = 한 DB 컨테이너</strong>. 이후 Phase에서 서비스마다 DB를 추가하며 호스트 포트를 5433,
+5434…로 분리한다(실제로 payment-db가 뒤 Phase에서 추가됨).</li>
+<li><code>healthcheck</code>로 DB가 &quot;정말 준비됐는지&quot;를 판단하게 해, 의존 서비스가 성급히 붙어 실패하는 걸 막는다.</li>
+</ul>
+<hr>
+<h2 id="5-동작-흐름-부팅--스키마-생성--요청">5. 동작 흐름 (부팅 → 스키마 생성 → 요청)</h2>
+<pre><code>1) colima start                       → 컨테이너용 리눅스 VM 기동
+2) docker compose ... up -d order-db  → Postgres 18 컨테이너(healthy 대기), :5432 노출
+3) ./gradlew :services:order-service:bootRun (또는 IntelliJ main 실행)
+     ├─ (JDK 21 없으면) foojay resolver가 21 자동 프로비저닝 → 21로 컴파일
+     ├─ Spring Boot 기동
+     ├─ Flyway 실행: flyway_schema_history 확인 → 미적용 V1,V2 SQL을 순서대로 적용
+     └─ Hibernate: ddl-auto=validate → 엔티티 vs 실제 스키마 대조 (불일치면 부팅 실패)
+4) :8080 준비 완료
+5) curl -X POST :8080/orders  → 서비스가 orderdb에 INSERT → 201 + 응답 DTO(전송용 객체)
+6) docker compose down -v (-v = 볼륨=DB 데이터까지 삭제) 후 재기동 → Flyway가 V1,V2를 다시 적용 → 스키마 재생성
+</code></pre><p>6번이 <strong>&quot;스키마는 코드다&quot;의 증명</strong>이다. 볼륨(=DB 데이터 저장소)을 통째로 날려도 SQL 파일만 있으면
+스키마가 똑같이 부활한다.</p>
+<hr>
+<h2 id="6-동작-원리-더-깊게--트레이드오프">6. 동작 원리 더 깊게 / 트레이드오프</h2>
+<h3 id="61-왜-flyway를-0단계부터">6.1 왜 Flyway를 &quot;0단계&quot;부터?</h3>
+<p>이 로드맵은 뒤로 갈수록 이벤트·비동기 메시징용 테이블이 여러 개 추가된다(<code>outbox</code>·<code>processed_messages</code>·
+<code>saga_instance</code>·읽기모델 등 — <strong>지금은 이름만 알아두면 되고, 각 개념은 해당 Phase 문서에서 다룬다</strong>).
+마이그레이션이 없으면 <code>down -v</code> 한 번에 전부 사라지고, &quot;데이터를 지웠다가 이력으로 되살리는&quot; 검증이
+거짓말이 된다. 그래서 테이블이 2개뿐인 지금부터 습관을 박아둔다.</p>
+<h3 id="62-ddl-auto의-선택지와-트레이드오프">6.2 <code>ddl-auto</code>의 선택지와 트레이드오프</h3>
+<p><code>create</code>/<code>update</code>는 편하지만 스키마 표류의 원흉이다(운영에서 데이터 유실·예측 불가 변경). <code>validate</code>는
+&quot;내가 아는 스키마와 실제가 같은가?&quot;만 확인해 <strong>표류를 컴파일 타임처럼 잡아준다</strong>. 대가는 &quot;SQL을
+직접 써야 함&quot;인데, 이게 곧 문서이자 이력이 되므로 학습·운영 모두에 이득이다.</p>
+<h3 id="63-java-21-타깃인데-빌드는-jdk-24로-실행">6.3 Java 21 타깃인데 빌드는 JDK 24로 실행</h3>
+<p>(§2.4에서 본 대로) <strong>빌드를 실행하는 JDK</strong>와 <strong>컴파일 타깃 JDK</strong>는 별개다. 예컨대 개발자 머신에
+JDK 24가 깔려 있어 Gradle이 24로 돌아가도(Gradle 8.14가 24 실행을 지원), 툴체인이 컴파일/테스트를
+21로 고정하므로 산출물은 <strong>항상 21</strong>이다(재현성). 즉 &quot;21이라며 24는 뭐지?&quot;가 아니라, 24는 그저
+빌드를 돌리는 실행기이고 결과물은 21로 못박힌다. JDK 21이 없으면 foojay가 받아온다.</p>
+<h3 id="64-gradle-wrapperjar를-커밋한다">6.4 gradle-wrapper.jar를 커밋한다</h3>
+<p><code>.gitignore</code>가 빌드 산출물을 무시하지만 <code>!gradle/wrapper/gradle-wrapper.jar</code>로 <strong>예외</strong>를 둔다.
+이게 있어야 <code>clone</code> 직후 아무 설치 없이 <code>./gradlew</code>가 바로 동작한다(래퍼가 8.14 배포본을 받아옴).</p>
+<h3 id="65-configuration-cache는-끈다">6.5 configuration-cache는 끈다</h3>
+<p>Gradle에는 성격이 다른 두 캐시가 있다: <strong>빌드 캐시</strong>(<code>org.gradle.caching</code> — 태스크의 <em>산출물</em>을
+재사용해 다시 안 만들게 함)와 <strong>configuration-cache</strong>(빌드 <em>설정 단계</em> 자체의 결과를 재사용해 기동을
+빠르게 함). 이 둘 중 <code>io.spring.dependency-management</code> 플러그인이 configuration-cache와 아직
+비호환이라(legacy configuration 직렬화 에러) <strong>configuration-cache만</strong> 끈다. 빌드 캐시·<code>parallel</code>은 유지.</p>
+<h3 id="66-하이브리드-개발-루프">6.6 하이브리드 개발 루프</h3>
+<p>DB만 컨테이너로 띄우고 앱은 IDE에서 돌린다. 이유: 18GB 머신의 RAM 예산 절약 + 핫 리로드/디버거
+편의. <code>colima stop</code>으로 안 쓸 때 VM 메모리를 통째로 회수하는 습관이 프로젝트 내내 중요하다.</p>
+<hr>
+<h2 id="7-검증-그-당시-실제로-확인한-것--실제-함정-포함">7. 검증 (그 당시 실제로 확인한 것 — 실제 함정 포함)</h2>
+<blockquote>
+<p><strong>전제:</strong> 아래 명령은 저장소를 <code>clone</code>해 <strong>코드(엔티티·컨트롤러 등)가 이미 있는 상태</strong>를 가정한다.
+즉 여기서 새로 타이핑하는 건 없고, 있는 코드를 빌드·기동·호출해 &quot;진짜 동작하는지&quot;만 확인한다.
+처음부터 셋업하는 절차(colima 설치 등)는 <a href="SETUP.html">SETUP.md</a>를 따르라.</p>
+</blockquote>
+<p><strong>빌드 &amp; 단위 테스트 (Docker 불필요)</strong></p>
+<pre><code class="hljs language-bash">./gradlew :services:order-service:<span class="hljs-built_in">test</span>        <span class="hljs-comment"># BUILD SUCCESSFUL + OrderTest 통과</span>
+</code></pre><p><strong>DB 기동 &amp; 앱 실행</strong></p>
+<pre><code class="hljs language-bash">docker compose -f deploy/compose/compose.infra.yml up -d      <span class="hljs-comment"># order-db (healthy)</span>
+./gradlew :services:order-service:bootRun                     <span class="hljs-comment"># :8080</span>
+curl -s localhost:8080/actuator/health                        <span class="hljs-comment"># {&quot;status&quot;:&quot;UP&quot;}</span>
+</code></pre><p><strong>API &quot;동작 증명&quot;</strong></p>
+<pre><code class="hljs language-bash">curl -s -X POST localhost:8080/orders -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> -d <span class="hljs-string">&#x27;{
+  &quot;customerId&quot;:&quot;11111111-1111-1111-1111-111111111111&quot;,
+  &quot;items&quot;:[{&quot;productId&quot;:&quot;22222222-2222-2222-2222-222222222222&quot;,&quot;quantity&quot;:2,&quot;unitPrice&quot;:10.00}]}&#x27;</span>
+<span class="hljs-comment"># → 201 + {id, status, totalAmount, items[...]}</span>
+curl -s localhost:8080/orders/&lt;UUID&gt;                          <span class="hljs-comment"># 200 단건</span>
+curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</span> localhost:8080/orders/000...000   <span class="hljs-comment"># 404</span>
+curl -s localhost:8080/actuator/flyway | python3 -m json.tool <span class="hljs-comment"># V1,V2 적용 이력</span>
+</code></pre><p><strong>스키마 재현성</strong> — <code>down -v</code> 후 재기동 → Flyway가 V1 재적용해 스키마 재생성.</p>
+<p><strong>그때 실제로 겪은 함정 4가지(→ 상세는 <a href="SETUP.html">SETUP.md</a> §8):</strong></p>
+<table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>no repositories are defined</code></td>
+<td>저장소 미선언</td>
+<td><code>settings.gradle.kts</code>에 <code>mavenCentral()</code> 중앙 선언 (§4.1)</td>
+</tr>
+<tr>
+<td><code>Configuration cache state could not be cached … DefaultLegacyConfiguration</code></td>
+<td>dependency-management 플러그인이 config-cache와 비호환</td>
+<td><code>gradle.properties</code>에서 configuration-cache만 끔 (§6.5)</td>
+</tr>
+<tr>
+<td>postgres:18 컨테이너가 시작 직후 Exit(1)</td>
+<td>PG18의 데이터 디렉터리 경로 변경(<code>/var/lib/postgresql/&lt;버전&gt;/docker</code>), 옛 <code>/data</code> 마운트 거부</td>
+<td>볼륨을 <code>/var/lib/postgresql</code>(상위)에 마운트 (§4.7)</td>
+</tr>
+<tr>
+<td><code>GET /orders</code>가 500 (<code>LazyInitializationException</code>)</td>
+<td><code>open-in-view:false</code>라 트랜잭션 종료 후 LAZY 직렬화 실패</td>
+<td>엔티티→DTO 변환을 <code>@Transactional</code> 서비스 메서드 안에서 수행</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>아웃바운드 어댑터 누락 사건(커밋 <code>bb2ee23</code>).</strong> 최초 커밋 직후, <code>.gitignore</code>의 <code>out/</code> 패턴(앵커 없음)이
+헥사고날 <code>adapter/out</code>·<code>application/port/out</code> 디렉터리까지 무시해 영속 어댑터·아웃바운드 포트 13개가
+커밋에서 빠졌다. <code>out/</code> → <strong><code>/out/</code></strong>(루트 앵커)로 한정해 해결. IDE 산출물 디렉터리(<code>/out/</code>)만 무시하도록
+좁힌 것.</p>
+</blockquote>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계 / 트레이드오프</th>
+<th>성격</th>
+<th>해결 Phase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>서비스가 1개뿐 — 공통 빌드 설정 <code>build-logic/</code> 미추출(각 모듈이 개별 선언)</td>
+<td>빌드 중복</td>
+<td><strong>Phase 2</strong>(계획상 컨벤션 플러그인 추출)</td>
+</tr>
+<tr>
+<td>재고 차감에 락 없음 → 동시 주문 시 oversell 가능</td>
+<td>동시성</td>
+<td><strong>db42211</strong>(비관적 락 리팩터)</td>
+</tr>
+<tr>
+<td>결제가 order-service 안(모놀리스) — 단일 트랜잭션 ACID</td>
+<td>경계</td>
+<td><strong>Phase 2-1/2-2</strong>(payment-service 분리·원격 호출)</td>
+</tr>
+<tr>
+<td>DB 비밀번호가 설정에 평문 하드코딩</td>
+<td>시크릿</td>
+<td><strong>Phase 6</strong>(Config) / <strong>Phase 7</strong>(compose)</td>
+</tr>
+<tr>
+<td>서비스 주소가 하드코딩(단일 서비스라 아직 문제 안 됨)</td>
+<td>위치 결합</td>
+<td><strong>Phase 4</strong>(Eureka 디스커버리)</td>
+</tr>
+<tr>
+<td>인증/인가 없음(누구나 호출)</td>
+<td>보안</td>
+<td><strong>Phase 5</strong>(JWT 리소스 서버)</td>
+</tr>
+<tr>
+<td><code>eureka.instance.hostname=localhost</code> 등 컨테이너 미대응 값 없음(아직 순수 로컬)</td>
+<td>배포</td>
+<td><strong>Phase 7</strong>(full compose)</td>
+</tr>
+<tr>
+<td>분산추적 없음</td>
+<td>관측성</td>
+<td><strong>Phase 8</strong>(LGTM)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어-사전">9. 용어 사전</h2>
+<ul>
+<li><strong>모노레포</strong>: 여러 서비스를 한 git 저장소에서 관리.</li>
+<li><strong>Gradle 멀티모듈</strong>: 루트 아래 서브프로젝트(<code>:services:order-service</code>)를 매다는 구조.</li>
+<li><strong>버전 카탈로그</strong>: <code>libs.versions.toml</code> — 버전 핀의 단일 진실 공급원.</li>
+<li><strong>BOM</strong>: 서로 호환되는 라이브러리 버전 묶음표(Boot/Cloud가 제공).</li>
+<li><strong>툴체인</strong>: 컴파일/테스트 대상 JDK 버전 고정(여기선 21).</li>
+<li><strong>foojay resolver</strong>: 없는 JDK를 자동으로 내려받는 Gradle 플러그인.</li>
+<li><strong>Flyway</strong>: 버전 매겨진 SQL로 DB 스키마를 관리하는 마이그레이션 도구.</li>
+<li><strong>JPA / Hibernate</strong>: JPA는 자바의 ORM 표준 <strong>명세</strong>(인터페이스), Hibernate는 그 명세의 <strong>대표 구현체</strong>(실제 라이브러리).</li>
+<li><strong>엔티티(entity)</strong>: DB 테이블에 매핑되는 자바 객체. <code>validate</code>가 대조하는 &quot;코드 쪽&quot; 대상.</li>
+<li><strong>DTO(Data Transfer Object)</strong>: 계층/네트워크 사이로 데이터를 실어 나르는 전송용 객체(응답 DTO 등). 엔티티와 분리한다.</li>
+<li><strong><code>ddl-auto</code></strong>: 앱 기동 시 Hibernate의 스키마 처리 방식 설정 — <code>create</code>/<code>update</code>/<code>create-drop</code>/<code>validate</code>/<code>none</code>.</li>
+<li><strong><code>ddl-auto=validate</code></strong>: Hibernate가 스키마를 만들지 않고 일치 여부만 검증(불일치 시 부팅 실패).</li>
+<li><strong>LAZY(지연) 로딩</strong>: 연관 데이터를 실제로 쓸 때까지 DB에서 안 읽어오는 JPA 전략(반대는 EAGER).</li>
+<li><strong>open-in-view(OSIV)</strong>: HTTP 응답 생성 동안 DB 세션을 열어두는 옵션. <code>false</code>면 트랜잭션 밖에서 LAZY 연관을 못 읽는다.</li>
+<li><strong>Actuator</strong>: 스프링 부트가 제공하는 앱 상태 확인용 관리 엔드포인트(<code>/actuator/*</code>, 노출은 <code>exposure.include</code>로 선택).</li>
+<li><strong>database-per-service</strong>: 각 서비스가 자기 DB만 소유하는 MSA 원칙.</li>
+<li><strong>컨테이너 / 이미지 / 볼륨 / docker compose</strong>: 격리 실행 단위 / 그 템플릿 / 죽어도 남는 데이터 저장소 / 이들을 YAML로 정의·기동하는 도구.</li>
+<li><strong>Colima</strong>: 경량 CLI 컨테이너 런타임(Docker Desktop 대체).</li>
+<li><strong>빌드 캐시 vs configuration-cache</strong>: 전자는 태스크 <em>산출물</em> 재사용, 후자는 빌드 <em>설정 단계</em> 결과 재사용. Phase 0에선 후자만 끈다.</li>
+<li><strong>graceful shutdown</strong>: 진행 중 요청을 끝내고 종료.</li>
+<li><strong>wrapper</strong>: <code>./gradlew</code> — 지정된 Gradle 버전을 자동으로 받아 실행하는 스크립트.</li>
+</ul>
+<hr>
+<h2 id="10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</h2>
+<ul>
+<li>Gradle 멀티프로젝트 빌드: <a href="https://docs.gradle.org/current/userguide/multi_project_builds.html">https://docs.gradle.org/current/userguide/multi_project_builds.html</a></li>
+<li>Gradle 버전 카탈로그: <a href="https://docs.gradle.org/current/userguide/version_catalogs.html">https://docs.gradle.org/current/userguide/version_catalogs.html</a></li>
+<li>Gradle 툴체인 / foojay: <a href="https://docs.gradle.org/current/userguide/toolchains.html">https://docs.gradle.org/current/userguide/toolchains.html</a></li>
+<li>Spring Boot with Flyway: <a href="https://docs.spring.io/spring-boot/reference/data/sql.html#data.sql.migration">https://docs.spring.io/spring-boot/reference/data/sql.html#data.sql.migration</a></li>
+<li>Flyway 문서: <a href="https://documentation.red-gate.com/flyway">https://documentation.red-gate.com/flyway</a></li>
+<li>Spring Cloud 2025.0 릴리스 노트: <a href="https://github.com/spring-cloud/spring-cloud-release/wiki">https://github.com/spring-cloud/spring-cloud-release/wiki</a></li>
+</ul>
+<hr>
+<p><em>관련 문서: <a href="HEXAGONAL.html">HEXAGONAL.md</a>(서비스 내부 아키텍처), <a href="SETUP.html">SETUP.md</a>(설치·실행·트러블슈팅), 이후 <a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY.md</a>(Phase 4), <a href="SECURITY.html">SECURITY.md</a>(Phase 5). 전체 로드맵: 루트 <code>MSA-LEARNING-PLAN.md</code>.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
+<li class="toc-h2"><a href="#1-왜-이-단계인가-직전까지의-문제">1. 왜 이 단계인가? (직전까지의 문제)</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념-초심자용">2. 핵심 개념 (초심자용)</a></li>
+<li class="toc-h3"><a href="#21-모노레포monorepo--gradle-멀티모듈">2.1 모노레포(monorepo) + Gradle 멀티모듈</a></li>
+<li class="toc-h3"><a href="#22-버전-카탈로그version-catalog--단일-진실-공급원">2.2 버전 카탈로그(version catalog) = 단일 진실 공급원</a></li>
+<li class="toc-h3"><a href="#23-bombill-of-materials">2.3 BOM(Bill of Materials)</a></li>
+<li class="toc-h3"><a href="#24-gradle-툴체인toolchain--foojay-자동-프로비저닝">2.4 Gradle 툴체인(toolchain) + foojay 자동 프로비저닝</a></li>
+<li class="toc-h3"><a href="#25-스키마는-코드다--flyway-소유--ddl-autovalidate">2.5 스키마는 코드다 — Flyway 소유 + ddl-auto=validate</a></li>
+<li class="toc-h3"><a href="#26-database-per-service">2.6 database-per-service</a></li>
+<li class="toc-h3"><a href="#27-colima--로컬-컨테이너-런타임">2.7 Colima = 로컬 컨테이너 런타임</a></li>
+<li class="toc-h2"><a href="#3-이-단계의-구성">3. 이 단계의 구성</a></li>
+<li class="toc-h2"><a href="#4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</a></li>
+<li class="toc-h3"><a href="#41-모듈-등록--settingsgradlekts">4.1 모듈 등록 — settings.gradle.kts</a></li>
+<li class="toc-h3"><a href="#42-루트-빌드--buildgradlekts-의도적으로-비움">4.2 루트 빌드 — build.gradle.kts (의도적으로 비움)</a></li>
+<li class="toc-h3"><a href="#43-버전-핀--gradlelibsversionstoml">4.3 버전 핀 — gradle/libs.versions.toml</a></li>
+<li class="toc-h3"><a href="#44-서비스-빌드--servicesorder-servicebuildgradlekts">4.4 서비스 빌드 — services/order-service/build.gradle.kts</a></li>
+<li class="toc-h3"><a href="#45-앱-설정--applicationyml-스키마-소유권의-핵심">4.5 앱 설정 — application.yml (스키마 소유권의 핵심)</a></li>
+<li class="toc-h3"><a href="#46-마이그레이션--dbmigrationv1__initsql-v2__">4.6 마이그레이션 — db/migration/V1__init.sql, V2__…</a></li>
+<li class="toc-h3"><a href="#47-인프라--deploycomposecomposeinfrayml">4.7 인프라 — deploy/compose/compose.infra.yml</a></li>
+<li class="toc-h2"><a href="#5-동작-흐름-부팅--스키마-생성--요청">5. 동작 흐름 (부팅 → 스키마 생성 → 요청)</a></li>
+<li class="toc-h2"><a href="#6-동작-원리-더-깊게--트레이드오프">6. 동작 원리 더 깊게 / 트레이드오프</a></li>
+<li class="toc-h3"><a href="#61-왜-flyway를-0단계부터">6.1 왜 Flyway를 &quot;0단계&quot;부터?</a></li>
+<li class="toc-h3"><a href="#62-ddl-auto의-선택지와-트레이드오프">6.2 ddl-auto의 선택지와 트레이드오프</a></li>
+<li class="toc-h3"><a href="#63-java-21-타깃인데-빌드는-jdk-24로-실행">6.3 Java 21 타깃인데 빌드는 JDK 24로 실행</a></li>
+<li class="toc-h3"><a href="#64-gradle-wrapperjar를-커밋한다">6.4 gradle-wrapper.jar를 커밋한다</a></li>
+<li class="toc-h3"><a href="#65-configuration-cache는-끈다">6.5 configuration-cache는 끈다</a></li>
+<li class="toc-h3"><a href="#66-하이브리드-개발-루프">6.6 하이브리드 개발 루프</a></li>
+<li class="toc-h2"><a href="#7-검증-그-당시-실제로-확인한-것--실제-함정-포함">7. 검증 (그 당시 실제로 확인한 것 — 실제 함정 포함)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어-사전">9. 용어 사전</a></li>
+<li class="toc-h2"><a href="#10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</a></li></ul></nav></aside>
+</body>
+</html>

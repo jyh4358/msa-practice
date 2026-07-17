@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1 · 모놀리스(ACID) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li class="active"><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="모놀리스--주문재고결제-단일-트랜잭션acid">모놀리스 — 주문+재고+결제 단일 트랜잭션(ACID)</h1>
+<blockquote>
+<p><strong>이 문서는 Phase 1 작업을 설명합니다.</strong> 트랜잭션이 처음이어도 끝까지 이해하도록 개념 → 그림 →
+이 프로젝트의 실제 코드/설정 → 동작 원리 → 검증 → 알려진 한계 순으로 정리했습니다.
+뒤 Phase가 여기서 만든 것을 바꾼 지점은 그때마다 명시합니다(예: &quot;Phase 2-2에서 제거됨&quot;).
+본문은 이미 만든 코드를 되짚는 <strong>회고형 해설</strong>이며, 코드 스니펫은 요점만 보인 <strong>발췌</strong>입니다
+(<code>...</code>로 생략한 곳은 실제 파일에 더 있습니다). 처음 보는 용어는 첫 등장 지점의 괄호 정의와
+문서 끝 <strong>§9 용어 사전</strong>에서 확인할 수 있습니다.</p>
+</blockquote>
+<hr>
+<h2 id="0-한-줄-요약">0. 한 줄 요약</h2>
+<blockquote>
+<p><strong>주문 생성 + 재고 차감 + 결제 캡처를 하나의 <code>@Transactional</code> 안에서 처리해, 한 단계라도 실패하면
+전부 롤백되게 만들었다.</strong> 세 가지가 한 DB의 한 트랜잭션을 공유하므로 &quot;다 성공하거나 다 없던 일&quot;이
+공짜로 보장된다(ACID). 여기에 동시 주문이 재고를 초과 판매하지 못하도록 <strong>비관적 락</strong>을 걸었다.</p>
+</blockquote>
+<hr>
+<h2 id="1-왜-이-단계인가-직전까지의-문제">1. 왜 이 단계인가? (직전까지의 문제)</h2>
+<p>MSA를 배우는데 <strong>왜 모놀리스부터</strong> 시작할까? &quot;나중에 분산되면 잃어버릴 것을 먼저 눈으로 보기 위해서&quot;다.</p>
+<p>주문 처리는 사실 세 가지 일이 묶여 있다.</p>
+<ol>
+<li><strong>주문</strong>을 만든다.</li>
+<li>주문한 만큼 <strong>재고</strong>를 뺀다.</li>
+<li>결제를 <strong>캡처</strong>한다(돈을 받는다).</li>
+</ol>
+<p>이 셋은 <strong>전부 성공하거나 전부 없던 일이 되어야</strong> 한다. 재고만 빠지고 결제가 실패하면 상품은
+사라졌는데 돈은 못 받은 상태다. 결제만 되고 재고가 모자라면 팔 수 없는 걸 팔아버린 것이다.</p>
+<p>Phase 1(이 단계)에서는 세 가지가 <strong>모두 order-service 한 곳, 한 데이터베이스 안</strong>에 있다.
+그래서 <strong>DB 트랜잭션 하나로 원자성을 공짜로 얻는다</strong>(아래 §2). 이게 기준선(baseline)이다.</p>
+<blockquote>
+<p>⚠️ <strong>이 공짜는 곧 사라진다.</strong> Phase 2-1에서 payment-service를 분리하고, Phase 2-2에서 order가
+결제를 <strong>원격 호출</strong>로 바꾸는 순간, 결제는 다른 서비스·다른 DB로 나간다. 그러면 이 <code>@Transactional</code>은
+원격 결제를 더 이상 감싸지 못한다 → &quot;결제 거절 시 재고 자동 롤백&quot;이 깨진다. <strong>이 잃어버린 원자성이
+Phase 12 Saga의 존재 이유</strong>다. Phase 1은 &quot;잃기 전의 모습&quot;을 코드로 박제해 두는 단계다.</p>
+</blockquote>
+<hr>
+<h2 id="2-핵심-개념">2. 핵심 개념</h2>
+<h3 id="21-트랜잭션과-acid">2.1 트랜잭션과 ACID</h3>
+<p><strong>트랜잭션</strong>은 &quot;여러 DB 작업을 하나의 단위로 묶는 것&quot;이다. 은행 계좌이체(출금+입금)처럼 중간에
+멈추면 안 되는 작업에 쓴다. 성질을 머리글자로 <strong>ACID</strong>라 부른다.</p>
+<table>
+<thead>
+<tr>
+<th>글자</th>
+<th>뜻</th>
+<th>이 단계에서의 의미</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A</strong>tomicity(원자성)</td>
+<td>다 되거나 다 안 됨</td>
+<td>결제 거절 → 앞서 뺀 재고도 원복</td>
+</tr>
+<tr>
+<td><strong>C</strong>onsistency(일관성)</td>
+<td>규칙을 깨지 않음</td>
+<td>재고는 음수가 될 수 없음(불변식)</td>
+</tr>
+<tr>
+<td><strong>I</strong>solation(격리성)</td>
+<td>동시 작업이 서로 안 밟음</td>
+<td>동시 주문이 같은 재고를 초과 차감 못 함</td>
+</tr>
+<tr>
+<td><strong>D</strong>urability(지속성)</td>
+<td>커밋되면 남음</td>
+<td>커밋된 주문은 재시작해도 유지</td>
+</tr>
+</tbody></table>
+<p><code>@Transactional</code>이 붙은 메서드는 <strong>정상 종료하면 커밋, 런타임 예외가 나가면 롤백</strong>된다.
+Phase 1의 핵심은 세 작업을 이 한 메서드 안에 넣어 <strong>원자성</strong>을 얻는 것이다.</p>
+<h3 id="22-동시성-문제--lost-update--oversell">2.2 동시성 문제 — lost update / oversell</h3>
+<p>재고 5개인 상품에 <strong>20명이 동시에</strong> &quot;1개 주문&quot;을 넣으면 어떻게 될까? 순진한 코드
+(<code>읽기 → 계산 → 쓰기</code>)는 이렇게 깨진다.</p>
+<pre><code>스레드A: 재고 읽음(5)  ─┐
+스레드B: 재고 읽음(5)  ─┘  둘 다 &quot;5&quot;를 봤다
+스레드A: 4로 씀
+스레드B: 4로 씀   ← A가 뺀 걸 못 봐서 덮어씀 → 2개 팔았는데 재고는 1만 줄어듦
+</code></pre><p>이게 <strong>lost update</strong>이고, 결과가 <strong>oversell</strong>(재고보다 많이 팔림)이다.</p>
+<h3 id="23-비관적-락pessimistic_write">2.3 비관적 락(PESSIMISTIC_WRITE)</h3>
+<p>해결책은 &quot;읽는 순간부터 그 행을 잠가서, 내가 끝날 때까지 남이 못 읽게&quot; 하는 것이다.
+SQL로는 <code>SELECT … FOR UPDATE</code>. 이걸 <strong>비관적 락</strong>이라 한다(&quot;충돌이 날 거라 비관하고 미리 잠근다&quot;).
+잠긴 행에 접근하려는 다른 트랜잭션은 <strong>줄 서서 기다린다</strong>(직렬화). 그래서 위 그림에서 B는 A가
+커밋할 때까지 멈춰 있다가, A가 뺀 <strong>4를 보고</strong> 3으로 뺀다. oversell이 사라진다.</p>
+<blockquote>
+<p>반대는 <strong>낙관적 락</strong>(<code>@Version</code>+충돌 시 재시도)이다. Phase 1은 확실·단순한 비관적 락을 택했다.</p>
+</blockquote>
+<h3 id="24-헥사고날-출력-모델view과-순수-도메인">2.4 헥사고날 출력 모델(*View)과 순수 도메인</h3>
+<p>이 단계는 헥사고날 아키텍처 위에 얹혀 있다(세부는 <code>HEXAGONAL.md</code>). Phase 1에서 새로 지킨 규칙:</p>
+<ul>
+<li><strong>인바운드 포트가 가변 도메인(Order)이 아니라 불변 뷰(<code>OrderView</code>/<code>StockView</code>)를 반환</strong>한다 →
+도메인 애그리거트가 웹 어댑터로 새지 않는다.</li>
+<li><strong>커스텀 조회는 QueryDSL</strong>로 한다. 리포지토리 인터페이스에 JPQL <code>@Query</code>/<code>@Lock</code>/<code>@EntityGraph</code>를
+쓰지 않는다(쿼리 로직을 어댑터의 QueryDSL 클래스에 모은다).</li>
+<li><strong>Lombok은 컴파일타임 전용</strong>(<code>@Getter</code>/<code>@NoArgsConstructor</code>/<code>@RequiredArgsConstructor</code>만).
+JPA에서 위험한 <code>@ToString</code>/<code>@EqualsAndHashCode</code>/<code>@Data</code>는 쓰지 않는다
+(JPA 양방향 연관·지연 로딩에서 <code>@ToString</code>/<code>@EqualsAndHashCode</code>가 서로 참조하는 엔티티를
+무한 순회하거나 불필요한 쿼리를 유발하기 때문).</li>
+</ul>
+<h3 id="25-헥사고날-최소-지도-4-코드를-읽기-전에">2.5 헥사고날 최소 지도 (§4 코드를 읽기 전에)</h3>
+<p>§4의 코드가 어느 계층인지 헷갈리지 않도록, 헥사고날 어휘를 최소한으로 정리한다(세부는 <code>HEXAGONAL.md</code>).</p>
+<ul>
+<li><strong>유스케이스(UseCase)</strong>: 한 트랜잭션 단위의 비즈니스 로직(예: <code>OrderService.placeOrder</code>).</li>
+<li><strong>포트(Port)</strong>: 유스케이스가 바깥과 대화하는 인터페이스. <strong>인바운드 포트</strong>는 들어오는 요청의
+진입점 계약(<code>PlaceOrderUseCase</code>), <strong>아웃바운드 포트</strong>는 DB·외부로 나가는 계약(<code>ReserveStockPort</code> 등 <code>*Port</code>)이다.</li>
+<li><strong>어댑터(Adapter)</strong>: 포트의 실제 구현(기술 세부). <strong>인바운드 어댑터</strong>는 웹 컨트롤러(<code>OrderController</code>),
+<strong>아웃바운드 어댑터</strong>는 JPA 영속화(<code>StockPersistenceAdapter</code>)처럼 특정 기술로 포트를 구현한다.</li>
+<li><strong>애그리거트(Aggregate)</strong>: 일관성 경계를 가진 도메인 객체 묶음(여기선 <code>Order</code>가 <code>Payment</code>·<code>Item</code>을 소유).</li>
+<li>의존성은 항상 <strong>안쪽 도메인</strong>을 향한다: 어댑터 → 포트 → 유스케이스 → 도메인.</li>
+</ul>
+<hr>
+<h2 id="3-이-단계의-구성">3. 이 단계의 구성</h2>
+<pre><code>  클라이언트
+     │ HTTP :8080
+     ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ order-service (8080)                                               │
+  │                                                                    │
+  │  OrderController  ──▶  PlaceOrderUseCase  ──▶  OrderService        │
+  │  [인바운드 어댑터]     [인바운드 포트]          [유스케이스]       │
+  │                                                     │              │
+  │                        ┌────────────────────────────┴───────────┐ │
+  │                        │ @Transactional (하나)                   │ │
+  │                        │  1) 재고 차감(비관적 락)                │ │
+  │                        │  2) 결제 캡처(.99 거절)                 │ │
+  │                        │  3) 주문 저장                           │ │
+  │                        └────────────────────────────┬───────────┘ │
+  │                                                      │             │
+  │  ReserveStockPort / SaveOrderPort  ──▶  StockPersistenceAdapter    │
+  │  [아웃바운드 포트]                       OrderPersistenceAdapter   │
+  │                                          [아웃바운드 어댑터]       │
+  └──────────────────────────────────────────────────────┬───────────┘
+                                                          ▼
+                              ┌───────────────────────────┐
+                              │   orderdb (PostgreSQL 18)  │
+                              │   orders / order_items     │
+                              │   stock_items / payments   │  ← 넷 다 한 DB (Phase 1)
+                              └───────────────────────────┘
+</code></pre><blockquote>
+<p>위 흐름이 §4 코드의 지도다: 컨트롤러(인바운드 어댑터) → 유스케이스(인바운드 포트/<code>OrderService</code>) →
+아웃바운드 포트(<code>*Port</code>) → 아웃바운드 어댑터(<code>*PersistenceAdapter</code>) → DB. §4.1~4.4가 이 상자들이다.
+([...]는 헥사고날 계층 이름, →는 호출 방향. 세부 정의는 §2.5.)</p>
+</blockquote>
+<ul>
+<li><strong>한 서비스, 한 DB</strong>다. 결제·재고가 별도 서비스로 나가 있지 않다.</li>
+<li><code>payments</code> 테이블은 <strong>이 단계에만</strong> 존재한다. <strong>Phase 2-2(<code>a9a1cda</code>)의 V3 마이그레이션에서 drop</strong>되고
+<code>orders</code>에 <code>payment_id</code> 컬럼만 남는다.</li>
+<li>게이트웨이/Eureka/보안은 아직 없다. 클라이언트가 8080을 직접 부른다.</li>
+</ul>
+<hr>
+<h2 id="4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</h2>
+<blockquote>
+<p>아래는 리팩터 커밋(<code>db42211</code>)과 문서 커밋(<code>361e05f</code>) 시점, 즉 <strong>Phase 1이 끝난 상태</strong>의 코드다.
+초기 커밋(<code>fcaa736</code>)과 달라진 부분은 그때마다 표시한다.</p>
+</blockquote>
+<h3 id="41-유스케이스--단일-트랜잭션-orderserviceplaceorder">4.1 유스케이스 — 단일 트랜잭션 (<code>OrderService.placeOrder</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Override</span>
+<span class="hljs-meta">@Transactional</span>
+<span class="hljs-keyword">public</span> OrderView <span class="hljs-title function_">placeOrder</span><span class="hljs-params">(PlaceOrderCommand command)</span> {
+    <span class="hljs-type">Order</span> <span class="hljs-variable">order</span> <span class="hljs-operator">=</span> Order.create(command.customerId());
+    command.items().forEach(i -&gt; order.addItem(i.productId(), i.quantity(), i.unitPrice()));
+
+    <span class="hljs-comment">// (1) 재고 예약 — 상품ID 정렬 순서로 차감(어댑터가 비관적 락 적용)</span>
+    Map&lt;UUID, Integer&gt; quantityByProduct = <span class="hljs-keyword">new</span> <span class="hljs-title class_">TreeMap</span>&lt;&gt;();
+    command.items().forEach(i -&gt;
+            quantityByProduct.merge(i.productId(), i.quantity(), Integer::sum));
+    quantityByProduct.forEach(reserveStockPort::reserve);
+
+    <span class="hljs-comment">// (2) 결제 캡처 — 거절되면 PaymentDeclinedException → (1)의 재고 차감까지 롤백</span>
+    order.capturePayment();
+
+    <span class="hljs-comment">// (3) 주문 저장(주문+항목+결제 한 번에). 같은 트랜잭션이므로 위 단계와 원자적</span>
+    <span class="hljs-keyword">return</span> OrderView.from(saveOrderPort.save(order));
+}
+</code></pre><p>읽을 포인트 세 가지.</p>
+<ul>
+<li><strong><code>@Transactional</code> 하나가 (1)(2)(3)을 감싼다.</strong> 어느 단계든 런타임 예외가 나가면 전부 롤백.</li>
+<li><strong><code>TreeMap</code>으로 상품ID를 정렬</strong>한 뒤 차감한다 → 다중 상품 주문이 서로 다른 순서로 락을 잡다
+생기는 <strong>교착(deadlock)을 회피</strong>한다(모든 트랜잭션이 항상 같은 순서로 락을 잡음). <code>merge</code>로 같은
+상품 중복 수량을 합산해 <strong>한 번만</strong> 차감한다.</li>
+<li><strong>반환은 <code>OrderView</code></strong>(불변 뷰)다. 가변 도메인 <code>Order</code>를 그대로 내보내지 않는다.</li>
+</ul>
+<blockquote>
+<p><strong>초기 커밋(<code>fcaa736</code>)과의 차이</strong>: 그때는 <code>placeOrder</code>가 도메인 <code>Order</code>를 직접 반환했고, 재고
+차감이 <code>loadStockPort.load → stock.reserve → saveStockPort.save</code>(락 없음, <code>LinkedHashMap</code>)였다.
+원본 코드의 주석 스스로 <em>&quot;락/@Version 이 없어 동시 주문 시 lost-update(oversell) 가능&quot;</em> 이라고
+인정하고 있었다. <code>db42211</code>이 이 한계를 비관적 락으로 닫았고, <code>SaveStockPort</code>를 <strong>제거</strong>하고
+<code>ReserveStockPort</code>로 대체했다.</p>
+</blockquote>
+<h3 id="42-아웃바운드-포트--의도만-표현-reservestockport">4.2 아웃바운드 포트 — 의도만 표현 (<code>ReserveStockPort</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ReserveStockPort</span> {
+    <span class="hljs-comment">/** 재고를 차감한다. 부족하면 InsufficientStockException, 미등록 상품이면 StockNotFoundException. */</span>
+    <span class="hljs-keyword">void</span> <span class="hljs-title function_">reserve</span><span class="hljs-params">(UUID productId, <span class="hljs-type">int</span> quantity)</span>;
+}
+</code></pre><p>애플리케이션 계층은 <strong>&quot;예약한다&quot;는 의도만</strong> 안다. <strong>락 전략(비관적/낙관적)은 어댑터의 구현 세부</strong>로
+숨겼다. 그래서 나중에 락 방식을 바꿔도 유스케이스 코드는 그대로다(포트=계약, 어댑터=방법).</p>
+<h3 id="43-어댑터--load-then-mutate-stockpersistenceadapterreserve">4.3 어댑터 — load-then-mutate (<code>StockPersistenceAdapter.reserve</code>)</h3>
+<blockquote>
+<p><strong>(배경 — JPA 영속성 컨텍스트)</strong> JPA는 트랜잭션 동안 조회한 엔티티를 <strong>영속성 컨텍스트</strong>(persistence
+context, 트랜잭션 내 엔티티 캐시)가 <strong>관리(managed)</strong> 한다. 이 managed 엔티티의 필드를 바꾸면 JPA가
+변경을 감지(<strong>dirty checking</strong>)해 커밋 시 자동으로 <code>UPDATE</code>를 날린다 — 그래서 별도의 <code>save</code> 호출이
+필요 없다. 반면 <strong><code>merge</code></strong> 는 관리 밖(detached) 엔티티를 다시 컨텍스트에 붙이는 별도 API다.</p>
+</blockquote>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Override</span>
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">reserve</span><span class="hljs-params">(UUID productId, <span class="hljs-type">int</span> quantity)</span> {
+    <span class="hljs-comment">// 비관적 쓰기 락으로 행을 잠근 채 &#x27;관리(managed)&#x27; 엔티티를 로드 → 도메인 규칙으로 차감 →</span>
+    <span class="hljs-comment">// 같은 managed 엔티티를 직접 수정해 dirty checking 으로 UPDATE(락 걸린 그 행에 그대로 반영).</span>
+    <span class="hljs-type">StockItemJpaEntity</span> <span class="hljs-variable">managed</span> <span class="hljs-operator">=</span> queryRepository.findByProductIdForUpdate(productId)
+            .orElseThrow(() -&gt; <span class="hljs-keyword">new</span> <span class="hljs-title class_">StockNotFoundException</span>(productId));
+    <span class="hljs-type">StockItem</span> <span class="hljs-variable">stock</span> <span class="hljs-operator">=</span> toDomain(managed);
+    stock.reserve(quantity);   <span class="hljs-comment">// 부족하면 InsufficientStockException → 트랜잭션 롤백</span>
+    managed.setAvailableQuantity(stock.getAvailableQuantity());
+}
+</code></pre><p>핵심은 <strong>load-then-mutate, merge 금지</strong>다.</p>
+<ul>
+<li><code>findByProductIdForUpdate</code>로 <strong>락 걸린 상태의 관리(managed) 엔티티</strong>를 가져온다.</li>
+<li>도메인 규칙(<code>stock.reserve</code>)으로 수량을 검증·계산한다.</li>
+<li><strong>같은 managed 엔티티를 직접 수정</strong>한다 → JPA <strong>dirty checking</strong>이 트랜잭션 커밋 시 그 행에
+<code>UPDATE</code>를 낸다. <strong>새 엔티티를 <code>merge</code>하지 않는다.</strong></li>
+</ul>
+<p>왜 merge를 금지할까? <code>merge(새 엔티티)</code>는 락과 무관한 별도 경로라, &quot;락 잡은 행&quot;과 &quot;쓰는 행&quot;이
+분리될 수 있다. load-then-mutate는 <strong>락 ↔ UPDATE 결합이 구조적으로 보장</strong>된다(잠근 그 행을 그대로 씀).</p>
+<h3 id="44-락-쿼리--querydsl-select--for-update-stockqueryrepository">4.4 락 쿼리 — QueryDSL <code>SELECT … FOR UPDATE</code> (<code>StockQueryRepository</code>)</h3>
+<pre><code class="hljs language-java">Optional&lt;StockItemJpaEntity&gt; <span class="hljs-title function_">findByProductIdForUpdate</span><span class="hljs-params">(UUID productId)</span> {
+    <span class="hljs-type">QStockItemJpaEntity</span> <span class="hljs-variable">stock</span> <span class="hljs-operator">=</span> QStockItemJpaEntity.stockItemJpaEntity;
+    <span class="hljs-type">StockItemJpaEntity</span> <span class="hljs-variable">result</span> <span class="hljs-operator">=</span> query.selectFrom(stock)
+            .where(stock.productId.eq(productId))
+            .setLockMode(LockModeType.PESSIMISTIC_WRITE)   <span class="hljs-comment">// = SELECT … FOR UPDATE</span>
+            .fetchOne();
+    <span class="hljs-keyword">return</span> Optional.ofNullable(result);
+}
+</code></pre><p><code>QStockItemJpaEntity</code>(Q타입)는 QueryDSL 애노테이션 프로세서가 <code>StockItemJpaEntity</code>로부터
+<strong>컴파일 타임에 생성</strong>하는 타입세이프 쿼리용 클래스다(그래서 손으로 만들거나 import할 필요가 없다).
+<code>LockModeType.PESSIMISTIC_WRITE</code>가 곧 <code>SELECT … FOR UPDATE</code>다. <strong>읽는 시점부터</strong> 행을 잠가
+동시 차감의 lost update를 막는다. 리포지토리 인터페이스에 <code>@Lock</code>을 붙이는 대신 <strong>QueryDSL로
+명시적</strong>으로 표현했다(§2.4 규칙). <code>JPAQueryFactory</code> 빈은 <code>QuerydslConfig</code>가 현재 트랜잭션의
+<code>EntityManager</code>로 만든다.</p>
+<h3 id="45-순수-도메인--재고결제-불변식">4.5 순수 도메인 — 재고/결제 불변식</h3>
+<p><strong><code>StockItem.reserve</code></strong> (음수 재고 원천 차단):</p>
+<pre><code class="hljs language-java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">reserve</span><span class="hljs-params">(<span class="hljs-type">int</span> quantity)</span> {
+    <span class="hljs-keyword">if</span> (quantity &lt;= <span class="hljs-number">0</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">IllegalArgumentException</span>(...);
+    <span class="hljs-keyword">if</span> (quantity &gt; availableQuantity)
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">InsufficientStockException</span>(productId, quantity, availableQuantity);
+    <span class="hljs-built_in">this</span>.availableQuantity -= quantity;
+}
+</code></pre><p><strong><code>Order.capturePayment</code></strong> (가짜 게이트웨이 stub — 롤백 시연용):</p>
+<pre><code class="hljs language-java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">BigDecimal</span> <span class="hljs-variable">DECLINE_REMAINDER</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">BigDecimal</span>(<span class="hljs-string">&quot;0.99&quot;</span>);
+...
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">capturePayment</span><span class="hljs-params">()</span> {
+    <span class="hljs-keyword">if</span> (status != OrderStatus.PENDING) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">IllegalStateException</span>(...);
+    <span class="hljs-keyword">if</span> (items.isEmpty())               <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">IllegalStateException</span>(...);
+    <span class="hljs-keyword">if</span> (totalAmount.remainder(BigDecimal.ONE).compareTo(DECLINE_REMAINDER) == <span class="hljs-number">0</span>)
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PaymentDeclinedException</span>(totalAmount);   <span class="hljs-comment">// 합계가 .99로 끝나면 거절</span>
+    <span class="hljs-built_in">this</span>.payment = Payment.capture(totalAmount);
+    <span class="hljs-built_in">this</span>.status = OrderStatus.CONFIRMED;
+}
+</code></pre><blockquote>
+<p><code>remainder(BigDecimal.ONE)</code>은 금액을 1로 나눈 나머지, 즉 <strong>소수부</strong>를 뽑는다(예: 9.99 → 0.99).
+그 소수부가 정확히 <code>DECLINE_REMAINDER</code>(=0.99)면 거절 → 따라서 <strong>합계가 X.99인 모든 주문
+(9.99, 19.99, 29.99…)</strong> 이 결제 거절 시연을 트리거한다. §5.2·§7의 &quot;9.99 → 402&quot;가 여기서 나온다.
+<strong><code>.99 거절</code>은 진짜 불변식이 아니라 외부 PG를 흉내낸 stub</strong>이다(주석이 명시). &quot;결제가 거절되면
+어떻게 되나(재고 롤백)&quot;를 결정론적으로 시연하기 위한 것이며, <strong>Phase 2에서 원격 payment-service로
+빠져나갈 seam</strong>이다. 이 결제는 Phase 1에서 <strong>Order 애그리거트가 직접 소유</strong>한다(<code>payments</code> 테이블).</p>
+</blockquote>
+<h3 id="46-출력-모델-orderview">4.6 출력 모델 (<code>OrderView</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">OrderView</span><span class="hljs-params">(UUID id, UUID customerId, OrderStatus status, BigDecimal totalAmount,
+                        Instant createdAt, List&lt;Item&gt; items, PaymentView payment)</span> {
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">Item</span><span class="hljs-params">(UUID productId, <span class="hljs-type">int</span> quantity, BigDecimal unitPrice)</span> {}
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">PaymentView</span><span class="hljs-params">(BigDecimal amount, PaymentStatus status, Instant capturedAt)</span> {}
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> OrderView <span class="hljs-title function_">from</span><span class="hljs-params">(Order order)</span> { ... }   <span class="hljs-comment">// 도메인 → 뷰 매핑(애플리케이션 책임)</span>
+}
+</code></pre><p>불변 <code>record</code>다. 컨트롤러(<code>OrderController</code>)는 이 뷰를 그대로 응답하고, <strong>도메인 타입은 웹 어댑터에
+들어오지 않는다.</strong> 도메인→뷰 매핑은 애플리케이션 계층 책임(<code>OrderView.from</code>).</p>
+<h3 id="47-예외--http-apiexceptionhandler">4.7 예외 → HTTP (<code>ApiExceptionHandler</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@ExceptionHandler(InsufficientStockException.class)</span>   <span class="hljs-comment">// 재고 부족 → 409 Conflict</span>
+<span class="hljs-meta">@ExceptionHandler(PaymentDeclinedException.class)</span>      <span class="hljs-comment">// 결제 거절 → 402 Payment Required</span>
+<span class="hljs-meta">@ExceptionHandler({OrderNotFoundException, StockNotFoundException})</span>  <span class="hljs-comment">// → 404</span>
+<span class="hljs-meta">@ExceptionHandler(IllegalArgumentException.class)</span>      <span class="hljs-comment">// 도메인 불변식 위반 → 400</span>
+</code></pre><p>도메인 예외를 Spring <code>ProblemDetail</code>로 매핑한다. 이 매핑이 §7의 상태코드(201/402/409)를 만든다.</p>
+<h3 id="48-스키마--flyway가-소유-ddl-autovalidate">4.8 스키마 — Flyway가 소유 (<code>ddl-auto=validate</code>)</h3>
+<blockquote>
+<p><strong>Flyway</strong>는 <code>V1__…</code>, <code>V2__…</code>처럼 번호 붙은 SQL 파일을 <strong>순서대로 한 번씩</strong> 적용해 DB 스키마를
+버전 관리하는 도구다. 여기선 <strong>V1</strong>이 <code>orders</code>/<code>order_items</code>를, <strong>V2</strong>가 <code>stock_items</code>/<code>payments</code>를 만든다.</p>
+</blockquote>
+<p><code>application.yml</code>:</p>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">jpa:</span>
+    <span class="hljs-attr">hibernate:</span>
+      <span class="hljs-attr">ddl-auto:</span> <span class="hljs-string">validate</span>     <span class="hljs-comment"># 스키마는 Flyway가 소유. Hibernate는 검증만(불일치 시 부팅 실패)</span>
+    <span class="hljs-attr">open-in-view:</span> <span class="hljs-literal">false</span>
+  <span class="hljs-attr">flyway:</span>
+    <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span>
+<span class="hljs-attr">server:</span>
+  <span class="hljs-attr">port:</span> <span class="hljs-number">8080</span>
+  <span class="hljs-attr">shutdown:</span> <span class="hljs-string">graceful</span>
+</code></pre><p><strong>V1</strong>(<code>orders</code>, <code>order_items</code>)과 <strong>V2</strong>(<code>stock_items</code>, <code>payments</code> + 시드 재고 각 100개)가 스키마를
+만든다. Hibernate는 <strong>검증만</strong> 한다(엔티티≠스키마면 부팅 실패 → 빠른 피드백).</p>
+<blockquote>
+<p><strong>V2가 이 단계의 지문</strong>이다. <code>stock_items</code>와 <code>payments</code>가 order-service DB에 있다는 것 자체가
+&quot;재고·결제를 이 서비스가 직접 소유&quot;한다는 증거다. <strong>Phase 2-2의 V3(<code>a9a1cda</code>)에서
+<code>DROP TABLE payments; ALTER TABLE orders ADD COLUMN payment_id UUID;</code></strong> 로 결제가 빠져나간다.</p>
+</blockquote>
+<h3 id="49-빌드--lombok--querydsl--testcontainers-buildgradlekts">4.9 빌드 — Lombok · QueryDSL · Testcontainers (<code>build.gradle.kts</code>)</h3>
+<pre><code class="hljs language-kotlin"><span class="hljs-comment">// Lombok(compile-time only). annotationProcessor 순서상 QueryDSL APT 보다 먼저 선언.</span>
+compileOnly(<span class="hljs-string">&quot;org.projectlombok:lombok&quot;</span>); annotationProcessor(<span class="hljs-string">&quot;org.projectlombok:lombok&quot;</span>)
+<span class="hljs-comment">// QueryDSL — jakarta classifier 필수</span>
+implementation(variantOf(libs.querydsl.jpa) { classifier(<span class="hljs-string">&quot;jakarta&quot;</span>) })
+annotationProcessor(variantOf(libs.querydsl.apt) { classifier(<span class="hljs-string">&quot;jakarta&quot;</span>) })
+<span class="hljs-comment">// 동시성(oversell) 회귀 가드 — 실제 PostgreSQL 컨테이너 필요</span>
+testImplementation(<span class="hljs-string">&quot;org.springframework.boot:spring-boot-testcontainers&quot;</span>)
+testImplementation(<span class="hljs-string">&quot;org.testcontainers:junit-jupiter&quot;</span>); testImplementation(<span class="hljs-string">&quot;org.testcontainers:postgresql&quot;</span>)
+</code></pre><p>버전은 <code>gradle/libs.versions.toml</code>이 관리한다(Spring Boot <strong>3.5.15</strong>, QueryDSL <strong>5.1.0</strong>, 컴파일 타깃 <strong>Java 21</strong>).</p>
+<blockquote>
+<p><strong>(빌드 세부 — 처음이면 참고만)</strong> <code>annotationProcessor</code> 선언 순서에서 Lombok을 QueryDSL APT보다 먼저
+두는 이유는 Lombok이 생성한 코드(예: getter)를 QueryDSL이 Q타입 생성 시 읽을 수 있게 하기 위함이다.
+<code>jakarta</code> classifier가 필수인 이유는 Spring Boot 3 / Jakarta EE 9+가 패키지를 <code>javax.*</code> → <code>jakarta.*</code>로
+옮겼고, QueryDSL이 그 네임스페이스에 맞춘 별도 아티팩트를 <code>jakarta</code> classifier로 제공하기 때문이다.</p>
+</blockquote>
+<hr>
+<h2 id="5-동작-흐름">5. 동작 흐름</h2>
+<h3 id="51-해피-패스-post-orders">5.1 해피 패스 <code>POST /orders</code></h3>
+<pre><code>1) 클라이언트 ──POST :8080/orders {items:[...]}──▶ OrderController.place
+2) @Transactional 시작
+3) Order.create → addItem(합계 계산)                       (status=PENDING)
+4) reserveStockPort.reserve : SELECT … FOR UPDATE 로 재고 행 잠금
+                              → stock.reserve(수량) → dirty checking UPDATE
+5) order.capturePayment() : 합계가 .99 아님 → Payment CAPTURED, status=CONFIRMED
+6) saveOrderPort.save : orders/order_items/payments INSERT (cascade = 부모 order 저장 시 order_items·payment 함께 INSERT)
+7) 커밋  → OrderView(201 CREATED, CONFIRMED, payment 포함) 반환
+</code></pre><h3 id="52-결제-거절롤백--합계가-99">5.2 결제 거절(롤백) — 합계가 <code>.99</code></h3>
+<pre><code>4) 재고 이미 차감(트랜잭션 안, 아직 커밋 전)
+5) order.capturePayment() → 합계 .99 → PaymentDeclinedException  ↑ 던짐
+   → @Transactional 롤백 → 4)에서 뺀 재고 UPDATE 도 함께 원복
+   → ApiExceptionHandler → 402 Payment Required
+</code></pre><p><strong>여기가 Phase 1의 핵심 시연</strong>이다. 재고 차감과 결제가 <strong>한 트랜잭션</strong>이라, 결제가 거절되면
+재고가 <strong>자동으로</strong> 되돌아온다. (Phase 2-2 이후엔 이게 안 되므로 Saga가 필요해진다.)</p>
+<h3 id="53-재고-부족">5.3 재고 부족</h3>
+<pre><code>4) stock.reserve(수량&gt;재고) → InsufficientStockException → 롤백 → 409 Conflict
+</code></pre><hr>
+<h2 id="6-동작-원리-더-깊게--트레이드오프">6. 동작 원리 더 깊게 / 트레이드오프</h2>
+<ul>
+<li><strong>왜 <code>@Transactional</code> 하나로 원자성이 공짜인가</strong>: 세 작업이 <strong>같은 DB의 같은 커넥션·같은 트랜잭션</strong>을
+쓰기 때문. DB가 커밋/롤백을 원자적으로 보장한다. 서비스가 나뉘면 <strong>DB가 나뉘어</strong> 이 전제가 깨진다.</li>
+<li><strong>비관적 락의 대가</strong>: 잠긴 행을 노리는 트랜잭션은 <strong>직렬화(줄서기)</strong> 된다 → 정확하지만 <strong>처리량이
+떨어진다</strong>. 인기 상품에 주문이 몰리면 병목이 될 수 있다. 대안(원자적 조건부 UPDATE
+<code>SET qty=qty-? WHERE qty&gt;=?</code>, 낙관적 락)은 더 빠르지만 로직/재시도가 복잡하다. Phase 1은
+<strong>정확성·단순성</strong>을 우선했다.</li>
+<li><strong>교착 회피는 정렬로만</strong>: 여러 상품을 살 때 두 주문이 상품A·B를 <strong>엇갈린 순서</strong>로 잠그면 교착이
+생긴다. <code>TreeMap</code> 정렬로 <strong>항상 같은 순서</strong>로 잠가 원천 차단했다(락을 더 쓰지 않고 순서만 통제).</li>
+<li><strong><code>open-in-view: false</code></strong>: 뷰 렌더링까지 영속성 세션(영속성 컨텍스트)을 열어두지 않는다는 설정이다.
+세션이 트랜잭션 종료와 함께 닫히므로, <strong>지연 로딩</strong>(lazy loading — 연관 엔티티를 실제 접근 시점에
+뒤늦게 DB에서 가져오는 방식)을 트랜잭션 밖에서 시도하면 <code>LazyInitializationException</code>이 난다. 그래서
+조회는 <strong>QueryDSL fetch join</strong>으로 필요한 걸 트랜잭션 안에서 다 로드해야 한다(지연 로딩 예외 방지).
+<code>OrderPersistenceAdapter</code>가 <code>findByIdWithDetails</code>/<code>findAllWithDetails</code>로 처리한다.</li>
+<li><strong>저장은 INSERT 전용(Phase 1)</strong>: <code>save</code>는 <code>id=null</code>인 신규 주문을 넣고 <code>@GeneratedValue(UUID)</code>
+(JPA가 INSERT 시 UUID 식별자를 자동 부여하는 애노테이션)가 식별자를 부여한다. 상태 전이
+UPDATE(load-then-mutate)는 Phase 12/13에서 도입된다.</li>
+</ul>
+<hr>
+<h2 id="7-검증-그때-어떻게-확인했나">7. 검증 (그때 어떻게 확인했나)</h2>
+<p><strong>단위 테스트(도메인, Spring/DB 불필요)</strong> — <code>OrderTest</code>/<code>StockItemTest</code>:</p>
+<ul>
+<li>합계 계산, 수량/단가 ≤ 0 거부, 캡처 시 CONFIRMED, <strong>합계 9.99 → <code>PaymentDeclinedException</code>(상태 미변경)</strong>.</li>
+</ul>
+<p><strong>동시성 통합 테스트</strong> — <code>StockConcurrencyTest</code> (Testcontainers, 실제 PostgreSQL, Docker 필요):</p>
+<pre><code class="hljs language-java"><span class="hljs-meta">@SpringBootTest(webEnvironment = NONE)</span> <span class="hljs-meta">@Testcontainers</span>
+<span class="hljs-comment">// 재고 5개에 20스레드가 동시에 1개씩 주문(CountDownLatch로 동시 출발)</span>
+assertThat(confirmed.get()).isEqualTo(initialStock);                 <span class="hljs-comment">// 정확히 5건만 성공</span>
+assertThat(getStock.getStock(product).availableQuantity()).isZero(); <span class="hljs-comment">// 재고 0, 음수(oversell) 없음</span>
+</code></pre><p>이 테스트가 <strong>비관적 락이 oversell을 막는다는 실증적 회귀 가드</strong>다.</p>
+<p><strong>수동 스모크(curl)</strong> — 인프라 DB 띄우고 앱 실행 후:</p>
+<pre><code class="hljs language-bash">docker compose -f deploy/compose/compose.infra.yml up -d       <span class="hljs-comment"># orderdb(5432)</span>
+./gradlew :services:order-service:bootRun                      <span class="hljs-comment"># 8080</span>
+
+<span class="hljs-comment"># (1) 해피 패스 → 201 CONFIRMED</span>
+curl -i -X POST http://localhost:8080/orders -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="hljs-string">&#x27;{&quot;customerId&quot;:&quot;11111111-1111-1111-1111-111111111111&quot;,
+       &quot;items&quot;:[{&quot;productId&quot;:&quot;22222222-2222-2222-2222-222222222222&quot;,&quot;quantity&quot;:1,&quot;unitPrice&quot;:&quot;10.00&quot;}]}&#x27;</span>
+
+<span class="hljs-comment"># (2) 결제 거절: 합계가 .99 → 402 + 재고 롤백(차감 안 됨)</span>
+<span class="hljs-comment">#     예: 9.99  → 402 Payment Required</span>
+curl -i -X POST http://localhost:8080/orders -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="hljs-string">&#x27;{&quot;customerId&quot;:&quot;11111111-1111-1111-1111-111111111111&quot;,
+       &quot;items&quot;:[{&quot;productId&quot;:&quot;22222222-2222-2222-2222-222222222222&quot;,&quot;quantity&quot;:1,&quot;unitPrice&quot;:&quot;9.99&quot;}]}&#x27;</span>
+
+<span class="hljs-comment"># (3) 재고 부족: 재고(100)보다 큰 수량 → 409 Conflict</span>
+curl -i -X POST http://localhost:8080/orders -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="hljs-string">&#x27;{&quot;customerId&quot;:&quot;11111111-1111-1111-1111-111111111111&quot;,
+       &quot;items&quot;:[{&quot;productId&quot;:&quot;22222222-2222-2222-2222-222222222222&quot;,&quot;quantity&quot;:999,&quot;unitPrice&quot;:&quot;10.00&quot;}]}&#x27;</span>
+
+<span class="hljs-comment"># 재고 확인(주문 전후 비교)</span>
+curl -s http://localhost:8080/inventory/22222222-2222-2222-2222-222222222222
+</code></pre><blockquote>
+<p><strong>(2)의 핵심</strong>: 402가 나온 뒤 <code>/inventory</code>로 확인하면 재고가 <strong>그대로</strong>다. 결제 거절이 재고 차감을
+같은 트랜잭션에서 <strong>자동 롤백</strong>했다는 증거 — Phase 1이 증명하려는 바로 그것이다.</p>
+</blockquote>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계 / 트레이드오프</th>
+<th>성격</th>
+<th>해결 Phase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>결제가 order-service 로컬</strong>(가짜 stub, <code>payments</code> 테이블) — 진짜 PG·별도 서비스 아님</td>
+<td>분리</td>
+<td><strong>Phase 2-1</strong>(payment-service) → <strong>Phase 2-2</strong>(원격 호출, V3에서 <code>payments</code> drop)</td>
+</tr>
+<tr>
+<td><strong>단일 트랜잭션 원자성은 &quot;한 DB&quot; 전제</strong> — 서비스 분리 시 결제 거절→재고 자동 롤백이 깨짐</td>
+<td>분산 일관성</td>
+<td><strong>Phase 12</strong>(Saga: 보상 트랜잭션)</td>
+</tr>
+<tr>
+<td>진입점·인증 없음 — 8080 직접 호출, 누구나 호출 가능</td>
+<td>게이트웨이/보안</td>
+<td><strong>Phase 3</strong>(게이트웨이) · <strong>Phase 5</strong>(JWT)</td>
+</tr>
+<tr>
+<td>서비스 주소 하드코딩(아직 서비스가 하나뿐)</td>
+<td>디스커버리</td>
+<td><strong>Phase 4</strong>(Eureka)</td>
+</tr>
+<tr>
+<td>비관적 락은 정확하지만 <strong>인기 상품에서 직렬화 병목</strong> 가능</td>
+<td>성능</td>
+<td>후속(낙관적 락/조건부 UPDATE 비교)</td>
+</tr>
+<tr>
+<td>상태 전이가 INSERT 전용(주문 확정만) — UPDATE 경로 미구현</td>
+<td>영속</td>
+<td><strong>Phase 12/13</strong>(load-then-mutate 상태 전이)</td>
+</tr>
+<tr>
+<td>DB 비밀번호가 설정에 평문 하드코딩</td>
+<td>시크릿</td>
+<td><strong>Phase 6</strong>(Config) · <strong>Phase 7</strong>(compose/keystore)</td>
+</tr>
+<tr>
+<td>관측성 없음(로그/추적/헬스 상세 공개)</td>
+<td>관측성</td>
+<td><strong>Phase 8</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어-사전">9. 용어 사전</h2>
+<ul>
+<li><strong>트랜잭션 / ACID</strong>: 여러 DB 작업을 하나로 묶는 단위. 원자성·일관성·격리성·지속성.</li>
+<li><strong>원자성(Atomicity)</strong>: &quot;다 되거나 다 안 됨.&quot; Phase 1이 결제 거절 시 재고를 자동 원복하는 근거.</li>
+<li><strong>비관적 락(PESSIMISTIC_WRITE)</strong>: <code>SELECT … FOR UPDATE</code>. 읽는 순간부터 행을 잠가 동시 차감을 직렬화.</li>
+<li><strong>낙관적 락</strong>: <code>@Version</code>으로 충돌을 커밋 시점에 감지·재시도(비관적의 반대). 여기선 미채택.</li>
+<li><strong>lost update / oversell</strong>: 동시 읽기-쓰기로 갱신이 덮어써져 재고보다 많이 팔리는 현상.</li>
+<li><strong>교착(deadlock)</strong>: 두 트랜잭션이 서로가 쥔 락을 기다려 멈춤. 락 순서를 통일해 회피.</li>
+<li><strong>load-then-mutate</strong>: 관리(managed) 엔티티를 로드해 직접 수정 → dirty checking으로 UPDATE. <code>merge</code> 금지.</li>
+<li><strong>영속성 컨텍스트(persistence context)</strong>: 트랜잭션 동안 조회한 엔티티를 관리하는 JPA의 엔티티 캐시.</li>
+<li><strong>managed(관리) 엔티티</strong>: 영속성 컨텍스트가 추적 중인 엔티티. 필드 변경이 dirty checking으로 UPDATE된다.</li>
+<li><strong>detached(비관리) 엔티티</strong>: 컨텍스트 밖 엔티티. 변경해도 자동 반영 안 됨. 다시 붙이려면 <code>merge</code>가 필요.</li>
+<li><strong><code>merge</code></strong>: detached 엔티티를 영속성 컨텍스트에 다시 붙이는 JPA API. 락과 무관한 별도 경로라 §4.3에서 금지.</li>
+<li><strong>dirty checking</strong>: JPA가 managed 엔티티의 변경을 감지해 커밋 시 UPDATE를 자동 발행.</li>
+<li><strong>유스케이스(UseCase)</strong>: 한 트랜잭션 단위의 비즈니스 로직(예: <code>OrderService</code>).</li>
+<li><strong>포트(Port) / 어댑터(Adapter)</strong>: 포트=유스케이스가 바깥과 대화하는 인터페이스(계약), 어댑터=포트의 실제 구현(기술 세부).</li>
+<li><strong>인바운드 / 아웃바운드</strong>: 인바운드=들어오는 요청 진입점(컨트롤러·UseCase), 아웃바운드=DB·외부로 나가는 계약(<code>*Port</code>)과 그 구현.</li>
+<li><strong>애그리거트</strong>: 일관성 경계를 가진 도메인 객체 묶음(여기선 Order가 Payment·Item을 소유).</li>
+<li><strong>출력 모델(*View)</strong>: 유스케이스가 도메인 대신 반환하는 불변 read model. 도메인 누수 방지.</li>
+<li><strong>QueryDSL / Q타입</strong>: 타입세이프 쿼리 라이브러리. <code>QStockItemJpaEntity</code> 같은 Q타입은 애노테이션 프로세서가 엔티티로부터 컴파일 타임에 생성. 리포지토리 JPQL/@Lock 대신 사용.</li>
+<li><strong>cascade</strong>: 연관 엔티티 전이 저장. 부모 저장 시 자식(order_items·payment)도 함께 INSERT.</li>
+<li><strong><code>@GeneratedValue</code>(UUID)</strong>: JPA가 INSERT 시 UUID 식별자를 자동 부여하는 애노테이션.</li>
+<li><strong>지연 로딩(lazy loading) / <code>open-in-view=false</code></strong>: 연관 엔티티를 접근 시점에 뒤늦게 로드하는 방식. <code>open-in-view=false</code>면 트랜잭션 밖 지연 로딩 시 <code>LazyInitializationException</code> → fetch join으로 미리 로드해야 함.</li>
+<li><strong>Flyway / <code>ddl-auto=validate</code></strong>: 번호 붙은 SQL(V1__, V2__…)을 순서대로 적용해 스키마를 버전 관리. Hibernate는 검증만.</li>
+</ul>
+<hr>
+<h2 id="10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</h2>
+<ul>
+<li>Spring <code>@Transactional</code> / 트랜잭션: <a href="https://docs.spring.io/spring-framework/reference/data-access/transaction.html">https://docs.spring.io/spring-framework/reference/data-access/transaction.html</a></li>
+<li>JPA 락 모드(PESSIMISTIC_WRITE): <a href="https://jakarta.ee/specifications/persistence/3.1/">https://jakarta.ee/specifications/persistence/3.1/</a></li>
+<li>QueryDSL: <a href="http://querydsl.com/">http://querydsl.com/</a></li>
+<li>Flyway: <a href="https://documentation.red-gate.com/fd">https://documentation.red-gate.com/fd</a></li>
+<li>Testcontainers(JUnit 5): <a href="https://java.testcontainers.org/">https://java.testcontainers.org/</a></li>
+</ul>
+<hr>
+<p><em>관련 문서: <a href="HEXAGONAL.html">HEXAGONAL.md</a>(아키텍처 컨벤션 — 포트/어댑터·출력모델·load-then-mutate 세부), <a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY.md</a>(Phase 4), <a href="SECURITY.html">SECURITY.md</a>(Phase 5). 전체 로드맵: 루트 <code>MSA-LEARNING-PLAN.md</code>.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
+<li class="toc-h2"><a href="#1-왜-이-단계인가-직전까지의-문제">1. 왜 이 단계인가? (직전까지의 문제)</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념">2. 핵심 개념</a></li>
+<li class="toc-h3"><a href="#21-트랜잭션과-acid">2.1 트랜잭션과 ACID</a></li>
+<li class="toc-h3"><a href="#22-동시성-문제--lost-update--oversell">2.2 동시성 문제 — lost update / oversell</a></li>
+<li class="toc-h3"><a href="#23-비관적-락pessimistic_write">2.3 비관적 락(PESSIMISTIC_WRITE)</a></li>
+<li class="toc-h3"><a href="#24-헥사고날-출력-모델view과-순수-도메인">2.4 헥사고날 출력 모델(*View)과 순수 도메인</a></li>
+<li class="toc-h3"><a href="#25-헥사고날-최소-지도-4-코드를-읽기-전에">2.5 헥사고날 최소 지도 (§4 코드를 읽기 전에)</a></li>
+<li class="toc-h2"><a href="#3-이-단계의-구성">3. 이 단계의 구성</a></li>
+<li class="toc-h2"><a href="#4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</a></li>
+<li class="toc-h3"><a href="#41-유스케이스--단일-트랜잭션-orderserviceplaceorder">4.1 유스케이스 — 단일 트랜잭션 (OrderService.placeOrder)</a></li>
+<li class="toc-h3"><a href="#42-아웃바운드-포트--의도만-표현-reservestockport">4.2 아웃바운드 포트 — 의도만 표현 (ReserveStockPort)</a></li>
+<li class="toc-h3"><a href="#43-어댑터--load-then-mutate-stockpersistenceadapterreserve">4.3 어댑터 — load-then-mutate (StockPersistenceAdapter.reserve)</a></li>
+<li class="toc-h3"><a href="#44-락-쿼리--querydsl-select--for-update-stockqueryrepository">4.4 락 쿼리 — QueryDSL SELECT … FOR UPDATE (StockQueryRepository)</a></li>
+<li class="toc-h3"><a href="#45-순수-도메인--재고결제-불변식">4.5 순수 도메인 — 재고/결제 불변식</a></li>
+<li class="toc-h3"><a href="#46-출력-모델-orderview">4.6 출력 모델 (OrderView)</a></li>
+<li class="toc-h3"><a href="#47-예외--http-apiexceptionhandler">4.7 예외 → HTTP (ApiExceptionHandler)</a></li>
+<li class="toc-h3"><a href="#48-스키마--flyway가-소유-ddl-autovalidate">4.8 스키마 — Flyway가 소유 (ddl-auto=validate)</a></li>
+<li class="toc-h3"><a href="#49-빌드--lombok--querydsl--testcontainers-buildgradlekts">4.9 빌드 — Lombok · QueryDSL · Testcontainers (build.gradle.kts)</a></li>
+<li class="toc-h2"><a href="#5-동작-흐름">5. 동작 흐름</a></li>
+<li class="toc-h3"><a href="#51-해피-패스-post-orders">5.1 해피 패스 POST /orders</a></li>
+<li class="toc-h3"><a href="#52-결제-거절롤백--합계가-99">5.2 결제 거절(롤백) — 합계가 .99</a></li>
+<li class="toc-h3"><a href="#53-재고-부족">5.3 재고 부족</a></li>
+<li class="toc-h2"><a href="#6-동작-원리-더-깊게--트레이드오프">6. 동작 원리 더 깊게 / 트레이드오프</a></li>
+<li class="toc-h2"><a href="#7-검증-그때-어떻게-확인했나">7. 검증 (그때 어떻게 확인했나)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어-사전">9. 용어 사전</a></li>
+<li class="toc-h2"><a href="#10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</a></li></ul></nav></aside>
+</body>
+</html>

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase ↔ 커밋 지도 · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li class="active"><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase--커밋-매핑-git-이력으로-단계별-코드-변화-보기">Phase ↔ 커밋 매핑 (git 이력으로 단계별 코드 변화 보기)</h1>
+<blockquote>
+<p>이 문서는 <strong>&quot;Phase 순서대로 코드가 어떻게 바뀌었나&quot;를 git으로 되짚기 위한 지도</strong>입니다.
+각 Phase가 어느 커밋(들)에 있는지, 무엇을 봐야 하는지, 어떤 git 명령을 쓰는지 정리합니다.
+<strong>새 Phase를 커밋할 때마다 이 표에 한 줄 추가</strong>합니다(맨 아래 유지보수 규칙 참고).</p>
+</blockquote>
+<p>원격: <code>github.com/jyh4358/msa-practice</code> · 기본 브랜치 <code>main</code>.
+커밋 해시는 히스토리를 재작성하지 않는 한 <strong>불변</strong>이므로 이 지도는 안정적입니다.</p>
+<hr>
+<h2 id="매핑-표-오래된--최신">매핑 표 (오래된 → 최신)</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>커밋(들)</th>
+<th>한 줄</th>
+<th>핵심 변경(무엇을 볼까)</th>
+<th>심화 문서</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>0</strong> 스캐폴드</td>
+<td><code>fcaa736</code></td>
+<td>모노레포 최초 커밋</td>
+<td><code>settings.gradle.kts</code>·<code>gradle/libs.versions.toml</code>·<code>gradlew</code>·<code>deploy/compose/compose.infra.yml</code>·<code>docs/{HEXAGONAL,SETUP}.md</code>·<code>MSA-LEARNING-PLAN.md</code></td>
+<td><a href="PHASE-0-SCAFFOLD.html">PHASE-0-SCAFFOLD</a></td>
+</tr>
+<tr>
+<td><strong>1</strong> 모놀리스(ACID)</td>
+<td><code>fcaa736</code> → <code>bb2ee23</code> → <code>db42211</code> → <code>361e05f</code></td>
+<td>주문+재고+결제 단일 트랜잭션, 헥사고날·비관적 락·QueryDSL·출력모델·Lombok</td>
+<td>order-service <code>domain/</code>·<code>application/</code>·<code>adapter/</code>(특히 <code>db42211</code>이 비관적 락·QueryDSL·<code>*Query*Repository</code>·<code>QuerydslConfig</code>·출력모델 리팩터). <code>bb2ee23</code>은 gitignore <code>out/</code> 버그로 누락됐던 <code>adapter/out</code>·<code>port/out</code> 추적</td>
+<td><a href="PHASE-1-MONOLITH.html">PHASE-1-MONOLITH</a></td>
+</tr>
+<tr>
+<td><strong>2-1</strong> 결제 분리</td>
+<td><code>fb27790</code></td>
+<td>payment-service 신설(아직 미연결)</td>
+<td><code>services/payment-service/**</code> 전체 신규, <code>compose.infra.yml</code>에 payment-db 추가</td>
+<td><a href="PHASE-2-SPLIT-PAYMENT.html">PHASE-2-SPLIT-PAYMENT</a></td>
+</tr>
+<tr>
+<td><strong>2-2</strong> 원격 결제</td>
+<td><code>a9a1cda</code></td>
+<td>order→payment 동기 REST, 로컬 결제 제거</td>
+<td>order-service <code>adapter/out/payment/*</code>(RestClient) 추가, <code>domain/Payment.java</code>·<code>PaymentJpaEntity</code> 삭제, <code>V3__remove_local_payment.sql</code>, <code>OrderService</code></td>
+<td>〃</td>
+</tr>
+<tr>
+<td><strong>3</strong> 게이트웨이</td>
+<td><code>41392a2</code></td>
+<td>Spring Cloud Gateway 단일 진입점</td>
+<td><code>services/gateway-service/**</code> 신규, <code>settings.gradle.kts</code></td>
+<td><a href="PHASE-3-GATEWAY.html">PHASE-3-GATEWAY</a></td>
+</tr>
+<tr>
+<td><strong>4</strong> 디스커버리</td>
+<td><code>91e27d6</code></td>
+<td>Eureka, 이름 기반 라우팅·호출</td>
+<td><code>services/discovery-service/**</code> 신규, gateway 라우트 <code>lb://</code>, order <code>PaymentClientConfig</code>(@LoadBalanced), 각 <code>application.yml</code>에 eureka</td>
+<td><a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY</a></td>
+</tr>
+<tr>
+<td><strong>5</strong> 보안</td>
+<td><code>98003e7</code></td>
+<td>RS256 JWT 인증·역할 인가·토큰 전파</td>
+<td><code>services/auth-service/**</code> 신규, gateway·order·payment <code>SecurityConfig</code>, order <code>BearerTokenRelayInterceptor</code>, <code>OrderController</code> @PreAuthorize</td>
+<td><a href="SECURITY.html">SECURITY</a></td>
+</tr>
+<tr>
+<td><em>(docs)</em></td>
+<td><code>f38b23e</code></td>
+<td>Phase 0~3 심화 문서 백필 + 초보자 개선 + README</td>
+<td><code>docs/PHASE-0~3-*.md</code> 신규, <code>SERVICE-DISCOVERY</code>·<code>SECURITY</code> 개선, <code>README</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>6</strong> 중앙 설정</td>
+<td><code>de61515</code></td>
+<td>Config Server(native) + 시크릿 암호화</td>
+<td><code>services/config-service/**</code> 신규, <code>config-repo/*.yml</code>({cipher} 포함), 각 클라이언트 <code>application.yml</code> 스트립 + <code>spring.config.import</code></td>
+<td><a href="PHASE-6-CONFIG.html">PHASE-6-CONFIG</a></td>
+</tr>
+<tr>
+<td><strong>7</strong> compose</td>
+<td><code>68249f6</code></td>
+<td>Docker Compose 전체 스택</td>
+<td><code>deploy/docker/Dockerfile.service</code>, <code>deploy/compose/compose.yml</code>·<code>.env.example</code>, <code>config-repo/*-docker.yml</code></td>
+<td><a href="PHASE-7-COMPOSE.html">PHASE-7-COMPOSE</a></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><em>(복습 자료 <a href="REVIEW-PART-A.html">REVIEW-PART-A</a>·이 문서 자체는 이후 docs 커밋에 포함됨 — 커밋 후 아래 표에 반영.)</em></p>
+</blockquote>
+<hr>
+<h2 id="알아둘-애매-지점-git만-보면-헷갈리는-곳">알아둘 애매 지점 (git만 보면 헷갈리는 곳)</h2>
+<ol>
+<li><strong>Phase 0과 1은 최초 커밋 <code>fcaa736</code>에 함께</strong> 들어 있다(프로젝트 시작 시 스캐폴드+모놀리스를 한 번에 커밋). &quot;0=빌드·설정·인프라 파일, 1=order-service 코드&quot;로 구분해서 보면 된다.</li>
+<li><strong>Phase 1은 4개 커밋에 걸쳐</strong> 성숙했다: 최초(<code>fcaa736</code>) → 누락 패키지 추적(<code>bb2ee23</code>, <code>.gitignore</code>의 <code>out/</code>가 헥사고날 <code>adapter/out</code>을 잘못 무시한 버그 수정) → <strong>리팩터(<code>db42211</code>)</strong>(여기서 비관적 락·QueryDSL·출력모델·Lombok) → 문서(<code>361e05f</code>).</li>
+<li><strong>Phase 2는 2-1(<code>fb27790</code>)·2-2(<code>a9a1cda</code>) 두 커밋</strong>으로 나뉜다.</li>
+<li><strong>docs 커밋 <code>f38b23e</code>가 Phase 5와 6 사이에 끼어</strong> 있다(Phase 7 작업 중 0~3 문서를 몰아서 백필했기 때문). Phase 순서 ≠ 커밋 시간순인 유일한 지점.</li>
+<li>Phase 3~7은 <strong>1커밋 = 1Phase</strong>로 깔끔하다.</li>
+</ol>
+<hr>
+<h2 id="새-세션에서-이렇게-보면-됩니다-git-명령">새 세션에서 이렇게 보면 됩니다 (git 명령)</h2>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># 0) 전체 흐름</span>
+git <span class="hljs-built_in">log</span> --oneline --reverse
+
+<span class="hljs-comment"># 1) 특정 Phase가 무엇을 바꿨나 (해당 커밋의 전체 diff)</span>
+git show 41392a2                 <span class="hljs-comment"># Phase 3</span>
+git show a9a1cda --<span class="hljs-built_in">stat</span>          <span class="hljs-comment"># Phase 2-2 변경 파일 목록만</span>
+
+<span class="hljs-comment"># 2) Phase A → B 사이의 누적 변화 (경계 커밋 사용)</span>
+git diff a9a1cda..41392a2        <span class="hljs-comment"># Phase 2-2 → Phase 3</span>
+git diff 91e27d6..98003e7        <span class="hljs-comment"># Phase 4 → Phase 5</span>
+
+<span class="hljs-comment"># 3) 특정 파일이 Phase마다 어떻게 바뀌었나</span>
+git <span class="hljs-built_in">log</span> --oneline -- services/order-service/src/main/resources/application.yml
+git <span class="hljs-built_in">log</span> -p  -- services/gateway-service/src/main/resources/application.yml
+
+<span class="hljs-comment"># 4) 한 Phase에서 추가/삭제/수정된 파일 분류</span>
+git show 98003e7 --name-status   <span class="hljs-comment"># A/D/M</span>
+</code></pre><blockquote>
+<p>팁: 각 커밋 메시지는 <strong><code>(Phase N)</code> 태그</strong>가 있어(2~7) <code>git log --oneline | grep Phase</code> 로도 빠르게 짚을 수 있다.</p>
+</blockquote>
+<hr>
+<h2 id="유지보수-규칙-중요">유지보수 규칙 (중요)</h2>
+<p><strong>새 Phase를 커밋할 때마다</strong> 이 문서를 갱신한다:</p>
+<ol>
+<li>위 매핑 표에 <code>| Phase N | &lt;새 커밋 해시&gt; | 한 줄 | 핵심 변경 파일 | 심화 문서 |</code> 한 줄 추가.</li>
+<li>1커밋=1Phase가 아니면(분할/끼어든 docs 커밋 등) &quot;애매 지점&quot;에 주석.</li>
+<li>커밋 해시는 <code>git log --oneline</code>으로 확인해 <strong>정확히</strong> 기입(오타 주의).</li>
+</ol>
+<p><em>관련: <a href="README.html">README</a>, <a href="REVIEW-PART-A.html">REVIEW-PART-A</a>, 각 <code>PHASE-*</code> 문서. 로드맵: <code>MSA-LEARNING-PLAN.md</code>.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#매핑-표-오래된--최신">매핑 표 (오래된 → 최신)</a></li>
+<li class="toc-h2"><a href="#알아둘-애매-지점-git만-보면-헷갈리는-곳">알아둘 애매 지점 (git만 보면 헷갈리는 곳)</a></li>
+<li class="toc-h2"><a href="#새-세션에서-이렇게-보면-됩니다-git-명령">새 세션에서 이렇게 보면 됩니다 (git 명령)</a></li>
+<li class="toc-h2"><a href="#유지보수-규칙-중요">유지보수 규칙 (중요)</a></li></ul></nav></aside>
+</body>
+</html>

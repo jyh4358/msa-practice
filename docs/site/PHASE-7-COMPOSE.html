@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 7 · Docker Compose · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li class="active"><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="로컬-오케스트레이션--docker-compose">로컬 오케스트레이션 — Docker Compose</h1>
+<blockquote>
+<p><strong>이 문서는 Phase 7 작업을 설명합니다.</strong> 처음 보는 사람도 끝까지 이해하도록 개념 → 그림 →
+실제 코드/설정 → 동작 원리 → 검증 → 한계 순으로 정리했습니다.</p>
+<p>(본문의 코드/설정 블록은 핵심만 보여주는 <strong>발췌</strong>이며, 실제 파일과 다를 수 있습니다. 해설은
+작업을 마친 뒤 되짚어 정리한 <strong>회고형</strong> 설명입니다.)</p>
+</blockquote>
+<hr>
+<h2 id="0-한-줄-요약">0. 한 줄 요약</h2>
+<blockquote>
+<p><strong>6개 서비스를 컨테이너 이미지로 만들어, <code>docker compose up</code> 한 번으로 전체 스택을 띄운다.</strong>
+서비스끼리는 <code>localhost</code>가 아니라 <strong>compose 서비스명(DNS)</strong> 으로 통신하고, 기동 순서는
+healthcheck로 보장한다. 로컬(호스트) 실행 방식도 그대로 유지된다.</p>
+</blockquote>
+<hr>
+<h2 id="1-왜-필요한가-phase-6까지의-문제">1. 왜 필요한가? (Phase 6까지의 문제)</h2>
+<p>Phase 6까지는 서비스 6개를 <strong>손으로 순서 맞춰</strong>(config → discovery → 나머지) 각각 <code>./gradlew bootRun</code>으로 띄웠다. 문제:</p>
+<ul>
+<li><strong>재현·이식이 어렵다</strong>: 새 사람이 셋업하려면 6개 터미널 + 순서 + 환경변수를 다 맞춰야 한다.</li>
+<li><strong>&quot;내 머신에선 됨&quot;</strong>: JDK·포트·기동순서가 사람마다 달라 깨진다.</li>
+<li><strong>운영과 괴리</strong>: 실제 배포는 컨테이너 단위인데, 호스트 프로세스로만 돌리면 그 간극을 못 배운다.</li>
+</ul>
+<p><strong>Docker Compose</strong>는 &quot;이미지로 패키징 + 한 파일로 전체 기동·네트워크·순서 선언&quot;으로 이를 푼다. (다음 단계 k8s의 디딤돌이기도 하다.)</p>
+<hr>
+<h2 id="2-핵심-개념">2. 핵심 개념</h2>
+<h3 id="21-컨테이너-이미지--레이어드-jar">2.1 컨테이너 이미지 / 레이어드 jar</h3>
+<ul>
+<li><strong>이미지</strong>: 앱 + 실행 환경(JRE)을 한 덩어리로 굳힌 실행 템플릿. <strong>컨테이너</strong>는 그 이미지의 실행 인스턴스.</li>
+<li><strong>레이어드 jar</strong>: Spring Boot jar를 변경 빈도별 4겹(dependencies / spring-boot-loader / snapshot-dependencies / application)으로 나눠 이미지 레이어로 쌓으면, <strong>코드만 바뀌면 마지막 얇은 레이어만 다시 빌드</strong>된다(캐시 효율).<ul>
+<li>Boot 3.3+ 추출 명령: <code>java -Djarmode=tools -jar app.jar extract --layers</code>(구 <code>layertools</code> 대체).</li>
+</ul>
+</li>
+</ul>
+<h3 id="22-compose와-서비스명-dns">2.2 Compose와 서비스명 DNS</h3>
+<ul>
+<li><code>compose.yml</code>에 서비스들을 선언하면, 같은 <strong>네트워크</strong>에 붙은 컨테이너끼리 <strong>서비스 이름으로 서로를 찾는다</strong>(Docker 내장 DNS). 예: order-service가 <code>order-db:5432</code>, <code>config-service:8888</code>로 접속.</li>
+<li>컨테이너 안의 <code>localhost</code>는 <strong>자기 자신</strong>이라, Phase 6까지의 <code>localhost:8761</code> 같은 값은 컨테이너에선 틀린다 → 서비스명으로 바꿔야 한다.</li>
+</ul>
+<h3 id="23-기동-순서-healthcheck--depends_on">2.3 기동 순서: healthcheck + depends_on</h3>
+<ul>
+<li><strong>healthcheck</strong>: 컨테이너가 &quot;준비됨&quot;인지 판정하는 명령(여기선 <code>/actuator/health</code> 조회).</li>
+<li><strong><code>depends_on: condition: service_healthy</code></strong>: 의존 서비스가 <strong>healthy가 될 때까지 기다렸다가</strong> 시작. → config → discovery → 앱 순서를 보장.</li>
+</ul>
+<h3 id="24-환경별-설정-docker-프로파일--부트스트랩-env">2.4 환경별 설정: <code>docker</code> 프로파일 + 부트스트랩 env</h3>
+<p>설정이 이미 중앙(Config Server)에 있으므로, &quot;컨테이너용 차이&quot;만 <strong><code>docker</code> 프로파일</strong>로 얹는다:</p>
+<ul>
+<li><code>config-repo/application-docker.yml</code>, <code>{service}-docker.yml</code> — <code>localhost</code> → 서비스명 오버라이드.</li>
+<li>컨테이너에 <code>SPRING_PROFILES_ACTIVE=docker</code> 를 주면 Config Server가 <code>{app}-docker.yml</code>을 자동 병합.</li>
+<li>단 <strong>Config Server를 가리키는 값</strong>(<code>spring.config.import</code>)과 Config Server 자신의 설정은 중앙에서 못 온다(닭-달걀) → <strong>환경변수</strong>로 준다.</li>
+</ul>
+<h3 id="25-prefer-ip-address">2.5 <code>prefer-ip-address</code></h3>
+<p>컨테이너의 Eureka 등록 시 <code>hostname: localhost</code> 대신 <strong><code>prefer-ip-address: true</code></strong> 로 컨테이너 IP(예: 172.18.0.7)를 등록한다. 그래야 게이트웨이가 <code>lb://</code>로 받은 주소가 <strong>네트워크에서 실제로 닿는다</strong>.</p>
+<hr>
+<h2 id="3-이-프로젝트의-구성">3. 이 프로젝트의 구성</h2>
+<pre><code> 호스트 :8000/:8761/:8888 만 공개
+        │
+        ▼
+┌──────────────────── docker network: shopsaga-net ────────────────────┐
+│                                                                       │
+│   config-service ──(config-repo 볼륨 마운트, ENCRYPT_KEY env)          │
+│   discovery-service (Eureka)                                          │
+│                                                                       │
+│   auth ─ order ─ payment ─ gateway   (SPRING_PROFILES_ACTIVE=docker)  │
+│     │       │        │        │       SPRING_CONFIG_IMPORT=config…8888 │
+│     └───────┴────────┴────────┘  서로 서비스명 DNS로 통신              │
+│   order-db  payment-db  (내부 전용, 호스트 미공개)                      │
+└───────────────────────────────────────────────────────────────────────┘
+</code></pre><ul>
+<li>공개 포트: <strong>gateway 8000</strong>(단일 진입점), discovery 8761·config 8888(대시보드/확인용). 나머지(auth/order/payment/DB)는 <strong>내부 전용</strong>.</li>
+<li>기동 순서(자동): DB·config·discovery healthy → auth/order/payment/gateway.</li>
+</ul>
+<hr>
+<h2 id="4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</h2>
+<blockquote>
+<p>이 절의 코드는 핵심 <strong>발췌</strong>다.</p>
+</blockquote>
+<h3 id="41-재사용-dockerfile-deploydockerdockerfileservice">4.1 재사용 Dockerfile (<code>deploy/docker/Dockerfile.service</code>)</h3>
+<pre><code class="hljs language-dockerfile"><span class="hljs-keyword">FROM</span> eclipse-temurin:<span class="hljs-number">21</span>-jre-alpine AS builder
+<span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /builder</span>
+<span class="hljs-keyword">ARG</span> JAR_FILE
+<span class="hljs-keyword">COPY</span><span class="language-bash"> <span class="hljs-variable">${JAR_FILE}</span> application.jar</span>
+<span class="hljs-keyword">RUN</span><span class="language-bash"> java -Djarmode=tools -jar application.jar extract --layers --destination extracted   <span class="hljs-comment"># Boot 3.3+ 방식</span></span>
+
+<span class="hljs-keyword">FROM</span> eclipse-temurin:<span class="hljs-number">21</span>-jre-alpine
+<span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /application</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /builder/extracted/dependencies/ ./</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /builder/extracted/spring-boot-loader/ ./</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /builder/extracted/snapshot-dependencies/ ./</span>
+<span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /builder/extracted/application/ ./</span>
+<span class="hljs-keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="hljs-string">&quot;sh&quot;</span>, <span class="hljs-string">&quot;-c&quot;</span>, <span class="hljs-string">&quot;exec java <span class="hljs-variable">${JAVA_OPTS:-}</span> -jar application.jar&quot;</span>]  <span class="hljs-comment"># exec → SIGTERM 이 JVM에 → graceful</span></span>
+</code></pre><ul>
+<li><strong>alpine JRE</strong>: 경량 + arm64 지원 + busybox <code>wget</code> 내장(헬스체크 가능).</li>
+<li><strong><code>exec java</code></strong>: java가 PID 1이 되어 <code>docker stop</code>의 SIGTERM을 받아 우아하게 종료.</li>
+<li>하나의 Dockerfile을 <code>--build-arg JAR_FILE=...</code>로 6개 서비스에 재사용.</li>
+</ul>
+<h3 id="42-docker-프로파일-오버라이드-config-repo">4.2 docker 프로파일 오버라이드 (config-repo)</h3>
+<p><code>config-repo/application-docker.yml</code> (공통):</p>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">security:</span>
+    <span class="hljs-attr">oauth2:</span>
+      <span class="hljs-attr">resourceserver:</span>
+        <span class="hljs-attr">jwt:</span>
+          <span class="hljs-attr">jwk-set-uri:</span> <span class="hljs-string">http://auth-service:9000/oauth2/jwks</span>   <span class="hljs-comment"># localhost → 서비스명</span>
+<span class="hljs-attr">eureka:</span>
+  <span class="hljs-attr">client:</span>
+    <span class="hljs-attr">service-url:</span>
+      <span class="hljs-attr">defaultZone:</span> <span class="hljs-string">http://discovery-service:8761/eureka/</span>
+  <span class="hljs-attr">instance:</span>
+    <span class="hljs-attr">prefer-ip-address:</span> <span class="hljs-literal">true</span>      <span class="hljs-comment"># 컨테이너 IP로 등록</span>
+</code></pre><p><code>config-repo/order-service-docker.yml</code>: <code>spring.datasource.url: jdbc:postgresql://order-db:5432/orderdb</code>
+(username·<code>{cipher}</code> 비번은 <code>order-service.yml</code>에서 상속.)</p>
+<h3 id="43-composeyml-핵심-발췌">4.3 compose.yml (핵심 발췌)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga</span>
+<span class="hljs-attr">networks:</span> { <span class="hljs-attr">shopsaga-net:</span> { <span class="hljs-attr">driver:</span> <span class="hljs-string">bridge</span> } }
+
+<span class="hljs-attr">x-app-common:</span> <span class="hljs-string">&amp;app-common</span>          <span class="hljs-comment"># 4개 앱 클라이언트 공통(YAML 앵커)</span>
+  <span class="hljs-attr">networks:</span> [<span class="hljs-string">shopsaga-net</span>]
+  <span class="hljs-attr">environment:</span>
+    <span class="hljs-attr">SPRING_PROFILES_ACTIVE:</span> <span class="hljs-string">docker</span>
+    <span class="hljs-attr">SPRING_CONFIG_IMPORT:</span> <span class="hljs-string">&quot;configserver:http://config-service:8888&quot;</span>   <span class="hljs-comment"># 부트스트랩 = env</span>
+    <span class="hljs-attr">JAVA_OPTS:</span> <span class="hljs-string">&quot;-Xms128m -Xmx320m&quot;</span>
+  <span class="hljs-attr">deploy:</span> { <span class="hljs-attr">resources:</span> { <span class="hljs-attr">limits:</span> { <span class="hljs-attr">memory:</span> <span class="hljs-string">512M</span> } } }
+
+<span class="hljs-attr">services:</span>
+  <span class="hljs-attr">config-service:</span>
+    <span class="hljs-attr">build:</span> { <span class="hljs-attr">context:</span> <span class="hljs-string">../..</span>, <span class="hljs-attr">dockerfile:</span> <span class="hljs-string">deploy/docker/Dockerfile.service</span>, <span class="hljs-attr">args:</span> { <span class="hljs-attr">JAR_FILE:</span> <span class="hljs-string">services/config-service/build/libs/config-service-0.0.1-SNAPSHOT.jar</span> } }
+    <span class="hljs-attr">ports:</span> [<span class="hljs-string">&quot;8888:8888&quot;</span>]
+    <span class="hljs-attr">environment:</span>
+      <span class="hljs-attr">ENCRYPT_KEY:</span> <span class="hljs-string">&quot;${ENCRYPT_KEY:?...}&quot;</span>                               <span class="hljs-comment"># .env 에서(미커밋)</span>
+      <span class="hljs-attr">SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS:</span> <span class="hljs-string">&quot;file:/config-repo&quot;</span>
+    <span class="hljs-attr">volumes:</span> [<span class="hljs-string">&quot;../../config-repo:/config-repo:ro&quot;</span>]                     <span class="hljs-comment"># config-repo 마운트</span>
+    <span class="hljs-attr">healthcheck:</span> { <span class="hljs-attr">test:</span> [<span class="hljs-string">&quot;CMD-SHELL&quot;</span>,<span class="hljs-string">&quot;wget -q -O /dev/null http://localhost:8888/actuator/health || exit 1&quot;</span>], <span class="hljs-string">...</span> }
+
+  <span class="hljs-attr">order-service:</span>
+    <span class="hljs-string">&lt;&lt;:</span> <span class="hljs-string">*app-common</span>
+    <span class="hljs-attr">build:</span> { <span class="hljs-string">...</span>, <span class="hljs-attr">args:</span> { <span class="hljs-attr">JAR_FILE:</span> <span class="hljs-string">services/order-service/build/libs/order-service-0.0.1-SNAPSHOT.jar</span> } }
+    <span class="hljs-attr">depends_on:</span>
+      <span class="hljs-attr">config-service:</span> { <span class="hljs-attr">condition:</span> <span class="hljs-string">service_healthy</span> }
+      <span class="hljs-attr">discovery-service:</span> { <span class="hljs-attr">condition:</span> <span class="hljs-string">service_healthy</span> }
+      <span class="hljs-attr">order-db:</span> { <span class="hljs-attr">condition:</span> <span class="hljs-string">service_healthy</span> }
+</code></pre><p>(gateway만 <code>ports: [&quot;8000:8000&quot;]</code>; auth/order/payment/DB는 미공개.)</p>
+<h3 id="44-시크릿--부트스트랩-env">4.4 시크릿 / 부트스트랩 env</h3>
+<ul>
+<li><code>deploy/compose/.env</code>(gitignore): <code>ENCRYPT_KEY=...</code> — config-service가 <code>{cipher}</code> 복호화에 사용. <code>.env.example</code> 제공.</li>
+<li><strong>왜 env인가</strong>: <code>SPRING_CONFIG_IMPORT</code>는 &quot;Config Server 위치&quot;라 중앙에서 못 온다(닭-달걀). config-service의 <code>search-locations</code>도 마찬가지. 이 둘만 env, 나머진 전부 중앙 config.</li>
+</ul>
+<hr>
+<h2 id="5-기동-흐름">5. 기동 흐름</h2>
+<pre><code>docker compose up
+  → order-db, payment-db 뜸 → healthy(pg_isready)
+  → config-service 뜸 → config-repo 읽고 /actuator/health healthy
+  → discovery-service 뜸 → healthy
+  → (depends_on 이 위 healthy 를 기다렸다가) auth/order/payment/gateway 동시 기동
+     · 각자 SPRING_CONFIG_IMPORT 로 config-service:8888 에서 docker 프로파일 설정 수신
+     · Eureka(discovery-service:8761)에 컨테이너 IP로 등록
+     · order→payment 는 http://payment-service(Eureka 해석), gateway 는 lb://…
+  → 전부 healthy = 스택 준비 완료
+</code></pre><hr>
+<h2 id="6-동작-원리--트레이드오프">6. 동작 원리 / 트레이드오프</h2>
+<ul>
+<li><strong>localhost → 서비스명</strong>: 컨테이너 격리 때문에 필수. 중앙 config 덕분에 <code>docker</code> 프로파일 파일 몇 개로 끝(서비스 코드/로컬 yml 불변).</li>
+<li><strong><code>prefer-ip-address</code></strong>: hostname 등록은 다른 컨테이너가 그 이름을 못 풀 수 있어, IP 등록이 안전. (k8s에선 또 다른 방식 — Phase 16.)</li>
+<li><strong>로컬 vs docker 공존</strong>: 로컬은 default 프로파일(<code>localhost</code>), 컨테이너는 <code>docker</code> 프로파일. <strong>포트가 겹치므로 동시 실행은 안 함</strong>(둘 중 하나만).</li>
+<li><strong>메모리</strong>: 8GB Colima VM에 8컨테이너 → 각 <code>JAVA_OPTS</code>로 힙 상한, <code>deploy.resources.limits.memory</code>로 컨테이너 상한. JVM은 cgroup 인지.</li>
+<li><strong>이미지 빌드</strong>: prebuilt jar 방식(<code>./gradlew bootJar</code> 후 <code>docker build</code>) — 학습·속도에 유리. CI에선 in-Docker 빌드(멀티스테이지 gradle)도 가능.</li>
+</ul>
+<hr>
+<h2 id="7-검증-실제-실행">7. 검증 (실제 실행)</h2>
+<pre><code>docker compose -f deploy/compose/compose.yml up -d --build
+→ 8개 컨테이너 전부 healthy (config/discovery/gateway 공개, 나머지 내부)
+
+Eureka(:8761):   AUTH/ORDER/PAYMENT/GATEWAY 모두 UP, 주소가 컨테이너 IP(172.18.0.x) ✅
+Config(:8888):   /order-service/docker → 병합 4소스(order-service-docker→application-docker→order-service→application),
+                 datasource.url = jdbc:postgresql://order-db:5432/orderdb, password = orderpw(복호화) ✅
+Gateway(:8000):  로그인 → 무토큰 401 → POST /orders 201 CONFIRMED(order→payment 전파+DB 기록) → 역할 403/200 ✅
+</code></pre><p><strong>실행법</strong></p>
+<pre><code class="hljs language-bash">./gradlew bootJar
+<span class="hljs-built_in">cp</span> deploy/compose/.env.example deploy/compose/.env
+docker compose -f deploy/compose/compose.yml up -d --build   <span class="hljs-comment"># 기동</span>
+docker compose -f deploy/compose/compose.yml ps              <span class="hljs-comment"># 상태</span>
+docker compose -f deploy/compose/compose.yml down            <span class="hljs-comment"># 정지(-v 붙이면 DB 볼륨까지 삭제)</span>
+</code></pre><hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계 / 트레이드오프</th>
+<th>해결 Phase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Compose는 <strong>단일 호스트</strong>(스케일링·셀프힐링·롤아웃 없음)</td>
+<td><strong>Phase 16</strong>(Kubernetes)</td>
+</tr>
+<tr>
+<td>이미지 빌드가 수동(<code>bootJar</code> → <code>up --build</code>), 태깅/레지스트리 없음</td>
+<td><strong>Phase 17</strong>(CI/CD)</td>
+</tr>
+<tr>
+<td><code>.env</code>의 <code>ENCRYPT_KEY</code>·<code>prefer-ip-address</code> 등 여전히 학습용 단순화</td>
+<td><strong>Phase 15</strong>(하드닝)</td>
+</tr>
+<tr>
+<td>관측성(로그/메트릭/트레이스 수집) 컨테이너 없음</td>
+<td><strong>Phase 8</strong>(관측성 스택)</td>
+</tr>
+<tr>
+<td>(이월) 분산 트랜잭션 고아 결제</td>
+<td><strong>Phase 10·12</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어-사전">9. 용어 사전</h2>
+<ul>
+<li><strong>이미지 / 컨테이너</strong>: 실행 템플릿 / 그 실행 인스턴스.</li>
+<li><strong>레이어드 jar / jarmode=tools</strong>: 변경 빈도별로 나눠 캐시 효율을 높이는 Boot 패키징.</li>
+<li><strong>compose 서비스명 DNS</strong>: 같은 네트워크의 컨테이너를 서비스 이름으로 찾기.</li>
+<li><strong>healthcheck / depends_on(service_healthy)</strong>: 준비 판정 / 준비될 때까지 대기.</li>
+<li><strong>docker 프로파일</strong>: 컨테이너 환경 오버라이드(<code>SPRING_PROFILES_ACTIVE=docker</code>).</li>
+<li><strong>prefer-ip-address</strong>: Eureka에 컨테이너 IP로 등록.</li>
+<li><strong>부트스트랩 값</strong>: Config Server를 가리키는 값 등, 중앙 config보다 먼저 필요한 값(→ env).</li>
+</ul>
+<hr>
+<h2 id="10-더-알아보기">10. 더 알아보기</h2>
+<ul>
+<li>Spring Boot 컨테이너 이미지: <a href="https://docs.spring.io/spring-boot/reference/packaging/container-images/dockerfiles.html">https://docs.spring.io/spring-boot/reference/packaging/container-images/dockerfiles.html</a></li>
+<li>Docker Compose 기동 순서: <a href="https://docs.docker.com/compose/how-tos/startup-order/">https://docs.docker.com/compose/how-tos/startup-order/</a></li>
+<li>Compose 파일 레퍼런스: <a href="https://docs.docker.com/reference/compose-file/">https://docs.docker.com/reference/compose-file/</a></li>
+</ul>
+<hr>
+<p><em>관련 문서: <a href="PHASE-6-CONFIG.html">PHASE-6-CONFIG.md</a>(Phase 6), <a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY.md</a>(Phase 4), <a href="SETUP.html">SETUP.md</a>. 전체 로드맵: 루트 <code>MSA-LEARNING-PLAN.md</code>.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
+<li class="toc-h2"><a href="#1-왜-필요한가-phase-6까지의-문제">1. 왜 필요한가? (Phase 6까지의 문제)</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념">2. 핵심 개념</a></li>
+<li class="toc-h3"><a href="#21-컨테이너-이미지--레이어드-jar">2.1 컨테이너 이미지 / 레이어드 jar</a></li>
+<li class="toc-h3"><a href="#22-compose와-서비스명-dns">2.2 Compose와 서비스명 DNS</a></li>
+<li class="toc-h3"><a href="#23-기동-순서-healthcheck--depends_on">2.3 기동 순서: healthcheck + depends_on</a></li>
+<li class="toc-h3"><a href="#24-환경별-설정-docker-프로파일--부트스트랩-env">2.4 환경별 설정: docker 프로파일 + 부트스트랩 env</a></li>
+<li class="toc-h3"><a href="#25-prefer-ip-address">2.5 prefer-ip-address</a></li>
+<li class="toc-h2"><a href="#3-이-프로젝트의-구성">3. 이 프로젝트의 구성</a></li>
+<li class="toc-h2"><a href="#4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</a></li>
+<li class="toc-h3"><a href="#41-재사용-dockerfile-deploydockerdockerfileservice">4.1 재사용 Dockerfile (deploy/docker/Dockerfile.service)</a></li>
+<li class="toc-h3"><a href="#42-docker-프로파일-오버라이드-config-repo">4.2 docker 프로파일 오버라이드 (config-repo)</a></li>
+<li class="toc-h3"><a href="#43-composeyml-핵심-발췌">4.3 compose.yml (핵심 발췌)</a></li>
+<li class="toc-h3"><a href="#44-시크릿--부트스트랩-env">4.4 시크릿 / 부트스트랩 env</a></li>
+<li class="toc-h2"><a href="#5-기동-흐름">5. 기동 흐름</a></li>
+<li class="toc-h2"><a href="#6-동작-원리--트레이드오프">6. 동작 원리 / 트레이드오프</a></li>
+<li class="toc-h2"><a href="#7-검증-실제-실행">7. 검증 (실제 실행)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어-사전">9. 용어 사전</a></li>
+<li class="toc-h2"><a href="#10-더-알아보기">10. 더 알아보기</a></li></ul></nav></aside>
+</body>
+</html>

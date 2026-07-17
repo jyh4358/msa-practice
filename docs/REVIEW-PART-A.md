@@ -84,6 +84,7 @@
 6. 다른 컨테이너가 `localhost`를 자기 자신으로 풀어 못 닿는다. → `prefer-ip-address: true`(컨테이너 IP 등록).
 7. 아니오. Config Server가 **복호화해서 평문으로** 넘겨준다. 클라이언트는 암호문도 키도 모른다(키는 `ENCRYPT_KEY` env로 서버만).
 8. `depends_on: { config-service: { condition: service_healthy } }` + config-service의 healthcheck.
+
 </details>
 
 ---

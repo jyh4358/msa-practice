@@ -1,0 +1,16 @@
+{
+  "name": "shopsaga-docs-builder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "docs/*.md → 완전 오프라인 정적 HTML 사이트 생성기 (docs/site)",
+  "scripts": {
+    "build": "node build-docs.mjs"
+  },
+  "dependencies": {
+    "highlight.js": "^11.9.0",
+    "marked": "^14.1.4",
+    "marked-gfm-heading-id": "^4.0.0",
+    "marked-highlight": "^2.1.1"
+  }
+}
