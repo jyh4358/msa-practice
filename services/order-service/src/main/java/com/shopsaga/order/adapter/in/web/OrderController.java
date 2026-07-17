@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,7 +48,8 @@ class OrderController {
     }
 
     @GetMapping
-    @Operation(summary = "주문 목록 조회")
+    @PreAuthorize("hasRole('ADMIN')")   // ROLE_ADMIN 필요 — USER 토큰이면 403
+    @Operation(summary = "주문 목록 조회 (ADMIN 전용)")
     List<OrderView> all() {
         return getOrderQuery.listOrders();
     }

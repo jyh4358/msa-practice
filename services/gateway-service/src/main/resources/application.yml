@@ -1,12 +1,23 @@
 spring:
   application:
     name: gateway-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # 로컬 dev: NimbusReactiveJwtDecoder 는 플레인 WebClient 라 Eureka 이름 해석 불가 → auth-service 직접 지정.
+          jwk-set-uri: http://localhost:9000/oauth2/jwks
   cloud:
     gateway:
       # 2025.0.x 접두사: spring.cloud.gateway.server.webflux.* (구 spring.cloud.gateway.* 는 deprecated)
       server:
         webflux:
           routes:
+            # Phase 5: /auth/** → auth-service (로그인·토큰 발급). 게이트웨이 보안에서 permitAll 로 열어둠.
+            - id: auth-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/auth/**
             # /orders/** → order-service. 다운스트림이 이미 /orders 로 서빙하므로 경로를 그대로 전달
             # (StripPrefix 등 필터 불필요 = 통과 라우팅).
             - id: orders-route

@@ -33,6 +33,6 @@ class GatewayRoutesTest {
 
         assertThat(routes)
                 .extracting(RouteDefinition::getId)
-                .contains("orders-route", "inventory-route", "payments-route");
+                .contains("auth-route", "orders-route", "inventory-route", "payments-route");
     }
 }

@@ -22,7 +22,9 @@ class PaymentClientConfig {
     @Bean
     @LoadBalanced
     RestClient.Builder loadBalancedRestClientBuilder() {
-        return RestClient.builder();
+        // Phase 5: 인바운드 JWT를 payment-service 호출로 전파(인터셉터는 build() 전에 등록해야 함).
+        return RestClient.builder()
+                .requestInterceptor(new BearerTokenRelayInterceptor());
     }
 
     @Bean

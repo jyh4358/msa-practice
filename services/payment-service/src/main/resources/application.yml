@@ -11,6 +11,11 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9000/oauth2/jwks   # auth-service JWKS (직접 host:port)
 
 eureka:
   client:

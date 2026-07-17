@@ -20,24 +20,19 @@ dependencyManagement {
 dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
-    testCompileOnly("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
 
+    // 서블릿 웹(Tomcat) — POST /auth/login, GET /oauth2/jwks 엔드포인트.
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    // Phase 4: Eureka 클라이언트 — 부팅 시 payment-service 이름으로 레지스트리에 자동 등록.
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    // Phase 5: 서블릿 OAuth2 리소스 서버(JWT 검증).
+    // 인메모리 사용자 + BCrypt(UserDetailsService, PasswordEncoder) + SecurityFilterChain.
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    // NimbusJwtEncoder / JwtClaimsSet / JwsHeader / SignatureAlgorithm + nimbus-jose-jwt 전이 포함(RS256 서명).
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    implementation(libs.springdoc.openapi.ui)
-
-    implementation(libs.flyway.core)
-    implementation(libs.flyway.postgresql)
-    runtimeOnly(libs.postgresql)
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Eureka 클라이언트 — auth-service 이름으로 등록(게이트웨이 lb://auth-service 라우팅).
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

@@ -31,6 +31,8 @@ dependencies {
     // Phase 4: Eureka 클라이언트 — 게이트웨이가 레지스트리에서 서비스 위치를 조회(lb:// 해석).
     //          loadbalancer 는 이 스타터에 전이 포함되어 lb:// 라우트가 동작한다.
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    // Phase 5: 게이트웨이를 리액티브 OAuth2 리소스 서버로(엣지 JWT 검증). jose(RS256) 전이 포함.
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
