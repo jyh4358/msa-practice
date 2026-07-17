@@ -1,38 +1,9 @@
 spring:
   application:
     name: payment-service
-  datasource:
-    url: jdbc:postgresql://localhost:5433/paymentdb
-    username: payment
-    password: paymentpw
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-  flyway:
-    enabled: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://localhost:9000/oauth2/jwks   # auth-service JWKS (직접 host:port)
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/   # 맵 키 defaultZone 은 camelCase 필수
-  instance:
-    hostname: localhost
+  config:
+    import: "optional:configserver:http://localhost:8888"
 
 server:
   port: 8081
   shutdown: graceful
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,flyway
-  endpoint:
-    health:
-      show-details: always

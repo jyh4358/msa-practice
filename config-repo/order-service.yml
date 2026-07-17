@@ -1,0 +1,18 @@
+# order-service 전용 중앙 설정. DB 비밀번호는 {cipher} 암호문(서버가 응답 전 복호화). 공통값은 application.yml.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orderdb
+    username: order
+    password: '{cipher}0d82324915ffe995875e5d06be3087dd3461b23a1bc3339e56fb56e161342f98'
+  flyway:
+    enabled: true
+
+payment:
+  service:
+    url: http://payment-service   # @LoadBalanced RestClient 가 Eureka로 실제 인스턴스 해석
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway

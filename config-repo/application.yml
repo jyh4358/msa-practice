@@ -1,0 +1,26 @@
+# 모든 config 클라이언트 공통 기본값 (Phase 6 중앙 설정).
+# 특정 서비스 파일({service}.yml)이 같은 키를 정의하면 그쪽이 우선한다.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate          # 스키마는 Flyway 소유, Hibernate는 검증만
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9000/oauth2/jwks   # auth-service JWKS(공개키) — 직접 host:port
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/   # Map 키 → camelCase 필수
+  instance:
+    hostname: localhost
+
+management:
+  endpoint:
+    health:
+      show-details: always

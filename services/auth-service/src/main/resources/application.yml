@@ -1,23 +1,9 @@
 spring:
   application:
     name: auth-service
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    hostname: localhost
+  config:
+    import: "optional:configserver:http://localhost:8888"
 
 server:
   port: 9000
   shutdown: graceful
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-  endpoint:
-    health:
-      show-details: always

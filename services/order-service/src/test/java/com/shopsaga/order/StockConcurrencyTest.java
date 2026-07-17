@@ -50,6 +50,9 @@ class StockConcurrencyTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         // Phase 4: 이 테스트는 재고 동시성만 검증 — Eureka 서버 없이 돌도록 클라이언트 비활성화.
         registry.add("eureka.client.enabled", () -> "false");
+        // Phase 6: JPA/Flyway 설정이 중앙 config로 이동 → config-service 없이도 테스트가 자립하도록 명시.
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
+        registry.add("spring.flyway.enabled", () -> "true");
     }
 
     @MockitoBean

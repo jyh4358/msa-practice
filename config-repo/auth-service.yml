@@ -1,0 +1,6 @@
+# auth-service 전용 중앙 설정. DB 없음 — 대부분 공통(application.yml)에서 온다.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

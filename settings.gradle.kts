@@ -18,6 +18,7 @@ dependencyResolutionManagement {
 rootProject.name = "msa-platform"
 
 include(":services:discovery-service")
+include(":services:config-service")
 include(":services:order-service")
 include(":services:payment-service")
 include(":services:gateway-service")

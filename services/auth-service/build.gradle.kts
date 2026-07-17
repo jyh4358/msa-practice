@@ -30,6 +30,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // Eureka 클라이언트 — auth-service 이름으로 등록(게이트웨이 lb://auth-service 라우팅).
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    // Phase 6: Config 클라이언트 — spring.config.import 로 config-service(:8888)에서 설정을 가져온다.
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

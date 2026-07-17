@@ -1,0 +1,14 @@
+# payment-service 전용 중앙 설정. DB 비밀번호는 {cipher} 암호문. 공통값은 application.yml.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/paymentdb
+    username: payment
+    password: '{cipher}fb1f5d4799c05515df1804faeca37723f0c6a28bf51421259fe9febaf68c1a0e'
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway

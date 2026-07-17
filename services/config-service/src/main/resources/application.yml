@@ -1,0 +1,28 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-service
+  profiles:
+    active: native            # native 백엔드(파일시스템) — git 백엔드를 대체
+  cloud:
+    config:
+      server:
+        native:
+          # 절대경로: bootRun/IDE 실행 cwd 에 상관없이 항상 이 디렉터리를 읽는다.
+          search-locations: file:///Users/younho/IdeaProjects/msa/config-repo
+          # flat 디렉터리: <search-location>/master/ 추가 탐색을 끈다.
+          add-label-locations: false
+
+# 이 서버는 Eureka에 등록하지 않는다(config-first). Eureka와 기동 순서 의존 없음.
+# encrypt.key 는 이 파일에 두지 않는다 — 반드시 ENCRYPT_KEY 환경변수로 주입(키 유출 방지).
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

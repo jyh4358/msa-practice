@@ -11,13 +11,15 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 ---
 
-## 현재 상태: Phase 5 — JWT 인증/인가까지 완료
+## 현재 상태: Phase 6 — 중앙 설정(Config Server)까지 완료
 
-5개 서비스가 **서비스 디스커버리(Eureka)** 로 서로를 이름으로 찾고, **API 게이트웨이**가 단일 진입점이며,
-**JWT(RS256)** 로 인증/인가가 걸려 있습니다.
+6개 서비스가 **중앙 설정(Config Server)** 에서 설정을 받고, **서비스 디스커버리(Eureka)** 로 서로를
+이름으로 찾으며, **API 게이트웨이**가 단일 진입점이고, **JWT(RS256)** 로 인증/인가가 걸려 있습니다.
+DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리됩니다.
 
 | 서비스 | 포트 | 역할 | DB |
 |---|---|---|---|
+| **config-service** | 8888 | Config Server(중앙 설정, native 백엔드 + 시크릿 암호화) | — |
 | **discovery-service** | 8761 | Eureka 서버(서비스 레지스트리) | — |
 | **auth-service** | 9000 | RS256 JWT 발급(`/auth/login`) + JWKS(`/oauth2/jwks`) | — |
 | **gateway-service** | 8000 | 단일 진입점 라우팅 + 엣지 인증(리소스 서버) | — |
@@ -26,6 +28,7 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 - 클라이언트는 **게이트웨이(8000)** 만 알면 됩니다. 서비스 위치는 Eureka가, 인증은 JWT가 처리.
 - 서비스 간 통신은 **이름 기반**(게이트웨이 `lb://order-service`, order→payment `http://payment-service` @LoadBalanced).
+- 설정은 **config-service(8888)** 에서 받습니다(로컬엔 이름·import·포트만). DB 비번은 `{cipher}` 암호문으로 중앙 저장.
 - 데모 계정: `alice/secret`(USER), `admin/admin123`(USER+ADMIN).
 
 ---
@@ -42,6 +45,7 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 | **3** | **API Gateway**(단일 진입점, Spring Cloud Gateway) | [PHASE-3-GATEWAY.md](./docs/PHASE-3-GATEWAY.md) |
 | **4** | **서비스 디스커버리**(Eureka, 이름 기반 라우팅·호출) | [SERVICE-DISCOVERY.md](./docs/SERVICE-DISCOVERY.md) |
 | **5** | **보안**(RS256 JWT 인증 + 역할 인가 + 토큰 전파) | [SECURITY.md](./docs/SECURITY.md) |
+| **6** | **중앙 설정**(Spring Cloud Config, native 백엔드 + 시크릿 암호화) | [PHASE-6-CONFIG.md](./docs/PHASE-6-CONFIG.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 
@@ -62,7 +66,7 @@ colima start --arch aarch64 --cpu 4 --memory 8
 
 ---
 
-## 실행 & 검증 (현재: Phase 5)
+## 실행 & 검증 (현재: Phase 6)
 
 ### 1) 빌드 & 테스트
 ```bash
@@ -70,17 +74,19 @@ colima start --arch aarch64 --cpu 4 --memory 8
 DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./gradlew build
 ```
 
-### 2) 인프라 + 서비스 기동 (순서 중요: discovery 먼저)
+### 2) 인프라 + 서비스 기동 (순서 중요: config·discovery 먼저)
 ```bash
 # (a) DB
 docker compose -f deploy/compose/compose.infra.yml up -d order-db payment-db
-# (b) 레지스트리 먼저 → 인증 → 나머지
-./gradlew :services:discovery-service:bootRun   # 8761 (먼저)
+# (b) 설정 서버 먼저(시크릿 복호화 키를 env로 주입) → 레지스트리 → 인증 → 나머지
+export ENCRYPT_KEY='shopsaga-dev-encrypt-key-0123456789ab'   # dev 키(운영은 절대 커밋/공유 X)
+./gradlew --no-daemon :services:config-service:bootRun   # 8888 (먼저, ENCRYPT_KEY 필요)
+./gradlew :services:discovery-service:bootRun   # 8761
 ./gradlew :services:auth-service:bootRun        # 9000
 ./gradlew :services:order-service:bootRun       # 8080
 ./gradlew :services:payment-service:bootRun     # 8081
 ./gradlew :services:gateway-service:bootRun     # 8000
-# 등록 확인: curl -H 'Accept: application/json' localhost:8761/eureka/apps
+# 설정 확인: curl localhost:8888/order-service/default   |   등록 확인: curl -H 'Accept: application/json' localhost:8761/eureka/apps
 ```
 
 ### 3) 인증 → 호출 (게이트웨이 8000 통과)
@@ -106,8 +112,8 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" local
 
 ---
 
-## 다음: Phase 6 — 중앙 설정 (Spring Cloud Config)
+## 다음: Phase 7 — 로컬 오케스트레이션 (Docker Compose)
 
-흩어진 설정(특히 시크릿: DB 비밀번호·`jwk-set-uri` 등)을 Config Server로 외부화합니다.
-이후 7 compose → 8 관측성 → 9 Kafka → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+서비스들을 컨테이너 이미지로 빌드해 Docker Compose로 한 번에 띄웁니다(설정·디스커버리·시크릿의 컨테이너 환경 대응).
+이후 8 관측성 → 9 Kafka → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) 참고.

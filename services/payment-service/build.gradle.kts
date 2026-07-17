@@ -29,6 +29,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // Phase 4: Eureka 클라이언트 — 부팅 시 payment-service 이름으로 레지스트리에 자동 등록.
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    // Phase 6: Config 클라이언트 — spring.config.import 로 config-service(:8888)에서 설정을 가져온다.
+    implementation("org.springframework.cloud:spring-cloud-starter-config")
     // Phase 5: 서블릿 OAuth2 리소스 서버(JWT 검증).
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation(libs.springdoc.openapi.ui)
