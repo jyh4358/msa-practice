@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 게이트웨이는 DB를 쓰지 않으므로 Docker/Postgres 없이 컨텍스트가 뜬다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(properties = "eureka.client.enabled=false")   // 레지스트리 없이 라우트 정의 로딩만 검증
 class GatewayRoutesTest {
 
     @Autowired

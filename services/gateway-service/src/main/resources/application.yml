@@ -10,19 +10,26 @@ spring:
             # /orders/** → order-service. 다운스트림이 이미 /orders 로 서빙하므로 경로를 그대로 전달
             # (StripPrefix 등 필터 불필요 = 통과 라우팅).
             - id: orders-route
-              uri: http://localhost:8080
+              uri: lb://order-service
               predicates:
                 - Path=/orders/**
             # 재고 조회도 order-service 소유.
             - id: inventory-route
-              uri: http://localhost:8080
+              uri: lb://order-service
               predicates:
                 - Path=/inventory/**
             # /payments/** → payment-service.
             - id: payments-route
-              uri: http://localhost:8081
+              uri: lb://payment-service
               predicates:
                 - Path=/payments/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/   # 맵 키 defaultZone 은 camelCase 필수
+  instance:
+    hostname: localhost
 
 server:
   port: 8000

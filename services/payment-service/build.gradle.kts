@@ -27,6 +27,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Phase 4: Eureka 클라이언트 — 부팅 시 payment-service 이름으로 레지스트리에 자동 등록.
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation(libs.springdoc.openapi.ui)
 
     implementation(libs.flyway.core)

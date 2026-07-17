@@ -28,6 +28,9 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
     // /actuator/gateway/routes 로 라우팅 상태를 들여다보기 위함.
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Phase 4: Eureka 클라이언트 — 게이트웨이가 레지스트리에서 서비스 위치를 조회(lb:// 해석).
+    //          loadbalancer 는 이 스타터에 전이 포함되어 lb:// 라우트가 동작한다.
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

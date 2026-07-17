@@ -30,6 +30,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Phase 4: Eureka 클라이언트(부팅 시 자동 등록) + spring-cloud-loadbalancer(전이 포함)
+    //          → @LoadBalanced RestClient 로 payment-service 를 이름으로 호출.
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     // OpenAPI/Swagger UI — 인바운드 웹 어댑터 문서화(도메인·애플리케이션은 의존하지 않음).
     implementation(libs.springdoc.openapi.ui)
 

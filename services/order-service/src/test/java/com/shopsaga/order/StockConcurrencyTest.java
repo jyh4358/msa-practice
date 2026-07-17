@@ -48,6 +48,8 @@ class StockConcurrencyTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        // Phase 4: 이 테스트는 재고 동시성만 검증 — Eureka 서버 없이 돌도록 클라이언트 비활성화.
+        registry.add("eureka.client.enabled", () -> "false");
     }
 
     @MockitoBean

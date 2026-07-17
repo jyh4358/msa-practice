@@ -18,7 +18,15 @@ spring:
 
 payment:
   service:
-    url: http://localhost:8081   # Phase 2: 하드코딩. Phase 4에서 서비스 디스커버리로 대체.
+    # Phase 4: 하드코딩 host:port → 서비스 이름. @LoadBalanced RestClient 가 Eureka로 실제 인스턴스를 해석.
+    url: http://payment-service
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/   # 맵 키 defaultZone 은 camelCase 필수
+  instance:
+    hostname: localhost   # 단일 머신 dev: lb 해석이 localhost:port 로 가도록 (Phase 7 compose에서 재검토)
 
 server:
   port: 8080
