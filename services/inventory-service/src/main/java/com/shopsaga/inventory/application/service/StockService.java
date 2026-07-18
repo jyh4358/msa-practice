@@ -5,6 +5,7 @@ import com.shopsaga.inventory.application.port.in.GetStockQuery;
 import com.shopsaga.inventory.application.port.in.ReserveStockUseCase;
 import com.shopsaga.inventory.application.port.in.StockView;
 import com.shopsaga.inventory.application.port.out.LoadStockPort;
+import com.shopsaga.inventory.application.port.out.ProcessedMessagePort;
 import com.shopsaga.inventory.application.port.out.ReserveStockPort;
 import com.shopsaga.inventory.domain.InsufficientStockException;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ class StockService implements GetStockQuery, ReserveStockUseCase {
 
     private final LoadStockPort loadStockPort;
     private final ReserveStockPort reserveStockPort;
+    private final ProcessedMessagePort processedMessagePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -36,7 +38,14 @@ class StockService implements GetStockQuery, ReserveStockUseCase {
 
     @Override
     @Transactional
-    public void reserveForOrder(UUID orderId, Map<UUID, Integer> quantityByProduct) {
+    public void reserveForOrder(UUID messageId, UUID orderId, Map<UUID, Integer> quantityByProduct) {
+        // Phase 10: 멱등 가드 — 이미 처리한 메시지면 부수효과 없이 건너뛴다(재배달 흡수 = effectively-once).
+        //           dedup 조회·부수효과·처리기록이 모두 이 @Transactional 하나에 원자적으로 커밋된다.
+        if (processedMessagePort.isAlreadyProcessed(messageId)) {
+            log.info("이미 처리된 메시지 — 재고 예약 건너뜀 messageId={} orderId={}", messageId, orderId);
+            return;
+        }
+
         // 상품ID 정렬(TreeMap)로 교착 회피 — 여러 주문이 같은 상품들을 동시에 예약해도 락 획득 순서를 일관되게.
         new TreeMap<>(quantityByProduct).forEach((productId, qty) -> {
             try {
@@ -48,5 +57,8 @@ class StockService implements GetStockQuery, ReserveStockUseCase {
                 log.warn("재고 예약 실패 orderId={} product={} qty={} — {}", orderId, productId, qty, e.getMessage());
             }
         });
+
+        // 처리 완료 기록 — 예약 실패(부족/미등록)도 "처리됨"으로 남긴다(재처리해도 결과 동일 → 무한 재시도 방지).
+        processedMessagePort.markProcessed(messageId);
     }
 }

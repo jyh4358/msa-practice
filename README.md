@@ -11,7 +11,7 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 ---
 
-## 현재 상태: Phase 9 — 비동기 이벤트(Kafka, 재고 분리)
+## 현재 상태: Phase 10 — 신뢰성 척추(Outbox + 멱등성)
 
 6개 서비스가 **중앙 설정(Config Server)** 에서 설정을 받고, **서비스 디스커버리(Eureka)** 로 서로를
 이름으로 찾으며, **API 게이트웨이**가 단일 진입점이고, **JWT(RS256)** 로 인증/인가가 걸려 있습니다.
@@ -21,6 +21,8 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 `grafana/otel-lgtm` 올인원 백엔드의 **Grafana(:3000)** 에서 눈으로 봅니다.
 **Phase 9**부터는 order가 재고를 직접 예약하지 않고 **`OrderPlaced` 이벤트를 Kafka로 발행**하면
 분리된 **inventory-service**가 **비동기로** 소비해 예약합니다(결과적 일관성). Kafka·inventory는 **`--profile async`** 로 기동합니다.
+**Phase 10**은 그 발행을 **트랜잭셔널 Outbox**로 바꿉니다: 주문 저장과 이벤트 기록을 **한 트랜잭션**에 담고(이중 쓰기 제거),
+별도 **릴레이**가 Kafka로 내보내며, inventory는 **`messageId`로 중복을 걸러**(멱등) 같은 메시지를 여러 번 받아도 재고를 **정확히 한 번** 예약합니다.
 
 | 서비스 | 포트 | 역할 | DB |
 |---|---|---|---|
@@ -55,6 +57,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **7** | **로컬 오케스트레이션**(Docker Compose — 이미지 빌드·서비스명 DNS·기동순서) | [PHASE-7-COMPOSE.md](./docs/PHASE-7-COMPOSE.md) |
 | **8** | **관측성**(트레이싱·메트릭·**로그→Loki**·**RED 대시보드**·트레이스↔로그 점프 — OTLP → `grafana/otel-lgtm`) | [PHASE-8-OBSERVABILITY.md](./docs/PHASE-8-OBSERVABILITY.md) |
 | **9** | **비동기 이벤트**(Kafka — 재고 분리, `OrderPlaced` 발행/소비, HTTP→Kafka 트레이스, 리플레이) | [PHASE-9-ASYNC-KAFKA.md](./docs/PHASE-9-ASYNC-KAFKA.md) |
+| **10** | **신뢰성 척추**(트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자 — 이중 쓰기 제거, effectively-once) | [PHASE-10-OUTBOX.md](./docs/PHASE-10-OUTBOX.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 
@@ -133,9 +136,9 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" local
 
 ---
 
-## 다음: Phase 10 — Outbox + 멱등성
+## 다음: Phase 11 — CQRS 읽기 모델
 
-Phase **9a**(Kafka 비동기 이벤트: 재고 분리·`OrderPlaced` 발행/소비·HTTP→Kafka 트레이스·리플레이)를 마쳤습니다.
-다음 **10 Outbox**는 order의 **이중 쓰기**(save + 발행이 비원자적)와 **멱등성**(중복 소비)을 해결합니다(신뢰성 척추).
-이후 **11 CQRS** → 12·13 Saga(보상) → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+Phase **10**(신뢰성 척추: 트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자 — 이중 쓰기 제거·effectively-once)를 마쳤습니다.
+다음 **11 CQRS**는 쓰기 모델과 분리된, 이벤트로 채워지는 **읽기 모델**(`order-query-service`, Mongo)을 만듭니다(outbox→Kafka 위에 안전).
+이후 **12·13 Saga**(보상 + 트레이스 복원) → 14 복원력(Resilience4j·DLQ) → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) 참고.

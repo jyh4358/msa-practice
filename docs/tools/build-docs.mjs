@@ -59,6 +59,8 @@ const DOCS = [
     desc: '분산 트레이싱·메트릭 (OTLP → otel-lgtm)' },
   { key: 'PHASE-9-ASYNC-KAFKA', out: 'PHASE-9-ASYNC-KAFKA.html', title: 'Phase 9 · 비동기(Kafka)', group: 'Phase 단계별', file: 'docs/PHASE-9-ASYNC-KAFKA.md',
     desc: '재고 분리·OrderPlaced 이벤트·HTTP→Kafka 트레이스·리플레이' },
+  { key: 'PHASE-10-OUTBOX', out: 'PHASE-10-OUTBOX.html', title: 'Phase 10 · Outbox+멱등성', group: 'Phase 단계별', file: 'docs/PHASE-10-OUTBOX.md',
+    desc: '트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자(effectively-once)' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

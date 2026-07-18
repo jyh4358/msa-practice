@@ -27,9 +27,10 @@
 | _(docs)_ | `cbb96f8` | 오프라인 HTML 문서 사이트 | `docs/tools/build-docs.mjs`·`docs/site/**` 신규, 원본 마크다운 렌더 결함 6수정 | — |
 | **8a** 관측성 | `7e352d8` | 분산 트레이싱·메트릭(OTLP→otel-lgtm) | 4서비스 tracing 의존성, `config-repo` tracing/otlp, `compose` otel-lgtm, `PaymentClientConfig` ObservationRegistry | [PHASE-8](PHASE-8-OBSERVABILITY.md) |
 | **8b** 관측성 심화 | `a0f0b1f` | 로그→Loki·RED 대시보드·트레이스↔로그 점프 | logback appender×4 + `OpenTelemetryAppenderInstaller`×4 + `logback-spring.xml`×4, `config-repo` otlp.logging/percentiles-histogram, `deploy/grafana/**` 대시보드, `OrderService` @Slf4j 로그 | 〃 |
-| **9a** 비동기(Kafka) | _(이 커밋 — 다음 갱신 시 기입)_ | 재고 분리·OrderPlaced 이벤트·HTTP→Kafka 트레이스·리플레이 | `services/inventory-service/**` 신규, `shared/events/**`(OrderPlacedEvent), order `OrderService`(재고 제거+발행)·`PublishOrderEventPort`·Kafka 어댑터·`V4__drop_local_stock`, `config-repo` kafka, compose kafka·kafka-ui·inventory-db·inventory-service(`--profile async`) | [PHASE-9](PHASE-9-ASYNC-KAFKA.md) |
+| **9a** 비동기(Kafka) | `a0d04f6` | 재고 분리·OrderPlaced 이벤트·HTTP→Kafka 트레이스·리플레이 | `services/inventory-service/**` 신규, `shared/events/**`(OrderPlacedEvent), order `OrderService`(재고 제거+발행)·`PublishOrderEventPort`·Kafka 어댑터·`V4__drop_local_stock`, `config-repo` kafka, compose kafka·kafka-ui·inventory-db·inventory-service(`--profile async`) | [PHASE-9](PHASE-9-ASYNC-KAFKA.md) |
+| **10** Outbox+멱등 | _(이 커밋 — 다음 갱신 시 기입)_ | 트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자(effectively-once)·이중 쓰기 제거 | order `adapter/out/outbox/**`(엔티티·리포·발행어댑터·릴레이)·`V5__outbox`·`@EnableScheduling`, `OrderEventKafkaAdapter` 삭제, inventory `processed_messages`(엔티티·리포·`ProcessedMessagePort`·어댑터)·`V2__processed_messages`·`StockService` 멱등 가드·리스너 `messageId` 헤더, `config-repo` outbox.relay | [PHASE-10](PHASE-10-OUTBOX.md) |
 
-> _(9a 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입.)_
+> _(10 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입.)_
 
 ---
 

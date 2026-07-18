@@ -31,6 +31,11 @@ spring:
     listener:
       observation-enabled: true          # @KafkaListener → traceparent 추출·자식 스팬
 
+# ── Phase 10: Outbox 릴레이 폴링 주기(order-service의 OutboxRelay만 사용; 릴레이 없는 서비스는 무시). ──
+outbox:
+  relay:
+    fixed-delay: 1000                    # ms. 미발행 outbox row를 Kafka로 내보내는 폴링 간격.
+
 eureka:
   client:
     service-url:
