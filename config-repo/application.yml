@@ -24,3 +24,14 @@ management:
   endpoint:
     health:
       show-details: always
+  # ── Phase 8: 관측성(트레이싱·메트릭) — OTLP로 grafana/otel-lgtm(:4318)에 push ──
+  tracing:
+    sampling:
+      probability: 1.0            # 학습용 전량 샘플링(운영은 0.1~0.3). 기본 0.1이면 대부분 요청이 트레이스 안 됨.
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces   # OTLP/HTTP. 기본값 없음 → 반드시 명시(미명시 시 익스포터 미구성).
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s                 # push 주기(기본 60s) — 데모에서 빨리 보이게. docker 프로파일이 endpoint를 서비스명으로 오버라이드.

@@ -13,3 +13,12 @@ eureka:
       defaultZone: http://discovery-service:8761/eureka/       # localhost:8761 → 서비스명
   instance:
     prefer-ip-address: true   # 컨테이너 IP로 등록(다른 컨테이너가 라우팅 가능한 주소) — localhost 등록 회피
+
+# Phase 8: docker 네트워크에선 localhost가 컨테이너 자신 → 관측성 컨테이너 서비스명으로 OTLP 전송.
+management:
+  otlp:
+    tracing:
+      endpoint: http://otel-lgtm:4318/v1/traces
+    metrics:
+      export:
+        url: http://otel-lgtm:4318/v1/metrics

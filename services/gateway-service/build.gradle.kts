@@ -28,6 +28,11 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux")
     // /actuator/gateway/routes 로 라우팅 상태를 들여다보기 위함.
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Phase 8: 관측성 — 리액티브 게이트웨이에도 트레이싱을 켜 다운스트림(lb://)으로 traceparent 전파.
+    //          전부 Boot BOM 관리(버전 생략). OTLP → grafana/otel-lgtm(:4318).
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    implementation("io.micrometer:micrometer-registry-otlp")
     // Phase 4: Eureka 클라이언트 — 게이트웨이가 레지스트리에서 서비스 위치를 조회(lb:// 해석).
     //          loadbalancer 는 이 스타터에 전이 포함되어 lb:// 라우트가 동작한다.
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")

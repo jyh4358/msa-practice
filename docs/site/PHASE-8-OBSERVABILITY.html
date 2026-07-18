@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 8 · 관측성 · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li class="active"><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-8--관측성-observability-분산-트레이싱--메트릭">Phase 8 — 관측성 (Observability): 분산 트레이싱 · 메트릭</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> 여러 서비스를 거치는 한 번의 요청(게이트웨이→주문→결제)을 <strong>하나의 트레이스</strong>로 잇고,
+각 서비스의 지표를 <strong>메트릭</strong>으로 모아, <code>grafana/otel-lgtm</code> 올인원 백엔드에서 눈으로 본다.
+앱은 <strong>OTLP</strong>(OpenTelemetry 프로토콜)로 텔레메트리를 내보내고, 코드 변경은 거의 <strong>설정뿐</strong>이다.</p>
+</blockquote>
+<p>이 문서는 초심자(Java/Spring은 알지만 MSA·관측성은 처음) 기준으로, <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.
+코드/설정은 발췌·회고형이며, 전문용어는 첫 등장에 괄호로 정의하고 §9 용어사전에 다시 모읍니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>4개 서비스</strong>(gateway·order·payment·auth)에 관측성 의존성 3종을 추가: 트레이싱 브릿지 + OTLP 익스포터 + OTLP 메트릭 레지스트리. <strong>버전은 전부 Spring Boot BOM이 관리</strong>(핀 불필요).</li>
+<li><strong>중앙 설정</strong>(<code>config-repo</code>)에 트레이싱 샘플링·OTLP 엔드포인트를 한 번에 넣어 4개 서비스에 전파. docker 프로파일에선 엔드포인트를 컨테이너 서비스명으로 오버라이드.</li>
+<li><strong>compose에 <code>otel-lgtm</code> 올인원</strong>(Tempo·Loki·Prometheus·Grafana + OTLP 수신기)을 추가.</li>
+<li>결과: 주문 한 건이 <strong>gateway → order → payment</strong>를 거치는 과정이 Grafana(Tempo)에서 <strong>하나의 트레이스</strong>로 보인다. 콘솔 로그엔 <code>[서비스명,traceId,spanId]</code>가 자동으로 찍힌다.</li>
+</ul>
+<blockquote>
+<p><strong>범위 메모(8a):</strong> 이번은 로드맵의 <strong>8a</strong>(“올인원으로 트레이스 하나 보기 — 동기부여”)다.
+<strong>로그를 Loki로 전송(OTLP 로그 appender)·커스텀 대시보드·관측성 스택 컴포넌트 분리</strong>는 <strong>8b</strong>로 남긴다(§8 참고).</p>
+</blockquote>
+<hr>
+<h2 id="1-왜--직전phase-7의-문제">1. 왜 — 직전(Phase 7)의 문제</h2>
+<p>Phase 2에서 결제를 별도 서비스로 분리한 뒤로, <strong>한 번의 주문 요청이 여러 프로세스를 건너다닌다</strong>:</p>
+<pre><code>클라이언트 → gateway(8000) → order(8080) → payment(8081)
+</code></pre><p>모놀리스였다면 스택 트레이스 하나로 끝났을 디버깅이, 이제는 <strong>서비스마다 로그가 따로</strong> 남는다.
+“결제가 느리다”는 신고가 들어와도 —</p>
+<ul>
+<li>게이트웨이 로그, order 로그, payment 로그가 <strong>서로 다른 곳</strong>에 있고,</li>
+<li>어느 로그 줄들이 <strong>같은 요청</strong>에 속하는지 이어 붙일 방법이 없으며,</li>
+<li>지연이 <strong>어느 구간</strong>에서 생겼는지(게이트웨이? 네트워크? payment DB?) 알 수 없다.</li>
+</ul>
+<blockquote>
+<p>분산 시스템의 버그는 <strong>기본적으로 보이지 않는다.</strong> Saga·CQRS 같은 더 복잡한 분산 흐름을 만들기 <strong>전에</strong>,
+먼저 <strong>요청을 꿰뚫어 보는 X-ray</strong>를 손에 쥔다. 이것이 로드맵이 관측성을 Phase 8(비동기·Saga 앞)로 당긴 이유다.</p>
+</blockquote>
+<p><strong>관측성(Observability)</strong> = 시스템 외부로 나오는 신호(텔레메트리)만으로 내부 상태를 설명할 수 있는 성질.
+그 신호가 바로 아래 <strong>3대 기둥</strong>이다.</p>
+<hr>
+<h2 id="2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</h2>
+<h3 id="21-관측성의-3대-기둥">2.1 관측성의 3대 기둥</h3>
+<table>
+<thead>
+<tr>
+<th>기둥</th>
+<th>무엇</th>
+<th>이번 단계</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>트레이스(Trace)</strong></td>
+<td>한 요청이 서비스들을 거친 <strong>경로와 소요시간</strong>. 구간마다 <strong>스팬(Span)</strong></td>
+<td>✅ 핵심</td>
+</tr>
+<tr>
+<td><strong>메트릭(Metric)</strong></td>
+<td>수치 시계열(요청 수·지연 p95·JVM 메모리 등)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>로그(Log)</strong></td>
+<td>사건 기록(텍스트)</td>
+<td>콘솔 상관ID까지(✅) · Loki 전송은 8b</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>스팬(Span):</strong> 트레이스를 이루는 한 구간(예: “order가 요청을 처리한 시간”). 스팬은 부모-자식으로 이어져 <strong>워터폴</strong>을 이룬다.</li>
+<li><strong>traceId:</strong> 한 요청 전체에 부여되는 고유 ID. 모든 서비스의 스팬·로그가 이 ID를 공유해야 “한 요청”으로 묶인다.</li>
+<li><strong>컨텍스트 전파(Context propagation):</strong> traceId·spanId를 다음 서비스로 넘기는 것. HTTP에선 <strong><code>traceparent</code></strong> 헤더(W3C Trace Context 표준)로 실린다.</li>
+</ul>
+<h3 id="22-opentelemetryotel와-otlp">2.2 OpenTelemetry(OTel)와 OTLP</h3>
+<ul>
+<li><strong>OpenTelemetry(OTel):</strong> 트레이스·메트릭·로그를 만들고 내보내는 <strong>벤더 중립 표준</strong>(SDK+API).</li>
+<li><strong>OTLP(OpenTelemetry Protocol):</strong> 그 텔레메트리를 백엔드로 보내는 <strong>전송 프로토콜</strong>. HTTP는 기본 포트 <strong>4318</strong>, gRPC는 4317.</li>
+<li><strong>Micrometer Tracing:</strong> 스프링이 쓰는 관측 파사드. **브릿지(bridge)**로 OTel에 연결한다(<code>micrometer-tracing-bridge-otel</code>).<ul>
+<li>즉 우리 코드는 Micrometer를 통해 관측하고, 실제 트레이스는 OTel이 만들어 OTLP로 내보낸다.</li>
+</ul>
+</li>
+</ul>
+<h3 id="23-백엔드--grafanaotel-lgtm-lgtm">2.3 백엔드 — grafana/otel-lgtm (LGTM)</h3>
+<p>텔레메트리를 <strong>받아 저장하고 보여주는</strong> 쪽. 이름 <strong>LGTM</strong>은 4개 구성요소의 머리글자다:</p>
+<ul>
+<li><strong>L</strong>oki — 로그 저장/조회</li>
+<li><strong>G</strong>rafana — 시각화 UI(트레이스·메트릭·로그를 한 화면에서)</li>
+<li><strong>T</strong>empo — 트레이스 저장/조회</li>
+<li><strong>M</strong>imir/<strong>Prometheus</strong> — 메트릭 저장/조회</li>
+</ul>
+<p><code>grafana/otel-lgtm</code>은 이 넷 + <strong>OTLP 수신기</strong>를 <strong>컨테이너 하나</strong>로 묶은 <strong>개발/데모 전용</strong> 올인원이다.
+포트 하나(4318)로 트레이스·메트릭을 받아 알아서 Tempo/Prometheus로 나눠 넣고, Grafana에 데이터소스를 자동 연결해 준다.</p>
+<hr>
+<h2 id="3-구성-그림">3. 구성 (그림)</h2>
+<pre><code>                                 ┌───────────────────────── grafana/otel-lgtm (올인원) ───────────────────────┐
+   client                        │   OTLP 수신(:4318)  →  Tempo(트레이스) · Prometheus(메트릭)                  │
+     │  ①로그인→JWT                │                          ▲                                                  │
+     ▼                            │                          │  Grafana UI(:3000) 에서 조회                      │
+  gateway(8000) ──traceparent──▶ order(8080) ──traceparent──▶ payment(8081)                                    │
+     │  span A                    │  span B                   │  span C                                          │
+     └──────────── OTLP ──────────┴──────── OTLP ─────────────┴──── OTLP ───────────────────────────────────────┘
+        (각 서비스가 자기 스팬/메트릭을 :4318 로 push. traceId 는 traceparent 로 이어져 A·B·C 가 한 트레이스)
+</code></pre><ul>
+<li><strong>전파(가로):</strong> gateway가 order를 부를 때, order가 payment를 부를 때 <code>traceparent</code> 헤더가 실려 <strong>traceId가 유지</strong>된다 → 스팬들이 한 트레이스로 묶임.</li>
+<li><strong>전송(세로):</strong> 각 서비스는 자기 스팬·메트릭을 <strong>독립적으로</strong> OTLP(:4318)로 push한다(백엔드가 traceId로 재조립).</li>
+<li><strong>로컬 vs docker:</strong> 호스트 실행 땐 <code>localhost:4318</code>, 컨테이너 땐 <code>otel-lgtm:4318</code>(docker 프로파일 오버라이드).</li>
+</ul>
+<hr>
+<h2 id="4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</h2>
+<h3 id="41-의존성-각-서비스-buildgradlekts">4.1 의존성 (각 서비스 <code>build.gradle.kts</code>)</h3>
+<pre><code class="hljs language-kotlin"><span class="hljs-comment">// Phase 8: 관측성 — 분산 트레이싱(OTel 브릿지 + OTLP 익스포터) + 메트릭 OTLP push.</span>
+<span class="hljs-comment">//          전부 Boot BOM 관리(버전 생략).</span>
+implementation(<span class="hljs-string">&quot;io.micrometer:micrometer-tracing-bridge-otel&quot;</span>)   <span class="hljs-comment">// Micrometer → OTel 연결</span>
+implementation(<span class="hljs-string">&quot;io.opentelemetry:opentelemetry-exporter-otlp&quot;</span>)   <span class="hljs-comment">// 트레이스를 OTLP로 전송</span>
+implementation(<span class="hljs-string">&quot;io.micrometer:micrometer-registry-otlp&quot;</span>)         <span class="hljs-comment">// 메트릭을 OTLP로 push</span>
+</code></pre><ul>
+<li><strong>왜 3개인가:</strong> 트레이싱(브릿지) / 트레이스 전송(익스포터) / 메트릭 전송(레지스트리)은 관심사가 다르다. 명시적으로 두면 각 조각의 역할이 드러나 학습에 좋다.</li>
+<li><strong>왜 버전이 없나:</strong> 세 아티팩트 모두 <strong>Spring Boot 의존성 BOM</strong>이 버전을 고정한다. 직접 핀하면 오히려 BOM과 충돌할 수 있다(§9 BOM).</li>
+</ul>
+<h3 id="42-공통-설정-config-repoapplicationyml--4개-서비스에-한-번에">4.2 공통 설정 (<code>config-repo/application.yml</code>) — 4개 서비스에 한 번에</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">management:</span>
+  <span class="hljs-attr">tracing:</span>
+    <span class="hljs-attr">sampling:</span>
+      <span class="hljs-attr">probability:</span> <span class="hljs-number">1.0</span>            <span class="hljs-comment"># 학습용 전량 샘플링. 기본값 0.1(10%)이면 대부분 요청이 트레이스 안 됨.</span>
+  <span class="hljs-attr">otlp:</span>
+    <span class="hljs-attr">tracing:</span>
+      <span class="hljs-attr">endpoint:</span> <span class="hljs-string">http://localhost:4318/v1/traces</span>   <span class="hljs-comment"># ★ 기본값 없음 → 반드시 명시(없으면 익스포터가 아예 안 생김)</span>
+    <span class="hljs-attr">metrics:</span>
+      <span class="hljs-attr">export:</span>
+        <span class="hljs-attr">url:</span> <span class="hljs-string">http://localhost:4318/v1/metrics</span>
+        <span class="hljs-attr">step:</span> <span class="hljs-string">10s</span>                 <span class="hljs-comment"># push 주기(기본 60s). 데모에서 빨리 보이게 낮춤.</span>
+</code></pre><ul>
+<li><strong>service.name은 자동:</strong> OTel의 <code>service.name</code>(트레이스에서 서비스를 구분하는 이름)은 <strong><code>spring.application.name</code>이 자동 매핑</strong>된다. 별도 설정 불필요.</li>
+<li><strong>샘플링 100%는 학습용:</strong> 운영에선 비용/저장 때문에 0.1~0.3으로 낮춘다.</li>
+</ul>
+<h3 id="43-게이트웨이만의-한-줄-config-repogateway-serviceyml">4.3 게이트웨이만의 한 줄 (<code>config-repo/gateway-service.yml</code>)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">reactor:</span>
+    <span class="hljs-attr">context-propagation:</span> <span class="hljs-string">auto</span>     <span class="hljs-comment"># WebFlux(리액티브) 파이프라인에서 트레이스 컨텍스트가 끊기지 않게</span>
+</code></pre><ul>
+<li>게이트웨이는 <strong>WebFlux/Netty(리액티브)</strong> 스택이다. 리액티브 파이프라인은 스레드를 넘나들기 때문에, 컨텍스트 자동 전파를 켜지 않으면 traceId가 중간에 유실될 수 있다.</li>
+</ul>
+<h3 id="44-docker-프로파일-오버라이드-config-repoapplication-dockeryml">4.4 docker 프로파일 오버라이드 (<code>config-repo/application-docker.yml</code>)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">management:</span>
+  <span class="hljs-attr">otlp:</span>
+    <span class="hljs-attr">tracing:</span>  { <span class="hljs-attr">endpoint:</span> <span class="hljs-string">http://otel-lgtm:4318/v1/traces</span> }   <span class="hljs-comment"># localhost → 컨테이너 서비스명</span>
+    <span class="hljs-attr">metrics:</span>  { <span class="hljs-attr">export:</span> { <span class="hljs-attr">url:</span> <span class="hljs-string">http://otel-lgtm:4318/v1/metrics</span> } }
+</code></pre><ul>
+<li><strong>왜 필요한가:</strong> 컨테이너 안에서 <code>localhost</code>는 <strong>자기 자신</strong>이다. Phase 7에서 겪은 것과 같은 함정(§PHASE-7). 다른 컨테이너(관측성 백엔드)로 보내려면 <strong>서비스명 DNS</strong>를 써야 한다.</li>
+</ul>
+<h3 id="45-관측성-백엔드-deploycomposecomposeyml">4.5 관측성 백엔드 (<code>deploy/compose/compose.yml</code>)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">otel-lgtm:</span>
+  <span class="hljs-attr">image:</span> <span class="hljs-string">grafana/otel-lgtm:0.29.1</span>     <span class="hljs-comment"># 버전 고정(재현성). 개발/데모 전용 올인원.</span>
+  <span class="hljs-attr">ports:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;3000:3000&quot;</span>   <span class="hljs-comment"># Grafana UI</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;4317:4317&quot;</span>   <span class="hljs-comment"># OTLP gRPC</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;4318:4318&quot;</span>   <span class="hljs-comment"># OTLP HTTP  ← 앱이 여기로 전송</span>
+  <span class="hljs-attr">environment:</span>
+    <span class="hljs-attr">GF_AUTH_ANONYMOUS_ENABLED:</span> <span class="hljs-string">&quot;true&quot;</span> <span class="hljs-comment"># 로그인 없이 Grafana 열람(개발 편의)</span>
+    <span class="hljs-attr">GF_AUTH_ANONYMOUS_ORG_ROLE:</span> <span class="hljs-string">Admin</span>
+  <span class="hljs-attr">healthcheck:</span>
+    <span class="hljs-attr">test:</span> [<span class="hljs-string">&quot;CMD-SHELL&quot;</span>, <span class="hljs-string">&quot;cat /tmp/ready || exit 1&quot;</span>]   <span class="hljs-comment"># ★ HTTP가 아니라 파일 기반 준비 신호</span>
+</code></pre><ul>
+<li><strong>healthcheck가 특이한 이유:</strong> otel-lgtm은 준비되면 <code>/tmp/ready</code> 파일을 만든다. 다른 서비스처럼 <code>wget .../actuator/health</code>로 확인할 수 없다.</li>
+<li><strong>앱은 이 컨테이너에 의존(depends_on)하지 않는다:</strong> OTLP 전송은 “쏘고 잊는(fire-and-forget)” 방식이라, 백엔드가 잠깐 없어도 앱은 정상 동작한다(초기 몇 스팬만 유실).</li>
+</ul>
+<h3 id="46-로그-상관id는-자동">4.6 로그 상관ID는 자동</h3>
+<p>트레이싱이 클래스패스에 있으면 Spring Boot가 <strong>콘솔 로그 패턴에 <code>[서비스명,traceId,spanId]</code>를 자동 삽입</strong>한다.
+→ <strong>logback 설정 파일이 없어도</strong> 로그에서 traceId를 볼 수 있다(같은 요청의 로그를 눈으로 이어붙일 수 있음).</p>
+<hr>
+<h2 id="5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</h2>
+<ol>
+<li>클라이언트가 <code>POST :8000/orders</code> 호출 → <strong>gateway</strong>가 요청을 받고 <strong>트레이스를 시작</strong>(traceId 생성, span A).</li>
+<li>gateway가 <code>lb://order-service</code>로 프록시하며 <strong><code>traceparent</code> 헤더</strong>에 traceId를 실어 보냄.</li>
+<li><strong>order</strong>가 헤더를 읽어 <strong>같은 traceId로 span B</strong> 생성. 처리 중 결제가 필요해 <code>RestClient</code>로 payment 호출 →
+여기서도 <code>traceparent</code>가 자동으로 실림(Spring이 계측한 <code>RestClient.Builder</code>를 쓰기 때문).</li>
+<li><strong>payment</strong>가 <strong>같은 traceId로 span C</strong> 생성 → 결제 캡처.</li>
+<li>각 서비스는 자기 스팬을 <strong>OTLP로 :4318</strong>에 push. 백엔드(Tempo)가 traceId로 <strong>A·B·C를 하나의 트레이스</strong>로 재조립.</li>
+<li>Grafana에서 그 트레이스를 열면 <strong>gateway→order→payment 워터폴</strong>과 각 구간 소요시간이 보인다.</li>
+</ol>
+<hr>
+<h2 id="6-원리--트레이드오프">6. 원리 / 트레이드오프</h2>
+<ul>
+<li><strong>왜 코드가 거의 안 바뀌나:</strong> 계측은 **자동 계측(auto-instrumentation)**이다. 스프링의 웹 서버/클라이언트(Web MVC, WebFlux, RestClient)에 Micrometer 관측 지점이 이미 박혀 있어, 의존성+설정만으로 스팬이 생기고 헤더가 전파된다.<ul>
+<li><strong>딱 한 곳의 예외(이번에 잡은 버그):</strong> order→payment의 <code>@LoadBalanced RestClient</code>는 <strong>커스텀 빌더</strong>(<code>RestClient.builder()</code>)로 만들어 Boot 자동구성 빌더를 대체했기 때문에 <strong>관측 계측이 빠져 있었다</strong>. 그래서 <code>traceparent</code>가 전파되지 않아 payment가 <strong>별도 트레이스</strong>로 떨어졌다. 해결: 빌더에 <strong><code>ObservationRegistry</code>를 주입</strong>(<code>.observationRegistry(reg)</code>). 교훈 — 자동 계측은 <strong>Spring이 계측해 준 빌더</strong>를 쓰거나, 커스텀 빌더면 <strong>관측 레지스트리를 직접 붙여야</strong> 작동한다(§4.1, §7.2).</li>
+</ul>
+</li>
+<li><strong>push(OTLP) vs pull(Prometheus scrape):</strong> 메트릭을 앱이 밀어 넣는 방식(push)을 택했다. 올인원 백엔드에선 스크레이프 대상 설정이 필요 없어 <strong>가장 단순</strong>하기 때문. 운영에선 Prometheus scrape(pull)가 더 흔하다(서비스 디스커버리와 결합).</li>
+<li><strong>샘플링:</strong> 전량(1.0)은 모든 요청을 추적해 학습엔 좋지만, 트래픽이 크면 저장·전송 비용이 급증한다. **꼬리 지연(tail latency)**만 잡으려면 낮은 확률 + 테일 기반 샘플링을 쓴다.</li>
+<li><strong>올인원의 한계:</strong> <code>otel-lgtm</code>은 단일 프로세스라 <strong>프로덕션 신뢰성 보장이 없다</strong>(부하 시 유실 가능, 재시작 시 데이터 소실). 그래서 8b에서 컴포넌트를 분리한다.</li>
+</ul>
+<hr>
+<h2 id="7-검증-실증">7. 검증 (실증)</h2>
+<h3 id="71-빌드기동">7.1 빌드·기동</h3>
+<ul>
+<li><code>./gradlew build</code> — <strong>BUILD SUCCESSFUL</strong>, 트레이싱 의존성 추가 후에도 기존 테스트(StockConcurrencyTest·GatewayRoutesTest) 통과.</li>
+<li><code>docker compose up -d --build</code> — <strong>9개 컨테이너 healthy</strong>(기존 8개 + <code>otel-lgtm</code>). 메모리: otel-lgtm <del>440MiB/2G, 앱 각 ~220</del>315MiB.</li>
+</ul>
+<h3 id="72-분산-트레이싱--gatewayorderpayment-한-트레이스">7.2 분산 트레이싱 — gateway→order→payment 한 트레이스</h3>
+<p>게이트웨이(8000)로 로그인→주문(201)을 만든 뒤 Tempo에서 조회:</p>
+<pre><code>traceId fcdd6f87b774c84c2dfb830f04123800   (root: gateway-service)
+  gateway-service   http post            SERVER   ← 클라 요청 수신(POST /orders)
+  gateway-service   HTTP POST            CLIENT   ← order 로 프록시
+  order-service     http post /orders    SERVER   ← 수신
+  order-service     http post            CLIENT   ← payment 호출
+  payment-service   http post /payments  SERVER   ← 결제 캡처
+</code></pre><p>→ <strong>세 서비스의 스팬이 하나의 traceId로</strong> 묶였다(참여 서비스 = <code>[gateway-service, order-service, payment-service]</code>).</p>
+<blockquote>
+<p><strong>이 단계에서 실제로 잡은 버그:</strong> 처음엔 payment 스팬이 <strong>별도 트레이스로 분리</strong>됐다(order→payment 미전파).
+원인은 <code>PaymentClientConfig</code>가 <code>RestClient.builder()</code>로 <strong>관측 미계측 빌더</strong>를 만들었기 때문(커스텀 <code>@LoadBalanced</code>
+빌더를 선언하면 Boot 자동구성 빌더가 물러나며 관측 계측도 함께 빠진다). <strong><code>ObservationRegistry</code>를 주입</strong>해
+<code>.observationRegistry(reg)</code>로 설정하니 order의 CLIENT 스팬이 생기고 <code>traceparent</code>가 전파되어 위처럼 한 트레이스가 됐다.
+→ **“자동 계측은 Spring이 만든 빌더를 써야 작동한다”**는 원리를 몸으로 확인.</p>
+</blockquote>
+<h3 id="73-메트릭--4개-서비스-지표-수집">7.3 메트릭 — 4개 서비스 지표 수집</h3>
+<p>otel-lgtm 내부 Prometheus에 <strong>181개 메트릭</strong> 도착. <code>http_server_requests_*</code>·<code>jvm_memory_used_bytes</code>·<code>hikaricp_connections</code>·<code>system_cpu_usage</code> 등 표준 지표 확인. 서비스별 HTTP 시계열:</p>
+<pre><code>job=auth-service    job=order-service    job=payment-service    job=gateway-service   → 4개 모두 수집
+</code></pre><h3 id="74-로그-상관id">7.4 로그 상관ID</h3>
+<p>트레이싱이 클래스패스에 있어 Spring Boot가 <strong>콘솔 로그 패턴에 상관ID 필드를 자동 추가</strong>했다
+(<code>... [order-service] [thread] [traceId,spanId] ...</code>). 유휴 로그에선 비어 있고, <strong>요청 처리 중 앱이 로그를 남기면 채워진다.</strong>
+(로그를 Loki로 <strong>전송</strong>해 트레이스↔로그로 점프하는 것은 8b.)</p>
+<h3 id="75-눈으로-보기">7.5 눈으로 보기</h3>
+<p>브라우저 <strong><code>http://localhost:3000</code></strong>(Grafana, 익명 접근) → Explore → Tempo에서 위 트레이스의 워터폴을, Prometheus에서 메트릭을 확인.</p>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>설명</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>로그가 Loki로 안 감</strong></td>
+<td>콘솔엔 traceId가 찍히지만, 로그를 백엔드(Loki)로 <strong>전송</strong>하진 않는다(트레이스↔로그 점프 불가)</td>
+<td><strong>Phase 8b</strong>(OTLP 로그 appender 또는 Promtail)</td>
+</tr>
+<tr>
+<td><strong>커스텀 대시보드 없음</strong></td>
+<td>RED(요청·에러·지속시간) 대시보드·리소스 패널 미구성</td>
+<td><strong>Phase 8b</strong></td>
+</tr>
+<tr>
+<td><strong>관측성 스택이 올인원</strong></td>
+<td>단일 컨테이너(개발 전용). 컴포넌트별 학습·프로덕션 형상 아님</td>
+<td><strong>Phase 8b</strong>(Collector·Tempo·Loki·Prometheus 분리)</td>
+</tr>
+<tr>
+<td><strong>게이트웨이 자체 스팬 이슈</strong></td>
+<td>Spring Cloud Gateway 2025.0.x에서 게이트웨이 <strong>자기 스팬</strong>의 export가 누락될 수 있음(GH#3904). 다운스트림 전파는 정상</td>
+<td>상류 수정 관찰 / 8b</td>
+</tr>
+<tr>
+<td><strong>인프라 서비스 미계측</strong></td>
+<td>discovery·config는 트레이싱 미적용(요청 경로 아님)</td>
+<td>필요 시 후속</td>
+</tr>
+<tr>
+<td><strong>actuator·Grafana 무인증 노출</strong></td>
+<td>익명 Grafana·상세 health</td>
+<td><strong>Phase 15</strong>(하드닝)</td>
+</tr>
+<tr>
+<td><strong>비동기 전파 미검증</strong></td>
+<td>Kafka 등 메시지 경계의 trace 전파는 아직 없음</td>
+<td><strong>Phase 9~12</strong>(Kafka+outbox, <code>traceparent</code> 보존)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어사전">9. 용어사전</h2>
+<ul>
+<li><strong>관측성(Observability):</strong> 외부 신호(텔레메트리)만으로 내부 상태를 설명할 수 있는 성질.</li>
+<li><strong>트레이스/스팬:</strong> 요청의 전체 경로 / 그 안의 한 구간. 부모-자식으로 워터폴 형성.</li>
+<li><strong>traceId / spanId:</strong> 요청 전체 / 개별 구간의 식별자. 로그·스팬을 한 요청으로 묶는 열쇠.</li>
+<li><strong>컨텍스트 전파:</strong> traceId 등을 다음 서비스로 넘김. HTTP는 <code>traceparent</code>(W3C Trace Context).</li>
+<li><strong>OpenTelemetry(OTel):</strong> 벤더 중립 관측 표준(API/SDK).</li>
+<li><strong>OTLP:</strong> OTel 텔레메트리 전송 프로토콜. HTTP 4318 / gRPC 4317.</li>
+<li><strong>Micrometer Tracing:</strong> 스프링의 관측 파사드. <code>-bridge-otel</code>로 OTel에 연결.</li>
+<li><strong>LGTM:</strong> Loki·Grafana·Tempo·Mimir(Prometheus). <code>grafana/otel-lgtm</code>은 이 스택+OTLP 수신기 올인원.</li>
+<li><strong>샘플링(sampling):</strong> 트레이스를 얼마나 수집할지 확률. 학습=1.0, 운영=낮게.</li>
+<li><strong>자동 계측:</strong> 프레임워크에 관측 지점이 내장돼 코드 변경 없이 스팬/전파가 생기는 것.</li>
+<li><strong>push vs pull:</strong> 앱이 밀어 넣기(OTLP) vs 백엔드가 긁어가기(Prometheus scrape).</li>
+<li><strong>BOM:</strong> Bill of Materials — 의존성 버전을 한꺼번에 고정하는 목록(Spring Boot BOM).</li>
+</ul>
+<hr>
+<h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
+<ul>
+<li>직전: <a href="PHASE-7-COMPOSE.html">PHASE-7-COMPOSE</a>(컨테이너·서비스명 DNS·프로파일) · <a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY</a>(<code>lb://</code>·RestClient 계측 대상)</li>
+<li>큰 그림: <a href="REVIEW-PART-A.html">REVIEW-PART-A</a> · 로드맵: <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a>(부록 B: 트레이싱/메트릭 설정)</li>
+<li>다음: <strong>Phase 8b</strong>(로그→Loki·대시보드·스택 분리) → <strong>Phase 9</strong>(Kafka: 메시지 경계 trace 전파)</li>
+<li>공식: Spring Boot Actuator(Tracing) · Micrometer OTLP · github.com/grafana/docker-otel-lgtm</li>
+</ul>
+<p><em>각 단계의 “알려진 한계 → 해결 Phase”는 <a href="README.html">README</a> 인덱스에서 모아 볼 수 있습니다.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--직전phase-7의-문제">1. 왜 — 직전(Phase 7)의 문제</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</a></li>
+<li class="toc-h3"><a href="#21-관측성의-3대-기둥">2.1 관측성의 3대 기둥</a></li>
+<li class="toc-h3"><a href="#22-opentelemetryotel와-otlp">2.2 OpenTelemetry(OTel)와 OTLP</a></li>
+<li class="toc-h3"><a href="#23-백엔드--grafanaotel-lgtm-lgtm">2.3 백엔드 — grafana/otel-lgtm (LGTM)</a></li>
+<li class="toc-h2"><a href="#3-구성-그림">3. 구성 (그림)</a></li>
+<li class="toc-h2"><a href="#4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</a></li>
+<li class="toc-h3"><a href="#41-의존성-각-서비스-buildgradlekts">4.1 의존성 (각 서비스 build.gradle.kts)</a></li>
+<li class="toc-h3"><a href="#42-공통-설정-config-repoapplicationyml--4개-서비스에-한-번에">4.2 공통 설정 (config-repo/application.yml) — 4개 서비스에 한 번에</a></li>
+<li class="toc-h3"><a href="#43-게이트웨이만의-한-줄-config-repogateway-serviceyml">4.3 게이트웨이만의 한 줄 (config-repo/gateway-service.yml)</a></li>
+<li class="toc-h3"><a href="#44-docker-프로파일-오버라이드-config-repoapplication-dockeryml">4.4 docker 프로파일 오버라이드 (config-repo/application-docker.yml)</a></li>
+<li class="toc-h3"><a href="#45-관측성-백엔드-deploycomposecomposeyml">4.5 관측성 백엔드 (deploy/compose/compose.yml)</a></li>
+<li class="toc-h3"><a href="#46-로그-상관id는-자동">4.6 로그 상관ID는 자동</a></li>
+<li class="toc-h2"><a href="#5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</a></li>
+<li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>
+<li class="toc-h2"><a href="#7-검증-실증">7. 검증 (실증)</a></li>
+<li class="toc-h3"><a href="#71-빌드기동">7.1 빌드·기동</a></li>
+<li class="toc-h3"><a href="#72-분산-트레이싱--gatewayorderpayment-한-트레이스">7.2 분산 트레이싱 — gateway→order→payment 한 트레이스</a></li>
+<li class="toc-h3"><a href="#73-메트릭--4개-서비스-지표-수집">7.3 메트릭 — 4개 서비스 지표 수집</a></li>
+<li class="toc-h3"><a href="#74-로그-상관id">7.4 로그 상관ID</a></li>
+<li class="toc-h3"><a href="#75-눈으로-보기">7.5 눈으로 보기</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
+<li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
+</body>
+</html>

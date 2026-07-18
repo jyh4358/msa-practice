@@ -11,12 +11,14 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 ---
 
-## 현재 상태: Phase 7 — 전체 스택을 Docker Compose로 기동
+## 현재 상태: Phase 8 — 관측성(분산 트레이싱·메트릭)
 
 6개 서비스가 **중앙 설정(Config Server)** 에서 설정을 받고, **서비스 디스커버리(Eureka)** 로 서로를
 이름으로 찾으며, **API 게이트웨이**가 단일 진입점이고, **JWT(RS256)** 로 인증/인가가 걸려 있습니다.
 DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리됩니다.
 이제 이 전체 스택(6 서비스 + 2 DB)을 **`docker compose up` 한 번으로** 컨테이너로 띄울 수 있습니다.
+**Phase 8**부터는 한 요청이 게이트웨이→주문→결제를 거치는 과정을 **하나의 분산 트레이스**로 추적하고 지표(메트릭)를 모아,
+`grafana/otel-lgtm` 올인원 백엔드의 **Grafana(:3000)** 에서 눈으로 봅니다.
 
 | 서비스 | 포트 | 역할 | DB |
 |---|---|---|---|
@@ -48,6 +50,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **5** | **보안**(RS256 JWT 인증 + 역할 인가 + 토큰 전파) | [SECURITY.md](./docs/SECURITY.md) |
 | **6** | **중앙 설정**(Spring Cloud Config, native 백엔드 + 시크릿 암호화) | [PHASE-6-CONFIG.md](./docs/PHASE-6-CONFIG.md) |
 | **7** | **로컬 오케스트레이션**(Docker Compose — 이미지 빌드·서비스명 DNS·기동순서) | [PHASE-7-COMPOSE.md](./docs/PHASE-7-COMPOSE.md) |
+| **8** | **관측성**(분산 트레이싱·메트릭 — OTLP → `grafana/otel-lgtm`) | [PHASE-8-OBSERVABILITY.md](./docs/PHASE-8-OBSERVABILITY.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 
@@ -76,8 +79,8 @@ colima start --arch aarch64 --cpu 4 --memory 8
 ```bash
 ./gradlew bootJar
 cp deploy/compose/.env.example deploy/compose/.env            # ENCRYPT_KEY 준비
-docker compose -f deploy/compose/compose.yml up -d --build    # 6 서비스 + 2 DB
-# 호스트 공개 포트: 게이트웨이 :8000, Eureka :8761, Config :8888 (나머지 내부 전용)
+docker compose -f deploy/compose/compose.yml up -d --build    # 6 서비스 + 2 DB + 관측성(otel-lgtm)
+# 호스트 공개 포트: 게이트웨이 :8000, Eureka :8761, Config :8888, Grafana :3000 (나머지 내부 전용)
 # 상태: docker compose -f deploy/compose/compose.yml ps   |   정지: ... down (볼륨까지: down -v)
 ```
 아래 1)~3)은 컨테이너 없이 호스트에서 개별 실행하는 개발 루프입니다(둘 중 하나만 — 포트 충돌).
@@ -126,8 +129,9 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" local
 
 ---
 
-## 다음: Phase 8 — 관측성 (Observability)
+## 다음: Phase 8b → Phase 9
 
-로그·메트릭·분산 트레이싱을 수집·시각화합니다(여러 서비스를 거치는 요청을 추적).
-이후 9 Kafka → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+Phase **8a**(올인원으로 gateway→order→payment **트레이스 하나** 보기 + 메트릭)를 마쳤습니다.
+**8b**는 로그를 **Loki로 전송**(트레이스↔로그 점프)·**RED 대시보드**·관측성 스택 **컴포넌트 분리**(Collector·Tempo·Loki·Prometheus).
+이후 **9 Kafka** → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) 참고.

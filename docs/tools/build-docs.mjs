@@ -55,6 +55,8 @@ const DOCS = [
     desc: 'Spring Cloud Config + 시크릿 암호화' },
   { key: 'PHASE-7-COMPOSE',      out: 'PHASE-7-COMPOSE.html', title: 'Phase 7 · Docker Compose', group: 'Phase 단계별', file: 'docs/PHASE-7-COMPOSE.md',
     desc: '전체 스택 컨테이너 기동·서비스명 DNS' },
+  { key: 'PHASE-8-OBSERVABILITY', out: 'PHASE-8-OBSERVABILITY.html', title: 'Phase 8 · 관측성', group: 'Phase 단계별', file: 'docs/PHASE-8-OBSERVABILITY.md',
+    desc: '분산 트레이싱·메트릭 (OTLP → otel-lgtm)' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

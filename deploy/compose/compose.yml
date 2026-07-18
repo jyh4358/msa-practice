@@ -73,6 +73,29 @@ services:
         limits:
           memory: 256M
 
+  # ── 관측성 백엔드 (Phase 8: grafana/otel-lgtm 올인원 — Tempo·Loki·Prometheus·Grafana + OTLP 수신) ──
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.29.1      # 버전 고정(재현성). 개발/데모 전용 올인원(프로덕션 아님).
+    restart: unless-stopped
+    networks: [shopsaga-net]
+    ports:
+      - "3000:3000"        # Grafana UI — 트레이스/메트릭 탐색
+      - "4317:4317"        # OTLP gRPC 수신
+      - "4318:4318"        # OTLP HTTP 수신 — 앱이 여기로 트레이스/메트릭 전송
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"    # 익명 접근(개발 편의) — 로그인 없이 Grafana 열람
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    healthcheck:
+      test: ["CMD-SHELL", "cat /tmp/ready || exit 1"]   # otel-lgtm은 HTTP가 아닌 파일 기반 준비 신호
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
   # ── Config Server (먼저 떠야 함) ──
   config-service:
     build:

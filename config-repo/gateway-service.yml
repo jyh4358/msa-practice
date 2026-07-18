@@ -21,6 +21,9 @@ spring:
               uri: lb://payment-service
               predicates:
                 - Path=/payments/**
+  # Phase 8: WebFlux 리액터 컨텍스트 자동 전파 — 트레이스 컨텍스트가 리액티브 파이프라인/다운스트림(lb://)으로 이어지게.
+  reactor:
+    context-propagation: auto
 
 management:
   endpoints:
