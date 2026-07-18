@@ -33,6 +33,8 @@ dependencies {
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("io.micrometer:micrometer-registry-otlp")
+    // Phase 8b: Logback → OTel SDK 브릿지(로그를 OTLP로 Loki 전송). Boot BOM OTel SDK(1.49.0)에 맞춰 버전 직접 핀.
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.15.0-alpha")
     // Phase 4: Eureka 클라이언트 — 게이트웨이가 레지스트리에서 서비스 위치를 조회(lb:// 해석).
     //          loadbalancer 는 이 스타터에 전이 포함되어 lb:// 라우트가 동작한다.
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")

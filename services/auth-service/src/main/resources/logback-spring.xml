@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Phase 8b: 콘솔 로그(상관ID 포함)는 그대로 두고, OTLP appender로 로그를 Loki(otel-lgtm)에 전송. -->
+<configuration>
+  <!-- Spring Boot 기본 로그 설정(패턴·[service,traceId,spanId] 상관ID) + 콘솔 appender(CONSOLE) 정의 -->
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <!-- Logback → OTel SDK → OTLP(:4318/v1/logs) → otel-lgtm Loki. install()은 OpenTelemetryAppenderInstaller가 호출. -->
+  <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+    <captureExperimentalAttributes>true</captureExperimentalAttributes>
+    <captureMdcAttributes>*</captureMdcAttributes>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="OTEL"/>
+  </root>
+</configuration>

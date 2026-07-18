@@ -14,6 +14,7 @@ import com.shopsaga.order.application.port.out.ReserveStockPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
 import com.shopsaga.order.domain.Order;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.UUID;
  */
 @UseCase
 @RequiredArgsConstructor
+@Slf4j
 class OrderService implements PlaceOrderUseCase, GetOrderQuery, GetStockQuery {
 
     private final SaveOrderPort saveOrderPort;
@@ -40,6 +42,8 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery, GetStockQuery {
     public OrderView placeOrder(PlaceOrderCommand command) {
         Order order = Order.create(command.customerId());
         command.items().forEach(i -> order.addItem(i.productId(), i.quantity(), i.unitPrice()));
+        // Phase 8b: 트레이스 컨텍스트 안에서 남기는 업무 로그 → OTLP appender가 trace_id를 달아 Loki로 전송(트레이스↔로그 상관).
+        log.info("주문 생성 시작 orderId={} customer={} 품목수={}", order.getId(), command.customerId(), command.items().size());
 
         // (1) 재고 예약 — 로컬, 비관적 락(상품ID 정렬로 교착 회피).
         Map<UUID, Integer> quantityByProduct = new TreeMap<>();
@@ -56,6 +60,7 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery, GetStockQuery {
 
         // (3) 주문 확정 + 저장(로컬). 결제 거절/통신 실패 시엔 여기 도달 전에 예외 → 재고 차감은 로컬이라 롤백된다.
         order.confirm(paymentId);
+        log.info("주문 확정 orderId={} paymentId={} total={}", order.getId(), paymentId, order.getTotalAmount());
         return OrderView.from(saveOrderPort.save(order));
     }
 

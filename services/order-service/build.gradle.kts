@@ -35,6 +35,8 @@ dependencies {
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("io.micrometer:micrometer-registry-otlp")
+    // Phase 8b: Logback → OTel SDK 브릿지(로그를 OTLP로 Loki 전송). Boot BOM OTel SDK(1.49.0)에 맞춰 버전 직접 핀.
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.15.0-alpha")
     // Phase 4: Eureka 클라이언트(부팅 시 자동 등록) + spring-cloud-loadbalancer(전이 포함)
     //          → @LoadBalanced RestClient 로 payment-service 를 이름으로 호출.
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")

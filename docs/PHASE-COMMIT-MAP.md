@@ -23,8 +23,12 @@
 | _(docs)_ | `f38b23e` | Phase 0~3 심화 문서 백필 + 초보자 개선 + README | `docs/PHASE-0~3-*.md` 신규, `SERVICE-DISCOVERY`·`SECURITY` 개선, `README` | — |
 | **6** 중앙 설정 | `de61515` | Config Server(native) + 시크릿 암호화 | `services/config-service/**` 신규, `config-repo/*.yml`({cipher} 포함), 각 클라이언트 `application.yml` 스트립 + `spring.config.import` | [PHASE-6-CONFIG](PHASE-6-CONFIG.md) |
 | **7** compose | `68249f6` | Docker Compose 전체 스택 | `deploy/docker/Dockerfile.service`, `deploy/compose/compose.yml`·`.env.example`, `config-repo/*-docker.yml` | [PHASE-7-COMPOSE](PHASE-7-COMPOSE.md) |
+| _(docs)_ | `8df41ab` | Phase↔커밋 지도 + 파트 A 복습 | `PHASE-COMMIT-MAP`·`REVIEW-PART-A` 신규, README 링크 | — |
+| _(docs)_ | `cbb96f8` | 오프라인 HTML 문서 사이트 | `docs/tools/build-docs.mjs`·`docs/site/**` 신규, 원본 마크다운 렌더 결함 6수정 | — |
+| **8a** 관측성 | `7e352d8` | 분산 트레이싱·메트릭(OTLP→otel-lgtm) | 4서비스 tracing 의존성, `config-repo` tracing/otlp, `compose` otel-lgtm, `PaymentClientConfig` ObservationRegistry | [PHASE-8](PHASE-8-OBSERVABILITY.md) |
+| **8b** 관측성 심화 | _(이 커밋 — 다음 갱신 시 기입)_ | 로그→Loki·RED 대시보드·트레이스↔로그 점프 | logback appender×4 + `OpenTelemetryAppenderInstaller`×4 + `logback-spring.xml`×4, `config-repo` otlp.logging/percentiles-histogram, `deploy/grafana/**` 대시보드, `OrderService` @Slf4j 로그 | 〃 |
 
-> _(복습 자료 [REVIEW-PART-A](REVIEW-PART-A.md)·이 문서 자체는 이후 docs 커밋에 포함됨 — 커밋 후 아래 표에 반영.)_
+> _(8b 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입. `f38b23e`처럼 docs 커밋이 Phase 순서와 시간순 사이에 낀 지점도 참고.)_
 
 ---
 

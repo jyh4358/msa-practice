@@ -17,6 +17,8 @@ eureka:
 # Phase 8: docker 네트워크에선 localhost가 컨테이너 자신 → 관측성 컨테이너 서비스명으로 OTLP 전송.
 management:
   otlp:
+    logging:
+      endpoint: http://otel-lgtm:4318/v1/logs
     tracing:
       endpoint: http://otel-lgtm:4318/v1/traces
     metrics:

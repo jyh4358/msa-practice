@@ -466,9 +466,37 @@ code.hljs {
 <td><code>deploy/docker/Dockerfile.service</code>, <code>deploy/compose/compose.yml</code>·<code>.env.example</code>, <code>config-repo/*-docker.yml</code></td>
 <td><a href="PHASE-7-COMPOSE.html">PHASE-7-COMPOSE</a></td>
 </tr>
+<tr>
+<td><em>(docs)</em></td>
+<td><code>8df41ab</code></td>
+<td>Phase↔커밋 지도 + 파트 A 복습</td>
+<td><code>PHASE-COMMIT-MAP</code>·<code>REVIEW-PART-A</code> 신규, README 링크</td>
+<td>—</td>
+</tr>
+<tr>
+<td><em>(docs)</em></td>
+<td><code>cbb96f8</code></td>
+<td>오프라인 HTML 문서 사이트</td>
+<td><code>docs/tools/build-docs.mjs</code>·<code>docs/site/**</code> 신규, 원본 마크다운 렌더 결함 6수정</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>8a</strong> 관측성</td>
+<td><code>7e352d8</code></td>
+<td>분산 트레이싱·메트릭(OTLP→otel-lgtm)</td>
+<td>4서비스 tracing 의존성, <code>config-repo</code> tracing/otlp, <code>compose</code> otel-lgtm, <code>PaymentClientConfig</code> ObservationRegistry</td>
+<td><a href="PHASE-8-OBSERVABILITY.html">PHASE-8</a></td>
+</tr>
+<tr>
+<td><strong>8b</strong> 관측성 심화</td>
+<td><em>(이 커밋 — 다음 갱신 시 기입)</em></td>
+<td>로그→Loki·RED 대시보드·트레이스↔로그 점프</td>
+<td>logback appender×4 + <code>OpenTelemetryAppenderInstaller</code>×4 + <code>logback-spring.xml</code>×4, <code>config-repo</code> otlp.logging/percentiles-histogram, <code>deploy/grafana/**</code> 대시보드, <code>OrderService</code> @Slf4j 로그</td>
+<td>〃</td>
+</tr>
 </tbody></table>
 <blockquote>
-<p><em>(복습 자료 <a href="REVIEW-PART-A.html">REVIEW-PART-A</a>·이 문서 자체는 이후 docs 커밋에 포함됨 — 커밋 후 아래 표에 반영.)</em></p>
+<p><em>(8b 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입. <code>f38b23e</code>처럼 docs 커밋이 Phase 순서와 시간순 사이에 낀 지점도 참고.)</em></p>
 </blockquote>
 <hr>
 <h2 id="알아둘-애매-지점-git만-보면-헷갈리는-곳">알아둘 애매 지점 (git만 보면 헷갈리는 곳)</h2>

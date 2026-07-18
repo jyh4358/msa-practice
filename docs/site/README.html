@@ -499,7 +499,7 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 </tr>
 <tr>
 <td><strong>8</strong></td>
-<td><strong>관측성</strong>(분산 트레이싱·메트릭 — OTLP → <code>grafana/otel-lgtm</code>)</td>
+<td><strong>관측성</strong>(트레이싱·메트릭·<strong>로그→Loki</strong>·<strong>RED 대시보드</strong>·트레이스↔로그 점프 — OTLP → <code>grafana/otel-lgtm</code>)</td>
 <td><a href="PHASE-8-OBSERVABILITY.html">PHASE-8-OBSERVABILITY.md</a></td>
 </tr>
 </tbody></table>
@@ -562,10 +562,10 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
 각 서비스 Swagger: <code>http://localhost:&lt;port&gt;/swagger-ui/index.html</code> (order/payment).</p>
 </blockquote>
 <hr>
-<h2 id="다음-phase-8b--phase-9">다음: Phase 8b → Phase 9</h2>
-<p>Phase <strong>8a</strong>(올인원으로 gateway→order→payment <strong>트레이스 하나</strong> 보기 + 메트릭)를 마쳤습니다.
-<strong>8b</strong>는 로그를 <strong>Loki로 전송</strong>(트레이스↔로그 점프)·<strong>RED 대시보드</strong>·관측성 스택 <strong>컴포넌트 분리</strong>(Collector·Tempo·Loki·Prometheus).
-이후 <strong>9 Kafka</strong> → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+<h2 id="다음-phase-9--kafka">다음: Phase 9 — Kafka</h2>
+<p>Phase <strong>8</strong>(관측성)을 마쳤습니다 — 8a(트레이스+메트릭), 8b(<strong>로그→Loki</strong>·<strong>RED 대시보드</strong>·<strong>트레이스↔로그 점프</strong>).
+관측성 스택 <strong>컴포넌트 완전 분리</strong>(Collector·Tempo·Loki·Prometheus 개별 컨테이너)만 이후 선택 과제로 남습니다.
+다음은 <strong>9 Kafka</strong>(비동기 이벤트) → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> 참고.</p>
 
   </article>
@@ -582,6 +582,6 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
 <li class="toc-h3"><a href="#1-빌드--테스트">1) 빌드 &amp; 테스트</a></li>
 <li class="toc-h3"><a href="#2-인프라--서비스-기동-순서-중요-configdiscovery-먼저">2) 인프라 + 서비스 기동 (순서 중요: config·discovery 먼저)</a></li>
 <li class="toc-h3"><a href="#3-인증--호출-게이트웨이-8000-통과">3) 인증 → 호출 (게이트웨이 8000 통과)</a></li>
-<li class="toc-h2"><a href="#다음-phase-8b--phase-9">다음: Phase 8b → Phase 9</a></li></ul></nav></aside>
+<li class="toc-h2"><a href="#다음-phase-9--kafka">다음: Phase 9 — Kafka</a></li></ul></nav></aside>
 </body>
 </html>

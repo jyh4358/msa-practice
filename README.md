@@ -50,7 +50,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **5** | **보안**(RS256 JWT 인증 + 역할 인가 + 토큰 전파) | [SECURITY.md](./docs/SECURITY.md) |
 | **6** | **중앙 설정**(Spring Cloud Config, native 백엔드 + 시크릿 암호화) | [PHASE-6-CONFIG.md](./docs/PHASE-6-CONFIG.md) |
 | **7** | **로컬 오케스트레이션**(Docker Compose — 이미지 빌드·서비스명 DNS·기동순서) | [PHASE-7-COMPOSE.md](./docs/PHASE-7-COMPOSE.md) |
-| **8** | **관측성**(분산 트레이싱·메트릭 — OTLP → `grafana/otel-lgtm`) | [PHASE-8-OBSERVABILITY.md](./docs/PHASE-8-OBSERVABILITY.md) |
+| **8** | **관측성**(트레이싱·메트릭·**로그→Loki**·**RED 대시보드**·트레이스↔로그 점프 — OTLP → `grafana/otel-lgtm`) | [PHASE-8-OBSERVABILITY.md](./docs/PHASE-8-OBSERVABILITY.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 
@@ -129,9 +129,9 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" local
 
 ---
 
-## 다음: Phase 8b → Phase 9
+## 다음: Phase 9 — Kafka
 
-Phase **8a**(올인원으로 gateway→order→payment **트레이스 하나** 보기 + 메트릭)를 마쳤습니다.
-**8b**는 로그를 **Loki로 전송**(트레이스↔로그 점프)·**RED 대시보드**·관측성 스택 **컴포넌트 분리**(Collector·Tempo·Loki·Prometheus).
-이후 **9 Kafka** → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+Phase **8**(관측성)을 마쳤습니다 — 8a(트레이스+메트릭), 8b(**로그→Loki**·**RED 대시보드**·**트레이스↔로그 점프**).
+관측성 스택 **컴포넌트 완전 분리**(Collector·Tempo·Loki·Prometheus 개별 컨테이너)만 이후 선택 과제로 남습니다.
+다음은 **9 Kafka**(비동기 이벤트) → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) 참고.

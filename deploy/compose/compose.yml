@@ -85,6 +85,10 @@ services:
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"    # 익명 접근(개발 편의) — 로그인 없이 Grafana 열람
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      # Phase 8b: 커스텀 RED 대시보드 프로비저닝(내장 RED/JVM 대시보드와 공존 — 별도 provider yaml + 폴더).
+      - ../grafana/provisioning/shopsaga-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/shopsaga-dashboards.yaml:ro
+      - ../grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/shopsaga:ro
     healthcheck:
       test: ["CMD-SHELL", "cat /tmp/ready || exit 1"]   # otel-lgtm은 HTTP가 아닌 파일 기반 준비 신호
       interval: 15s

@@ -16,8 +16,9 @@
 - **compose에 `otel-lgtm` 올인원**(Tempo·Loki·Prometheus·Grafana + OTLP 수신기)을 추가.
 - 결과: 주문 한 건이 **gateway → order → payment**를 거치는 과정이 Grafana(Tempo)에서 **하나의 트레이스**로 보인다. 콘솔 로그엔 `[서비스명,traceId,spanId]`가 자동으로 찍힌다.
 
-> **범위 메모(8a):** 이번은 로드맵의 **8a**(“올인원으로 트레이스 하나 보기 — 동기부여”)다.
-> **로그를 Loki로 전송(OTLP 로그 appender)·커스텀 대시보드·관측성 스택 컴포넌트 분리**는 **8b**로 남긴다(§8 참고).
+> **범위 메모:** 이 문서는 **8a**(§0~§7: 트레이스+메트릭, “올인원으로 트레이스 하나 보기”)와
+> **8b**(§7B: 로그→Loki · RED 대시보드 · 트레이스↔로그 점프)를 모두 다룬다.
+> **관측성 스택 컴포넌트 완전 분리**(Collector·Tempo·Loki·Prometheus 개별 컨테이너)만 이후로 남긴다(§8 참고).
 
 ---
 
@@ -227,17 +228,77 @@ job=auth-service    job=order-service    job=payment-service    job=gateway-serv
 
 ---
 
+## 7B. Phase 8b — 로그→Loki · RED 대시보드 · 트레이스↔로그 점프
+
+8a에서 “트레이스 하나”를 봤다면, 8b는 **세 기둥을 한 화면에서 상관지어** 본다.
+
+### 7B.1 로그 → Loki (OTLP Logback appender)
+콘솔에만 찍히던 로그를 **OTLP로 Loki에 전송**한다. 핵심은 “Logback → OTel SDK” 다리다.
+
+- **의존성**(4서비스): `io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.15.0-alpha`
+  - ⚠️ **버전 정렬**: 이 아티팩트는 Boot BOM이 관리하지 않는다. Boot 3.5.15가 고정한 OTel SDK **1.49.0**과 맞는 **2.15.0-alpha**를 직접 핀한다(2.16+는 1.50 요구 → 충돌). `-alpha`는 API 안정성 경고일 뿐, 공식 권장 경로.
+- **`logback-spring.xml`**(4서비스): Boot 기본 콘솔(상관ID 유지) + `OpenTelemetryAppender` 추가.
+  ```xml
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+  <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender"/>
+  <root level="INFO"><appender-ref ref="CONSOLE"/><appender-ref ref="OTEL"/></root>
+  ```
+- **초기화 빈**(각 서비스): Logback은 스프링보다 **먼저** 초기화되므로, 컨텍스트가 뜬 뒤 `OpenTelemetryAppender.install(openTelemetry)`를 호출해야 appender가 살아난다(안 하면 no-op).
+  ```java
+  @Component
+  class OpenTelemetryAppenderInstaller implements InitializingBean {
+      private final OpenTelemetry openTelemetry;   // 생성자 주입
+      public void afterPropertiesSet() { OpenTelemetryAppender.install(openTelemetry); }
+  }
+  ```
+- **설정**: `management.otlp.logging.endpoint: http://localhost:4318/v1/logs`(docker→`otel-lgtm:4318`). 이 키가 Boot의 로그 OTLP 자동구성 트리거다(`opentelemetry-exporter-otlp`에 필요한 클래스가 이미 있어 추가 의존성 불필요).
+
+### 7B.2 트레이스 컨텍스트 안의 업무 로그
+로그가 트레이스와 이어지려면 **요청 처리 중(트레이스 컨텍스트가 살아있을 때)** 남긴 로그여야 한다.
+그래서 `OrderService.placeOrder`에 업무 로그를 추가했다:
+```java
+log.info("주문 생성 시작 orderId={} customer={} 품목수={}", order.getId(), command.customerId(), command.items().size());
+// ... 결제/저장 ...
+log.info("주문 확정 orderId={} paymentId={} total={}", order.getId(), paymentId, order.getTotalAmount());
+```
+이 로그는 서버 스팬 안에서 실행되므로 appender가 **`trace_id`를 자동으로 붙여** Loki로 보낸다.
+
+### 7B.3 커스텀 RED 대시보드 (프로비저닝)
+`grafana/otel-lgtm`엔 이미 RED/JVM 대시보드가 내장돼 있지만, 그것들은 **OTel 규약 이름**(`http_server_request_duration_seconds_*`)을 조회한다.
+우리는 **Micrometer**를 쓰므로 실제 이름이 **`http_server_requests_milliseconds_*`**라 내장 대시보드가 빈다(이게 “Grafana에 볼 게 없다”의 원인).
+→ **우리 메트릭에 맞춘 커스텀 대시보드**를 작성해 provisioning 경로에 bind-mount(내장 대시보드와 공존).
+- 파일: `deploy/grafana/dashboards/shopsaga-red.json`(대시보드) + `deploy/grafana/provisioning/shopsaga-dashboards.yaml`(provider).
+- p95를 쓰려면 히스토그램 버킷이 필요 → `management.metrics.distribution.percentiles-histogram.http.server.requests: true`.
+- 패널 PromQL(우리 이름 기준):
+  | 패널 | PromQL |
+  |---|---|
+  | 요청률 | `sum by (job) (rate(http_server_requests_milliseconds_count[1m]))` |
+  | 에러·거절 | `sum by (job, outcome) (rate(http_server_requests_milliseconds_count{outcome=~"CLIENT_ERROR\|SERVER_ERROR"}[1m]))` |
+  | p95 지연(ms) | `histogram_quantile(0.95, sum by (job, le) (rate(http_server_requests_milliseconds_bucket[5m])))` |
+  | JVM Heap | `sum by (job) (jvm_memory_used_bytes{area="heap"})` |
+
+### 7B.4 검증(실증)
+- **로그→Loki**: 4개 서비스 로그가 `service_name` 라벨로 Loki 도착. 주문 로그가 **`trace_id` 부착**(구조화 메타데이터) — 한 주문의 “생성 시작”·“확정”이 **같은 trace_id** 공유.
+- **대시보드**: 커스텀 대시보드 로드 + 실데이터 표시 — 요청률(4서비스), **p95**(order 51ms·payment 139ms·gateway 93ms·auth 161ms), outcome(SUCCESS/CLIENT_ERROR), JVM/CPU.
+- **트레이스↔로그 점프(왕복 증명)**: 같은 `trace_id`가 **Loki(로그) + Tempo(트레이스 gateway→order→payment)** 양쪽에 존재. Tempo `tracesToLogsV2`(`| trace_id="..."`, `service.name→service_name`)로 스팬→로그, Loki `derivedFields`로 로그→트레이스 점프.
+- **보는 법**: Grafana(`:3000`) → **Dashboards → ShopSaga → “ShopSaga — RED + JVM (Phase 8b)”**. 로그는 Explore → Loki → `{service_name="order-service"}`.
+
+---
+
 ## 8. 알려진 한계 → 해결 Phase
 
 | 한계 | 설명 | 해결 |
 |---|---|---|
-| **로그가 Loki로 안 감** | 콘솔엔 traceId가 찍히지만, 로그를 백엔드(Loki)로 **전송**하진 않는다(트레이스↔로그 점프 불가) | **Phase 8b**(OTLP 로그 appender 또는 Promtail) |
-| **커스텀 대시보드 없음** | RED(요청·에러·지속시간) 대시보드·리소스 패널 미구성 | **Phase 8b** |
-| **관측성 스택이 올인원** | 단일 컨테이너(개발 전용). 컴포넌트별 학습·프로덕션 형상 아님 | **Phase 8b**(Collector·Tempo·Loki·Prometheus 분리) |
-| **게이트웨이 자체 스팬 이슈** | Spring Cloud Gateway 2025.0.x에서 게이트웨이 **자기 스팬**의 export가 누락될 수 있음(GH#3904). 다운스트림 전파는 정상 | 상류 수정 관찰 / 8b |
-| **인프라 서비스 미계측** | discovery·config는 트레이싱 미적용(요청 경로 아님) | 필요 시 후속 |
-| **actuator·Grafana 무인증 노출** | 익명 Grafana·상세 health | **Phase 15**(하드닝) |
-| **비동기 전파 미검증** | Kafka 등 메시지 경계의 trace 전파는 아직 없음 | **Phase 9~12**(Kafka+outbox, `traceparent` 보존) |
+| ~~로그가 Loki로 안 감~~ | **8b 해결** — OTLP logback appender로 4서비스 로그를 Loki 전송, 트레이스 로그엔 trace_id 부착 | ✅ Phase 8b |
+| ~~커스텀 대시보드 없음~~ | **8b 해결** — 커스텀 RED+JVM 대시보드 프로비저닝(우리 Micrometer 메트릭 이름에 맞춤) | ✅ Phase 8b |
+| **관측성 스택이 올인원** | 여전히 `otel-lgtm` 단일 컨테이너(개발 전용). Collector·Tempo·Loki·Prometheus **개별 분리**는 미진행 | 이후(선택) |
+| **트레이스↔로그는 "트레이스 로그"만** | 트레이스 컨텍스트 안에서 남긴 로그만 trace_id를 단다. 요청 밖·기동 로그는 상관 안 됨(설계상 정상) | — |
+| **span_id 미수집** | Loki엔 trace_id는 오지만 span_id는 비어 보임(트레이스 단위 상관엔 충분) | 이후(선택) |
+| **게이트웨이 자체 스팬 이슈** | Spring Cloud Gateway 2025.0.x GH#3904(자기 스팬 export 누락 가능, 다운스트림 전파는 정상) | 상류 관찰 |
+| **인프라 서비스 미계측** | discovery·config는 트레이싱/로그 미적용(요청 경로 아님) | 필요 시 후속 |
+| **actuator·Grafana 무인증 노출** | 익명 Grafana(Admin)·상세 health | **Phase 15**(하드닝) |
+| **비동기 전파 미검증** | Kafka 등 메시지 경계의 trace 전파는 아직 없음 | **Phase 9~12**(`traceparent` 보존) |
 
 ---
 

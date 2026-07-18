@@ -28,7 +28,13 @@ management:
   tracing:
     sampling:
       probability: 1.0            # 학습용 전량 샘플링(운영은 0.1~0.3). 기본 0.1이면 대부분 요청이 트레이스 안 됨.
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true   # Phase 8b: p95 지연 히스토그램 버킷 생성(대시보드 histogram_quantile용).
   otlp:
+    logging:
+      endpoint: http://localhost:4318/v1/logs      # Phase 8b: 로그 OTLP→Loki. 이 키가 OtlpLogging 자동구성 트리거.
     tracing:
       endpoint: http://localhost:4318/v1/traces   # OTLP/HTTP. 기본값 없음 → 반드시 명시(미명시 시 익스포터 미구성).
     metrics:
