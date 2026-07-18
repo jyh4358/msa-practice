@@ -7,6 +7,8 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://auth-service:9000/oauth2/jwks   # localhost:9000 → 서비스명
+  kafka:
+    bootstrap-servers: kafka:19092   # Phase 9: PLAINTEXT 내부 리스너(컨테이너 네트워크). localhost:9092 → kafka:19092
 eureka:
   client:
     service-url:

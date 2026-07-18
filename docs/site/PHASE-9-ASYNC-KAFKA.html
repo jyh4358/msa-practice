@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 9 · 비동기(Kafka) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li class="active"><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-9--비동기-이벤트-with-kafka-9a">Phase 9 — 비동기 이벤트 with Kafka (9a)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> order가 재고를 <strong>직접 예약하지 않고</strong> <code>OrderPlaced</code> 이벤트를 Kafka로 발행하면,
+새로 분리한 <strong>inventory-service</strong>가 그 이벤트를 소비해 <strong>비동기로</strong> 재고를 예약한다.
+두 서비스는 시간적으로 <strong>디커플링</strong>되고(inventory가 죽어도 order는 동작), 요청은 <strong>HTTP→Kafka를 가로질러 하나의 트레이스</strong>로 이어진다.</p>
+</blockquote>
+<p>초심자(Java/Spring은 알지만 이벤트 기반은 처음) 기준으로 <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>inventory-service 신설</strong> — order-service가 갖고 있던 재고(StockItem·예약·조회)를 <strong>자기 서비스로 분리</strong>(inventorydb).</li>
+<li><strong><code>shared/events</code> 모듈</strong> — 서비스 간 이벤트 계약(<code>OrderPlacedEvent</code>) 전용(JPA 금지).</li>
+<li><strong>order → Kafka 발행</strong> — <code>placeOrder</code>가 재고 예약 대신 <code>OrderPlaced</code>를 발행(<code>KafkaTemplate</code>).</li>
+<li><strong>inventory ← Kafka 소비</strong> — <code>@KafkaListener</code>가 <code>OrderPlaced</code>를 받아 재고 예약(비관적 락).</li>
+<li><strong>compose에 Kafka(KRaft) + kafka-ui</strong> 추가(<code>--profile async</code>), 토픽은 <code>KafkaAdmin</code>+<code>NewTopic</code>으로 명시 생성.</li>
+<li>결과: 주문 한 건이 <strong>gateway→order→(payment 동기) + order→[Kafka]→inventory(비동기)</strong> 로 흐르고, 전 구간이 <strong>한 트레이스</strong>.</li>
+</ul>
+<blockquote>
+<p><strong>범위(9a):</strong> 로드맵의 <strong>9a</strong>(“Kafka 기동 + 이벤트 1개 end-to-end”)다. 신뢰성(outbox·멱등), 보상(Saga)은
+각각 <strong>Phase 10·12</strong>로 뒤따른다(§8). &quot;한 Phase 한 개념&quot; 원칙.</p>
+</blockquote>
+<hr>
+<h2 id="1-왜--직전phase-8의-문제">1. 왜 — 직전(Phase 8)의 문제</h2>
+<p>Phase 2~8까지 order→payment는 <strong>동기 REST</strong>였다. 재고도 order가 <strong>자기 트랜잭션 안에서 직접</strong> 차감했다.
+동기 결합의 문제:</p>
+<ul>
+<li><strong>시간적 결합:</strong> 재고/결제 중 하나라도 느리면 주문 전체가 느려지고, 하나가 죽으면 주문이 실패한다(장애 전파).</li>
+<li><strong>강한 의존:</strong> order가 재고 로직을 소유 → 재고 규칙이 바뀌면 order를 건드려야 한다(경계 흐림).</li>
+</ul>
+<p><strong>비동기 이벤트</strong>는 이 결합을 끊는다: order는 &quot;주문이 일어났다&quot;는 <strong>사실만 알리고</strong>(fire-and-forget) 자기 일을 끝낸다.
+누가 언제 반응할지는 <strong>소비자(inventory)의 몫</strong>이다. inventory가 잠깐 죽어도 이벤트는 <strong>Kafka에 남아</strong> 있다가
+살아나면 <strong>재생(replay)</strong> 된다.</p>
+<hr>
+<h2 id="2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</h2>
+<ul>
+<li><strong>이벤트(Event):</strong> &quot;이미 일어난 사실&quot;의 기록(예: <code>OrderPlaced</code>). 명령(“예약해라”)과 다르다 — 발행자는 소비자를 모른다.</li>
+<li><strong>fire-and-forget:</strong> 발행하고 응답을 기다리지 않음. 발행자와 소비자가 <strong>시간적으로 분리</strong>.</li>
+<li><strong>결과적 일관성(eventual consistency):</strong> 주문 시점엔 재고가 아직 확정 안 됨. 잠시 뒤 일관돼진다(즉시 일관성의 반대).</li>
+<li><strong>Kafka / 토픽 / 파티션 / 오프셋:</strong><ul>
+<li><strong>토픽(topic):</strong> 이벤트가 쌓이는 이름 있는 로그(예: <code>order-placed</code>).</li>
+<li><strong>파티션(partition):</strong> 토픽을 나눈 병렬 단위(순서는 파티션 내에서만 보장). 여기선 1개.</li>
+<li><strong>오프셋(offset):</strong> 파티션 안 각 메시지의 위치 번호. 소비자는 &quot;어디까지 읽었는지&quot;를 오프셋으로 기억.</li>
+<li><strong>컨슈머 그룹(consumer group):</strong> 같은 그룹의 소비자들이 파티션을 나눠 읽음. 오프셋은 그룹 단위로 커밋.</li>
+<li><strong>재생 가능한 로그(replayable log):</strong> Kafka는 메시지를 지우지 않고 보관 → 소비자가 죽었다 살아나면 못 읽은 지점부터 다시 읽음.</li>
+</ul>
+</li>
+<li><strong>KRaft:</strong> Kafka의 새 합의 방식(ZooKeeper 없이 Kafka 자체가 메타데이터 관리). 이 프로젝트의 단일 노드 브로커가 이 모드.</li>
+<li><strong>컨텍스트 전파(HTTP→Kafka):</strong> traceId를 Kafka 메시지 <strong>헤더(<code>traceparent</code>)</strong> 로 실어, 소비자 스팬이 같은 트레이스로 이어지게.</li>
+</ul>
+<hr>
+<h2 id="3-구성-그림">3. 구성 (그림)</h2>
+<pre><code>  client → gateway(8000) → order(8080) ──http(동기)──▶ payment(8081)
+                              │
+                              │ publish OrderPlaced (fire-and-forget)
+                              ▼
+                       ┌─ Kafka topic: order-placed ─┐   ← 이벤트 보관(재생 가능)
+                       └──────────────┬───────────────┘
+                                      │ @KafkaListener (consumer group: inventory-service)
+                                      ▼
+                            inventory(8082) ── 재고 예약(비관적 락) → inventorydb
+</code></pre><ul>
+<li><strong>order</strong>: 주문 생성 → (동기)결제 → 확정·저장 → <strong>OrderPlaced 발행</strong>. 재고는 더 이상 order가 안 만짐.</li>
+<li><strong>inventory</strong>: <code>order-placed</code> 구독 → 상품별 재고 예약. 부족/미등록이면 로그만(9a: 보상 없음).</li>
+<li><strong>트레이스</strong>: order의 <strong>producer 스팬</strong>과 inventory의 <strong>consumer 스팬</strong>이 <code>traceparent</code>로 이어져 <strong>한 트레이스</strong>.</li>
+<li><strong>실행</strong>: Kafka·kafka-ui·inventory-db·inventory-service는 <strong><code>--profile async</code></strong> 로만 뜬다(메모리 절약·개념별 on/off).</li>
+</ul>
+<hr>
+<h2 id="4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</h2>
+<h3 id="41-이벤트-계약-sharedevents">4.1 이벤트 계약 (<code>shared/events</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">OrderPlacedEvent</span><span class="hljs-params">(UUID orderId, UUID customerId, List&lt;Item&gt; items)</span> {
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">Item</span><span class="hljs-params">(UUID productId, <span class="hljs-type">int</span> quantity, BigDecimal unitPrice)</span> {}
+}
+</code></pre><ul>
+<li>order와 inventory가 <strong>같은 타입</strong>을 공유 → JSON의 <code>__TypeId__</code> 헤더가 맞아떨어져 역직렬화가 깔끔.</li>
+<li>⚠️ 이 모듈엔 <strong>POJO만</strong>. JPA 엔티티/리포지토리를 넣으면 &quot;분산 모놀리스&quot;가 된다(db-per-service 붕괴).</li>
+</ul>
+<h3 id="42-order--발행-아웃바운드-포트--kafka-어댑터">4.2 order — 발행 (아웃바운드 포트 + Kafka 어댑터)</h3>
+<pre><code class="hljs language-java"><span class="hljs-comment">// 포트: 애플리케이션은 &quot;알린다&quot;는 의도만. Kafka는 어댑터 뒤로 숨김.</span>
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">PublishOrderEventPort</span> { <span class="hljs-keyword">void</span> <span class="hljs-title function_">orderPlaced</span><span class="hljs-params">(OrderPlacedEvent event)</span>; }
+
+<span class="hljs-comment">// 어댑터: KafkaTemplate 으로 발행. key=orderId(같은 주문은 같은 파티션 → 순서).</span>
+kafkaTemplate.send(<span class="hljs-string">&quot;order-placed&quot;</span>, event.orderId().toString(), event);
+</code></pre><p><code>OrderService.placeOrder</code>는 이제 <strong>재고 예약 코드가 없다</strong> — 결제·저장 후 <code>publishOrderPlaced(...)</code>만 호출.</p>
+<h3 id="43-inventory--소비-인바운드-이벤트-어댑터">4.3 inventory — 소비 (인바운드 이벤트 어댑터)</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@KafkaListener(topics = &quot;order-placed&quot;, groupId = &quot;inventory-service&quot;)</span>
+<span class="hljs-keyword">void</span> <span class="hljs-title function_">on</span><span class="hljs-params">(OrderPlacedEvent event)</span> {
+    <span class="hljs-comment">// 상품별 수량으로 집계 → 재고 예약 유스케이스 호출</span>
+    reserveStockUseCase.reserveForOrder(event.orderId(), quantityByProduct);
+}
+</code></pre><p>재고 예약은 order에서 <strong>그대로 옮겨온</strong> 비관적 락 로직(<code>SELECT … FOR UPDATE</code> + load-then-mutate).</p>
+<h3 id="44-토픽-명시-생성-auto-create-끔">4.4 토픽 명시 생성 (auto-create 끔)</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Bean</span> NewTopic <span class="hljs-title function_">orderPlacedTopic</span><span class="hljs-params">()</span> {
+    <span class="hljs-keyword">return</span> TopicBuilder.name(<span class="hljs-string">&quot;order-placed&quot;</span>).partitions(<span class="hljs-number">1</span>).replicas(<span class="hljs-number">1</span>).build();  <span class="hljs-comment">// 단일 노드 → replicas=1</span>
+}
+</code></pre><p>브로커에 <code>KAFKA_AUTO_CREATE_TOPICS_ENABLE=false</code> → 토픽은 이 <code>NewTopic</code>으로만 생김. <strong>소비자(inventory)가 토픽을 선언</strong>(브로커 healthy 후 기동하므로 생성 타이밍이 안전).</p>
+<h3 id="45-설정-config-repoapplicationyml-공통">4.5 설정 (<code>config-repo/application.yml</code>, 공통)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">kafka:</span>
+    <span class="hljs-attr">bootstrap-servers:</span> <span class="hljs-string">localhost:9092</span>          <span class="hljs-comment"># docker 프로파일이 kafka:19092 로 오버라이드</span>
+    <span class="hljs-attr">producer:</span> { <span class="hljs-attr">value-serializer:</span> <span class="hljs-string">...JsonSerializer</span>, <span class="hljs-attr">properties:</span> { <span class="hljs-attr">max.block.ms:</span> <span class="hljs-number">5000</span> } }
+    <span class="hljs-attr">consumer:</span>
+      <span class="hljs-attr">value-deserializer:</span> <span class="hljs-string">...JsonDeserializer</span>
+      <span class="hljs-attr">auto-offset-reset:</span> <span class="hljs-string">earliest</span>              <span class="hljs-comment"># 그룹 최초 조인 시 처음부터(리플레이)</span>
+      <span class="hljs-attr">properties:</span> { <span class="hljs-attr">spring.json.trusted.packages:</span> <span class="hljs-string">&quot;com.shopsaga.events&quot;</span> }
+    <span class="hljs-attr">template:</span>  { <span class="hljs-attr">observation-enabled:</span> <span class="hljs-literal">true</span> }   <span class="hljs-comment"># ★ producer traceparent 주입</span>
+    <span class="hljs-attr">listener:</span>  { <span class="hljs-attr">observation-enabled:</span> <span class="hljs-literal">true</span> }   <span class="hljs-comment"># ★ consumer traceparent 추출 (둘 다 켜야 트레이스 안 끊김)</span>
+</code></pre><h3 id="46-kafkakraft-단일-노드--compose">4.6 Kafka(KRaft 단일 노드) — compose</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">kafka:</span>
+  <span class="hljs-attr">image:</span> <span class="hljs-string">apache/kafka:4.3.1</span>            <span class="hljs-comment"># KRaft, arm64 네이티브</span>
+  <span class="hljs-attr">profiles:</span> [<span class="hljs-string">async</span>]
+  <span class="hljs-attr">environment:</span>
+    <span class="hljs-attr">KAFKA_PROCESS_ROLES:</span> <span class="hljs-string">broker,controller</span>
+    <span class="hljs-comment"># 리스너 3분리: CONTROLLER · PLAINTEXT(kafka:19092 컨테이너간) · PLAINTEXT_HOST(localhost:9092 호스트)</span>
+    <span class="hljs-attr">KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:</span> <span class="hljs-number">1</span>   <span class="hljs-comment"># 단일 노드 → 1 (기본 3이면 내부 토픽 생성 실패)</span>
+    <span class="hljs-attr">KAFKA_AUTO_CREATE_TOPICS_ENABLE:</span> <span class="hljs-string">&quot;false&quot;</span>
+</code></pre><p><code>ghcr.io/kafbat/kafka-ui</code>(:8090)로 토픽·메시지·컨슈머 lag을 눈으로 본다.</p>
+<hr>
+<h2 id="5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</h2>
+<ol>
+<li><code>POST :8000/orders</code> → gateway → <strong>order</strong>가 주문 생성.</li>
+<li>order가 payment를 <strong>동기</strong> 호출(아직) → 결제 성공 → 주문 CONFIRMED·저장.</li>
+<li>order가 <code>OrderPlaced</code>를 <strong>Kafka(order-placed)</strong> 로 발행하고 <strong>즉시 응답 반환</strong>(201).</li>
+<li><strong>inventory</strong>가 그 이벤트를 소비 → 상품별 재고 예약(inventorydb 차감).</li>
+<li>트레이스: order의 <code>order-placed send</code>(PRODUCER)와 inventory의 <code>order-placed receive</code>(CONSUMER)가 <strong>같은 traceId</strong>.</li>
+</ol>
+<blockquote>
+<p>주문 응답(201)은 <strong>재고 예약을 기다리지 않는다.</strong> 재고 확정은 잠시 뒤(결과적 일관성).</p>
+</blockquote>
+<hr>
+<h2 id="6-원리--트레이드오프">6. 원리 / 트레이드오프</h2>
+<ul>
+<li><strong>얻은 것:</strong> 시간적 디커플링(inventory 장애가 order로 전파 안 됨), 재생 가능성(다운타임 이벤트 보관→재생), 확장성(소비자 독립 스케일).</li>
+<li><strong>잃은 것(의도적):</strong> 즉시 일관성. 주문 시점엔 재고 미확정 → <strong>재고 부족이어도 주문은 CONFIRMED</strong>(§8). 이 &quot;깨진 정합성&quot;이 Saga(12)의 동기.</li>
+<li><strong>이중 쓰기 함정:</strong> <code>save()</code>와 <code>send()</code>가 한 원자 트랜잭션이 아니다 → 저장 후 크래시=이벤트 유실 / 발행 후 롤백=유령 이벤트. <strong>Phase 10 Outbox</strong>가 해결.</li>
+<li><strong>트레이스가 끊기는 흔한 이유:</strong> <code>observation-enabled</code>를 <strong>template·listener 둘 다</strong> 켜야 한다. 한쪽만이면 producer/consumer 스팬이 분리된다.</li>
+<li><strong>단일 노드 KRaft 함정:</strong> 내부 토픽 <code>replication-factor</code>를 1로 낮추지 않으면(기본 3) 브로커가 unhealthy. <code>NewTopic</code>도 <code>replicas(1)</code>.</li>
+</ul>
+<hr>
+<h2 id="7-검증-실증">7. 검증 (실증)</h2>
+<ul>
+<li><strong>빌드:</strong> <code>shared:events</code> + <code>inventory-service</code>(StockItem 단위·<strong>재고 동시성 테스트</strong> 포함) + order 개조 → <strong>BUILD SUCCESSFUL</strong>.</li>
+<li><strong>비동기 흐름:</strong> <code>--profile async</code> 기동 후 주문(수량 3) → order <code>OrderPlaced 발행</code> → inventory <code>OrderPlaced 수신</code>·<code>재고 예약 성공</code> → <strong>inventorydb 100→97</strong>.</li>
+<li><strong>HTTP→Kafka 단일 트레이스:</strong> 한 traceId(<code>e123…</code>)에 <strong>gateway·order·payment·inventory</strong> 4서비스. order <code>order-placed send</code>(PRODUCER) ↔ inventory <code>order-placed receive</code>(CONSUMER) 연결.</li>
+<li><strong>내구성/리플레이:</strong> inventory 중단 → 주문 2건(재고 97 그대로, <strong>consumer LAG=2</strong>) → inventory 재시작 → 버퍼된 2건 소비(<strong>97→95</strong>, <strong>LAG=0</strong>).</li>
+<li><strong>게이트웨이:</strong> <code>/inventory/{productId}</code> → inventory-service(재시작으로 라우트 반영).</li>
+<li><strong>보는 법:</strong> kafka-ui <code>http://localhost:8090</code>(토픽/메시지/lag), Grafana <code>:3000</code>(트레이스).</li>
+</ul>
+<blockquote>
+<p>실행: <code>docker compose -f deploy/compose/compose.yml --profile async up -d --build</code> (기본 <code>up</code>은 Kafka·inventory 제외).</p>
+</blockquote>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>설명</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>이중 쓰기(dual-write)</strong></td>
+<td>order의 <code>save()</code>와 이벤트 <code>send()</code>가 비원자적 → 유실/유령 이벤트</td>
+<td><strong>Phase 10</strong>(Outbox)</td>
+</tr>
+<tr>
+<td><strong>멱등성 없음</strong></td>
+<td>같은 이벤트 2번 소비 → 재고 이중 예약</td>
+<td><strong>Phase 10</strong>(<code>processed_messages</code>)</td>
+</tr>
+<tr>
+<td><strong>보상 없음</strong></td>
+<td>재고 부족이어도 주문은 CONFIRMED(결과적 일관성만)</td>
+<td><strong>Phase 12</strong>(Saga: 재고 해제/주문 취소)</td>
+</tr>
+<tr>
+<td><strong>결제 여전히 동기</strong></td>
+<td>order→payment는 아직 REST</td>
+<td><strong>Phase 12</strong>(이벤트 흐름 전환)</td>
+</tr>
+<tr>
+<td><strong>기본 프로파일 열화</strong></td>
+<td><code>--profile async</code> 없이는 재고 예약 안 됨(inventory 오프라인·이벤트 유실)</td>
+<td>설계상(관측성·async는 프로파일 게이트)</td>
+</tr>
+<tr>
+<td><strong>파티션 1·단일 브로커</strong></td>
+<td>순서/처리량/내고장성 제한(학습용)</td>
+<td>운영 시 다중 파티션·클러스터</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어사전">9. 용어사전</h2>
+<ul>
+<li><strong>이벤트/명령:</strong> 일어난 사실 / 시켜야 할 일. 이벤트 발행자는 소비자를 모른다.</li>
+<li><strong>토픽·파티션·오프셋:</strong> 이름 있는 로그 / 병렬 단위 / 읽은 위치.</li>
+<li><strong>컨슈머 그룹:</strong> 파티션을 나눠 읽는 소비자 묶음. 오프셋을 그룹 단위로 커밋.</li>
+<li><strong>결과적 일관성:</strong> 잠시 뒤 일관돼짐(즉시 일관성 아님).</li>
+<li><strong>fire-and-forget:</strong> 발행 후 응답 안 기다림.</li>
+<li><strong>재생(replay):</strong> 보관된 로그를 다시 읽어 밀린 걸 따라잡음.</li>
+<li><strong>KRaft:</strong> ZooKeeper 없는 Kafka 합의/메타데이터 방식.</li>
+<li><strong>이중 쓰기(dual-write):</strong> DB와 메시지를 한 메서드에서 둘 다 쓰는 안티패턴(원자적일 수 없음 → outbox).</li>
+<li><strong>멱등성(idempotency):</strong> 같은 입력을 여러 번 처리해도 결과가 한 번과 같음.</li>
+<li><strong><code>traceparent</code>:</strong> W3C 트레이스 컨텍스트 헤더. Kafka 헤더로 실려 트레이스가 이어짐.</li>
+</ul>
+<hr>
+<h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
+<ul>
+<li>직전: <a href="PHASE-8-OBSERVABILITY.html">PHASE-8-OBSERVABILITY</a>(트레이스로 이 비동기 흐름을 눈으로) · <a href="PHASE-1-MONOLITH.html">PHASE-1-MONOLITH</a>(원래의 동기 재고 예약)</li>
+<li>아키텍처: <a href="HEXAGONAL.html">HEXAGONAL</a>(포트/어댑터 — 발행/소비도 어댑터)</li>
+<li>다음: <strong>Phase 10</strong>(Outbox+멱등 — 이중 쓰기 해결) → <strong>11</strong>(CQRS) → <strong>12</strong>(Saga: 보상)</li>
+<li>로드맵: <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> · 큰 그림: <a href="REVIEW-PART-A.html">REVIEW-PART-A</a></li>
+</ul>
+<p><em>각 단계의 “알려진 한계 → 해결 Phase”는 <a href="README.html">README</a> 인덱스에서 모아 볼 수 있습니다.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--직전phase-8의-문제">1. 왜 — 직전(Phase 8)의 문제</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</a></li>
+<li class="toc-h2"><a href="#3-구성-그림">3. 구성 (그림)</a></li>
+<li class="toc-h2"><a href="#4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</a></li>
+<li class="toc-h3"><a href="#41-이벤트-계약-sharedevents">4.1 이벤트 계약 (shared/events)</a></li>
+<li class="toc-h3"><a href="#42-order--발행-아웃바운드-포트--kafka-어댑터">4.2 order — 발행 (아웃바운드 포트 + Kafka 어댑터)</a></li>
+<li class="toc-h3"><a href="#43-inventory--소비-인바운드-이벤트-어댑터">4.3 inventory — 소비 (인바운드 이벤트 어댑터)</a></li>
+<li class="toc-h3"><a href="#44-토픽-명시-생성-auto-create-끔">4.4 토픽 명시 생성 (auto-create 끔)</a></li>
+<li class="toc-h3"><a href="#45-설정-config-repoapplicationyml-공통">4.5 설정 (config-repo/application.yml, 공통)</a></li>
+<li class="toc-h3"><a href="#46-kafkakraft-단일-노드--compose">4.6 Kafka(KRaft 단일 노드) — compose</a></li>
+<li class="toc-h2"><a href="#5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</a></li>
+<li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>
+<li class="toc-h2"><a href="#7-검증-실증">7. 검증 (실증)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
+<li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
+</body>
+</html>

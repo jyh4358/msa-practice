@@ -23,3 +23,6 @@ include(":services:order-service")
 include(":services:payment-service")
 include(":services:gateway-service")
 include(":services:auth-service")
+// Phase 9: 비동기 이벤트(Kafka) — 재고를 자기 서비스로 분리 + 이벤트 계약 전용 공유 모듈.
+include(":services:inventory-service")
+include(":shared:events")

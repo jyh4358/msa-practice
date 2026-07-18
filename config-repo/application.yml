@@ -12,6 +12,24 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:9000/oauth2/jwks   # auth-service JWKS(공개키) — 직접 host:port
+  # ── Phase 9: Kafka (order 발행 / inventory 소비). spring-kafka 없는 서비스는 이 설정을 무시. ──
+  kafka:
+    bootstrap-servers: localhost:9092    # 호스트 리스너(PLAINTEXT_HOST). docker 프로파일이 kafka:19092로 오버라이드.
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.block.ms: 5000               # 브로커 부재 시(기본 프로파일) send가 5초만 대기하고 실패 → 주문은 계속 진행
+    consumer:
+      auto-offset-reset: earliest        # 그룹 최초 조인 시 처음부터 소비(리플레이 학습)
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.shopsaga.events"   # 공유 이벤트 계약 패키지만 역직렬화 신뢰
+    template:
+      observation-enabled: true          # KafkaTemplate → traceparent 헤더 주입(HTTP→Kafka 트레이스 연결)
+    listener:
+      observation-enabled: true          # @KafkaListener → traceparent 추출·자식 스팬
 
 eureka:
   client:

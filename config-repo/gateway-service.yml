@@ -14,7 +14,7 @@ spring:
               predicates:
                 - Path=/orders/**
             - id: inventory-route
-              uri: lb://order-service
+              uri: lb://inventory-service
               predicates:
                 - Path=/inventory/**
             - id: payments-route

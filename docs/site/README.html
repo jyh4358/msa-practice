@@ -373,7 +373,7 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="shopsaga--msa-핸즈온-학습-플랫폼">ShopSaga — MSA 핸즈온 학습 플랫폼</h1>
@@ -387,13 +387,15 @@ code.hljs {
 <li>도메인: 전자상거래 &quot;ShopSaga&quot; (order → inventory → payment)</li>
 </ul>
 <hr>
-<h2 id="현재-상태-phase-8--관측성분산-트레이싱메트릭">현재 상태: Phase 8 — 관측성(분산 트레이싱·메트릭)</h2>
+<h2 id="현재-상태-phase-9--비동기-이벤트kafka-재고-분리">현재 상태: Phase 9 — 비동기 이벤트(Kafka, 재고 분리)</h2>
 <p>6개 서비스가 <strong>중앙 설정(Config Server)</strong> 에서 설정을 받고, <strong>서비스 디스커버리(Eureka)</strong> 로 서로를
 이름으로 찾으며, <strong>API 게이트웨이</strong>가 단일 진입점이고, <strong>JWT(RS256)</strong> 로 인증/인가가 걸려 있습니다.
 DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</strong> 되어 중앙 관리됩니다.
 이제 이 전체 스택(6 서비스 + 2 DB)을 <strong><code>docker compose up</code> 한 번으로</strong> 컨테이너로 띄울 수 있습니다.
 <strong>Phase 8</strong>부터는 한 요청이 게이트웨이→주문→결제를 거치는 과정을 <strong>하나의 분산 트레이스</strong>로 추적하고 지표(메트릭)를 모아,
-<code>grafana/otel-lgtm</code> 올인원 백엔드의 <strong>Grafana(:3000)</strong> 에서 눈으로 봅니다.</p>
+<code>grafana/otel-lgtm</code> 올인원 백엔드의 <strong>Grafana(:3000)</strong> 에서 눈으로 봅니다.
+<strong>Phase 9</strong>부터는 order가 재고를 직접 예약하지 않고 <strong><code>OrderPlaced</code> 이벤트를 Kafka로 발행</strong>하면
+분리된 <strong>inventory-service</strong>가 <strong>비동기로</strong> 소비해 예약합니다(결과적 일관성). Kafka·inventory는 <strong><code>--profile async</code></strong> 로 기동합니다.</p>
 <table>
 <thead>
 <tr>
@@ -438,6 +440,12 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 <td>8081</td>
 <td>결제 캡처</td>
 <td><code>paymentdb</code>@5433</td>
+</tr>
+<tr>
+<td><strong>inventory-service</strong></td>
+<td>8082</td>
+<td>재고 예약(<code>OrderPlaced</code> <strong>비동기</strong> 소비 — <code>--profile async</code>)</td>
+<td><code>inventorydb</code>@5434</td>
 </tr>
 </tbody></table>
 <ul>
@@ -502,6 +510,11 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 <td><strong>관측성</strong>(트레이싱·메트릭·<strong>로그→Loki</strong>·<strong>RED 대시보드</strong>·트레이스↔로그 점프 — OTLP → <code>grafana/otel-lgtm</code>)</td>
 <td><a href="PHASE-8-OBSERVABILITY.html">PHASE-8-OBSERVABILITY.md</a></td>
 </tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>비동기 이벤트</strong>(Kafka — 재고 분리, <code>OrderPlaced</code> 발행/소비, HTTP→Kafka 트레이스, 리플레이)</td>
+<td><a href="PHASE-9-ASYNC-KAFKA.html">PHASE-9-ASYNC-KAFKA.md</a></td>
+</tr>
 </tbody></table>
 <p>공통 아키텍처 컨벤션은 <a href="HEXAGONAL.html">HEXAGONAL.md</a>, 설치/실행은 <a href="SETUP.html">SETUP.md</a>.</p>
 <blockquote>
@@ -562,10 +575,10 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
 각 서비스 Swagger: <code>http://localhost:&lt;port&gt;/swagger-ui/index.html</code> (order/payment).</p>
 </blockquote>
 <hr>
-<h2 id="다음-phase-9--kafka">다음: Phase 9 — Kafka</h2>
-<p>Phase <strong>8</strong>(관측성)을 마쳤습니다 — 8a(트레이스+메트릭), 8b(<strong>로그→Loki</strong>·<strong>RED 대시보드</strong>·<strong>트레이스↔로그 점프</strong>).
-관측성 스택 <strong>컴포넌트 완전 분리</strong>(Collector·Tempo·Loki·Prometheus 개별 컨테이너)만 이후 선택 과제로 남습니다.
-다음은 <strong>9 Kafka</strong>(비동기 이벤트) → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+<h2 id="다음-phase-10--outbox--멱등성">다음: Phase 10 — Outbox + 멱등성</h2>
+<p>Phase <strong>9a</strong>(Kafka 비동기 이벤트: 재고 분리·<code>OrderPlaced</code> 발행/소비·HTTP→Kafka 트레이스·리플레이)를 마쳤습니다.
+다음 <strong>10 Outbox</strong>는 order의 <strong>이중 쓰기</strong>(save + 발행이 비원자적)와 <strong>멱등성</strong>(중복 소비)을 해결합니다(신뢰성 척추).
+이후 <strong>11 CQRS</strong> → 12·13 Saga(보상) → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> 참고.</p>
 
   </article>
@@ -574,7 +587,7 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
     <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
   </footer>
 </main>
-<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-8--관측성분산-트레이싱메트릭">현재 상태: Phase 8 — 관측성(분산 트레이싱·메트릭)</a></li>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-9--비동기-이벤트kafka-재고-분리">현재 상태: Phase 9 — 비동기 이벤트(Kafka, 재고 분리)</a></li>
 <li class="toc-h2"><a href="#단계별-진행--문서">단계별 진행 &amp; 문서</a></li>
 <li class="toc-h2"><a href="#사전-준비-1회">사전 준비 (1회)</a></li>
 <li class="toc-h2"><a href="#실행--검증-현재-phase-7">실행 &amp; 검증 (현재: Phase 7)</a></li>
@@ -582,6 +595,6 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
 <li class="toc-h3"><a href="#1-빌드--테스트">1) 빌드 &amp; 테스트</a></li>
 <li class="toc-h3"><a href="#2-인프라--서비스-기동-순서-중요-configdiscovery-먼저">2) 인프라 + 서비스 기동 (순서 중요: config·discovery 먼저)</a></li>
 <li class="toc-h3"><a href="#3-인증--호출-게이트웨이-8000-통과">3) 인증 → 호출 (게이트웨이 8000 통과)</a></li>
-<li class="toc-h2"><a href="#다음-phase-9--kafka">다음: Phase 9 — Kafka</a></li></ul></nav></aside>
+<li class="toc-h2"><a href="#다음-phase-10--outbox--멱등성">다음: Phase 10 — Outbox + 멱등성</a></li></ul></nav></aside>
 </body>
 </html>

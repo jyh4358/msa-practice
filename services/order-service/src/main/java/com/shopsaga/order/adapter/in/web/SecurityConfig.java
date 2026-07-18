@@ -15,8 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
  * 서블릿 OAuth2 리소스 서버 — /actuator/health 외 모든 요청에 유효한 JWT 필요.
  * roles 클레임 → ROLE_ 권한 매핑. @EnableMethodSecurity 로 컨트롤러의 @PreAuthorize 활성화.
  *
- * <p>{@code @ConditionalOnWebApplication(SERVLET)}: 웹이 아닌 컨텍스트(예: StockConcurrencyTest,
- * webEnvironment=NONE)에서는 로딩되지 않아, 도메인/동시성 테스트가 보안 없이 그대로 돈다.
+ * <p>{@code @ConditionalOnWebApplication(SERVLET)}: 웹이 아닌 컨텍스트(webEnvironment=NONE 테스트)
+ * 에서는 로딩되지 않아, 도메인 테스트가 보안 없이 그대로 돈다.
  */
 @Configuration
 @EnableWebSecurity

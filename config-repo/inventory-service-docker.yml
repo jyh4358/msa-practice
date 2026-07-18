@@ -1,0 +1,5 @@
+# Phase 9: inventory-service docker 오버라이드 — DB 호스트를 compose 서비스명으로.
+# (username·{cipher} password 는 inventory-service.yml 에서 그대로 상속.)
+spring:
+  datasource:
+    url: jdbc:postgresql://inventory-db:5432/inventorydb   # localhost:5434 → inventory-db:5432

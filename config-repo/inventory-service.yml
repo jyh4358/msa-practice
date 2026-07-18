@@ -1,0 +1,14 @@
+# inventory-service 전용 중앙 설정 (Phase 9: 재고 소유 서비스). DB 비번은 {cipher} 암호문. 공통값은 application.yml.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/inventorydb
+    username: inventory
+    password: '{cipher}b661eb280bce71808023ba426e7d5bbef973204f111ed13619dbadd4e9663431'
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway

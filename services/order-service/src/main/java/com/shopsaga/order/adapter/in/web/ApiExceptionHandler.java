@@ -3,8 +3,6 @@ package com.shopsaga.order.adapter.in.web;
 import com.shopsaga.order.application.service.OrderNotFoundException;
 import com.shopsaga.order.application.service.PaymentDeclinedException;
 import com.shopsaga.order.application.service.PaymentGatewayException;
-import com.shopsaga.order.application.service.StockNotFoundException;
-import com.shopsaga.order.domain.InsufficientStockException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,15 +15,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 class ApiExceptionHandler {
 
-    @ExceptionHandler({OrderNotFoundException.class, StockNotFoundException.class})
-    ProblemDetail handleNotFound(RuntimeException ex) {
+    @ExceptionHandler(OrderNotFoundException.class)
+    ProblemDetail handleNotFound(OrderNotFoundException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    /** 재고 부족 → 409 Conflict. */
-    @ExceptionHandler(InsufficientStockException.class)
-    ProblemDetail handleConflict(InsufficientStockException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     /** 원격 결제 거절 → 402 Payment Required. */

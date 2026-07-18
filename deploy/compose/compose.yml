@@ -14,6 +14,7 @@ networks:
 volumes:
   order-db-data:
   payment-db-data:
+  inventory-db-data:     # Phase 9 (--profile async)
 
 # 4개 앱 클라이언트(auth/order/payment/gateway) 공통 설정 (YAML 앵커).
 x-app-common: &app-common
@@ -72,6 +73,87 @@ services:
       resources:
         limits:
           memory: 256M
+
+  # ── 비동기 인프라 (Phase 9: --profile async 로만 기동) ──
+  inventory-db:
+    image: postgres:18-alpine
+    profiles: [async]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventorydb
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventorypw
+    volumes:
+      - inventory-db-data:/var/lib/postgresql
+    networks: [shopsaga-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventorydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  kafka:
+    image: apache/kafka:4.3.1          # KRaft(ZooKeeper 없음), arm64 네이티브
+    profiles: [async]
+    hostname: kafka                     # 컨테이너 DNS 이름 = advertised listener 와 일치
+    restart: unless-stopped
+    networks: [shopsaga-net]
+    ports:
+      - "9092:9092"                     # 호스트 접근(PLAINTEXT_HOST) — 로컬 개발/디버깅용
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # 리스너 3분리: CONTROLLER(KRaft) · PLAINTEXT(컨테이너간 kafka:19092) · PLAINTEXT_HOST(호스트 localhost:9092)
+      KAFKA_LISTENERS: CONTROLLER://:29093,PLAINTEXT://:19092,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      # 단일 노드 — 내부 토픽 replication-factor 를 1로(기본 3이면 생성 실패).
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1   # Kafka 4.x
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"   # 토픽은 KafkaAdmin+NewTopic 으로 명시 생성
+      CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
+      KAFKA_HEAP_OPTS: "-Xmx400m -Xms200m"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 700M
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest   # provectuslabs 는 미유지 → kafbat 공식 포크
+    profiles: [async]
+    restart: unless-stopped
+    networks: [shopsaga-net]
+    ports:
+      - "8090:8080"                     # 토픽/메시지 관찰 UI
+    environment:
+      KAFKA_CLUSTERS_0_NAME: shopsaga-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 320M
 
   # ── 관측성 백엔드 (Phase 8: grafana/otel-lgtm 올인원 — Tempo·Loki·Prometheus·Grafana + OTLP 수신) ──
   otel-lgtm:
@@ -208,6 +290,28 @@ services:
       payment-db: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # Phase 9: 재고 소유 서비스(--profile async). OrderPlaced 소비 → 재고 예약.
+  inventory-service:
+    <<: *app-common
+    profiles: [async]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.service
+      args:
+        JAR_FILE: services/inventory-service/build/libs/inventory-service-0.0.1-SNAPSHOT.jar
+    image: shopsaga/inventory-service:latest
+    depends_on:
+      config-service: { condition: service_healthy }
+      discovery-service: { condition: service_healthy }
+      inventory-db: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/actuator/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10

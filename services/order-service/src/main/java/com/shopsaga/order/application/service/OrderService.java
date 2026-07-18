@@ -1,16 +1,14 @@
 package com.shopsaga.order.application.service;
 
+import com.shopsaga.events.OrderPlacedEvent;
 import com.shopsaga.order.application.UseCase;
 import com.shopsaga.order.application.port.in.GetOrderQuery;
-import com.shopsaga.order.application.port.in.GetStockQuery;
 import com.shopsaga.order.application.port.in.OrderView;
 import com.shopsaga.order.application.port.in.PlaceOrderCommand;
 import com.shopsaga.order.application.port.in.PlaceOrderUseCase;
-import com.shopsaga.order.application.port.in.StockView;
 import com.shopsaga.order.application.port.out.LoadOrderPort;
-import com.shopsaga.order.application.port.out.LoadStockPort;
 import com.shopsaga.order.application.port.out.PaymentGatewayPort;
-import com.shopsaga.order.application.port.out.ReserveStockPort;
+import com.shopsaga.order.application.port.out.PublishOrderEventPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
 import com.shopsaga.order.domain.Order;
 import lombok.RequiredArgsConstructor;
@@ -18,50 +16,55 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * 유스케이스 구현. Phase 2: 결제가 원격(payment-service)이 되면서 단일 트랜잭션이 깨진다.
- * 재고 차감은 로컬 트랜잭션이지만, 결제는 원격 REST 호출이라 같은 트랜잭션으로 묶이지 않는다.
+ * 주문 유스케이스 구현.
+ *
+ * <p>Phase 9: 재고 예약을 <b>비동기 이벤트</b>로 위임한다. order는 더 이상 재고를 직접 예약하지 않고
+ * {@code OrderPlaced} 를 발행하며, inventory-service가 소비해 예약한다(결과적 일관성).
+ * <ul>
+ *   <li>주문 시점엔 재고가 확정되지 않는다(재고 부족이어도 주문은 CONFIRMED) → Phase 12 Saga가 보상.</li>
+ *   <li>save 와 이벤트 발행이 한 원자 트랜잭션이 아니다(dual-write) → Phase 10 outbox가 해결.</li>
+ *   <li>결제는 아직 동기(payment-service) — Phase 12에서 이벤트 흐름으로 전환.</li>
+ * </ul>
  */
 @UseCase
 @RequiredArgsConstructor
 @Slf4j
-class OrderService implements PlaceOrderUseCase, GetOrderQuery, GetStockQuery {
+class OrderService implements PlaceOrderUseCase, GetOrderQuery {
 
     private final SaveOrderPort saveOrderPort;
     private final LoadOrderPort loadOrderPort;
-    private final LoadStockPort loadStockPort;
-    private final ReserveStockPort reserveStockPort;
     private final PaymentGatewayPort paymentGatewayPort;
+    private final PublishOrderEventPort publishOrderEventPort;
 
     @Override
     @Transactional
     public OrderView placeOrder(PlaceOrderCommand command) {
         Order order = Order.create(command.customerId());
         command.items().forEach(i -> order.addItem(i.productId(), i.quantity(), i.unitPrice()));
-        // Phase 8b: 트레이스 컨텍스트 안에서 남기는 업무 로그 → OTLP appender가 trace_id를 달아 Loki로 전송(트레이스↔로그 상관).
-        log.info("주문 생성 시작 orderId={} customer={} 품목수={}", order.getId(), command.customerId(), command.items().size());
+        log.info("주문 생성 시작 orderId={} customer={} 품목수={}",
+                order.getId(), command.customerId(), command.items().size());
 
-        // (1) 재고 예약 — 로컬, 비관적 락(상품ID 정렬로 교착 회피).
-        Map<UUID, Integer> quantityByProduct = new TreeMap<>();
-        command.items().forEach(i ->
-                quantityByProduct.merge(i.productId(), i.quantity(), Integer::sum));
-        quantityByProduct.forEach(reserveStockPort::reserve);
-
-        // (2) 결제 = 원격 호출(payment-service). 거절 → PaymentDeclinedException, 통신 실패 → PaymentGatewayException.
-        //     ⚠️ 단일 트랜잭션 소멸: 결제는 이 로컬 @Transactional 에 묶이지 않는다.
-        //        · 재고 비관적 락이 이 원격 호출 구간 내내 유지됨(원격 지연만큼 락 점유 → 처리량 저하).
-        //        · 결제 성공 후 (3) 저장이 실패하면 결제는 원격에 남아 자동 원복 불가(= orphaned payment).
-        //        이 잃어버린 원자성이 Phase 12 Saga(보상 트랜잭션)의 동기다.
+        // 결제 = 원격 호출(payment-service, 여전히 동기). 거절 → 402, 통신 실패 → 502.
         UUID paymentId = paymentGatewayPort.capture(order.getId(), order.getTotalAmount());
 
-        // (3) 주문 확정 + 저장(로컬). 결제 거절/통신 실패 시엔 여기 도달 전에 예외 → 재고 차감은 로컬이라 롤백된다.
+        // 주문 확정 + 저장(로컬).
         order.confirm(paymentId);
+        OrderView saved = OrderView.from(saveOrderPort.save(order));
+
+        // 재고 예약을 이벤트로 위임 — OrderPlaced 발행(fire-and-forget). inventory가 비동기 예약.
+        publishOrderPlaced(order, command);
         log.info("주문 확정 orderId={} paymentId={} total={}", order.getId(), paymentId, order.getTotalAmount());
-        return OrderView.from(saveOrderPort.save(order));
+        return saved;
+    }
+
+    private void publishOrderPlaced(Order order, PlaceOrderCommand command) {
+        List<OrderPlacedEvent.Item> items = command.items().stream()
+                .map(i -> new OrderPlacedEvent.Item(i.productId(), i.quantity(), i.unitPrice()))
+                .toList();
+        publishOrderEventPort.orderPlaced(new OrderPlacedEvent(order.getId(), command.customerId(), items));
     }
 
     @Override
@@ -75,13 +78,5 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery, GetStockQuery {
     @Transactional(readOnly = true)
     public List<OrderView> listOrders() {
         return loadOrderPort.loadAll().stream().map(OrderView::from).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public StockView getStock(UUID productId) {
-        return loadStockPort.loadByProductId(productId)
-                .map(StockView::from)
-                .orElseThrow(() -> new StockNotFoundException(productId));
     }
 }

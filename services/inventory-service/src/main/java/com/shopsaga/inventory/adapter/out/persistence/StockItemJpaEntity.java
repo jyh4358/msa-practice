@@ -1,0 +1,35 @@
+package com.shopsaga.inventory.adapter.out.persistence;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+/** 재고 영속 모델(JPA). product_id 가 자연키(앱 할당). */
+@Entity
+@Table(name = "stock_items")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+class StockItemJpaEntity {
+
+    @Id
+    @Column(name = "product_id")
+    private UUID productId;
+
+    @Column(name = "available_quantity", nullable = false)
+    private int availableQuantity;
+
+    StockItemJpaEntity(UUID productId, int availableQuantity) {
+        this.productId = productId;
+        this.availableQuantity = availableQuantity;
+    }
+
+    void setAvailableQuantity(int availableQuantity) {
+        this.availableQuantity = availableQuantity;
+    }
+}

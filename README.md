@@ -11,7 +11,7 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 ---
 
-## 현재 상태: Phase 8 — 관측성(분산 트레이싱·메트릭)
+## 현재 상태: Phase 9 — 비동기 이벤트(Kafka, 재고 분리)
 
 6개 서비스가 **중앙 설정(Config Server)** 에서 설정을 받고, **서비스 디스커버리(Eureka)** 로 서로를
 이름으로 찾으며, **API 게이트웨이**가 단일 진입점이고, **JWT(RS256)** 로 인증/인가가 걸려 있습니다.
@@ -19,6 +19,8 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 이제 이 전체 스택(6 서비스 + 2 DB)을 **`docker compose up` 한 번으로** 컨테이너로 띄울 수 있습니다.
 **Phase 8**부터는 한 요청이 게이트웨이→주문→결제를 거치는 과정을 **하나의 분산 트레이스**로 추적하고 지표(메트릭)를 모아,
 `grafana/otel-lgtm` 올인원 백엔드의 **Grafana(:3000)** 에서 눈으로 봅니다.
+**Phase 9**부터는 order가 재고를 직접 예약하지 않고 **`OrderPlaced` 이벤트를 Kafka로 발행**하면
+분리된 **inventory-service**가 **비동기로** 소비해 예약합니다(결과적 일관성). Kafka·inventory는 **`--profile async`** 로 기동합니다.
 
 | 서비스 | 포트 | 역할 | DB |
 |---|---|---|---|
@@ -28,6 +30,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **gateway-service** | 8000 | 단일 진입점 라우팅 + 엣지 인증(리소스 서버) | — |
 | **order-service** | 8080 | 주문 + 재고, 결제는 payment 원격 호출 | `orderdb`@5432 |
 | **payment-service** | 8081 | 결제 캡처 | `paymentdb`@5433 |
+| **inventory-service** | 8082 | 재고 예약(`OrderPlaced` **비동기** 소비 — `--profile async`) | `inventorydb`@5434 |
 
 - 클라이언트는 **게이트웨이(8000)** 만 알면 됩니다. 서비스 위치는 Eureka가, 인증은 JWT가 처리.
 - 서비스 간 통신은 **이름 기반**(게이트웨이 `lb://order-service`, order→payment `http://payment-service` @LoadBalanced).
@@ -51,6 +54,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **6** | **중앙 설정**(Spring Cloud Config, native 백엔드 + 시크릿 암호화) | [PHASE-6-CONFIG.md](./docs/PHASE-6-CONFIG.md) |
 | **7** | **로컬 오케스트레이션**(Docker Compose — 이미지 빌드·서비스명 DNS·기동순서) | [PHASE-7-COMPOSE.md](./docs/PHASE-7-COMPOSE.md) |
 | **8** | **관측성**(트레이싱·메트릭·**로그→Loki**·**RED 대시보드**·트레이스↔로그 점프 — OTLP → `grafana/otel-lgtm`) | [PHASE-8-OBSERVABILITY.md](./docs/PHASE-8-OBSERVABILITY.md) |
+| **9** | **비동기 이벤트**(Kafka — 재고 분리, `OrderPlaced` 발행/소비, HTTP→Kafka 트레이스, 리플레이) | [PHASE-9-ASYNC-KAFKA.md](./docs/PHASE-9-ASYNC-KAFKA.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 
@@ -129,9 +133,9 @@ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" local
 
 ---
 
-## 다음: Phase 9 — Kafka
+## 다음: Phase 10 — Outbox + 멱등성
 
-Phase **8**(관측성)을 마쳤습니다 — 8a(트레이스+메트릭), 8b(**로그→Loki**·**RED 대시보드**·**트레이스↔로그 점프**).
-관측성 스택 **컴포넌트 완전 분리**(Collector·Tempo·Loki·Prometheus 개별 컨테이너)만 이후 선택 과제로 남습니다.
-다음은 **9 Kafka**(비동기 이벤트) → 10 outbox → 11 CQRS → 12·13 Saga → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+Phase **9a**(Kafka 비동기 이벤트: 재고 분리·`OrderPlaced` 발행/소비·HTTP→Kafka 트레이스·리플레이)를 마쳤습니다.
+다음 **10 Outbox**는 order의 **이중 쓰기**(save + 발행이 비원자적)와 **멱등성**(중복 소비)을 해결합니다(신뢰성 척추).
+이후 **11 CQRS** → 12·13 Saga(보상) → 14 복원력 → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md) 참고.
