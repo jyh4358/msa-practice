@@ -26,3 +26,5 @@ include(":services:auth-service")
 // Phase 9: 비동기 이벤트(Kafka) — 재고를 자기 서비스로 분리 + 이벤트 계약 전용 공유 모듈.
 include(":services:inventory-service")
 include(":shared:events")
+// Phase 11: CQRS — 이벤트를 구독해 비정규화 읽기 모델(MongoDB)을 유지하는 조회 전용 서비스.
+include(":services:order-query-service")

@@ -75,3 +75,4 @@ Phase 10(Outbox+멱등)까지 완료. 다음:
 - bash cwd가 리셋될 수 있음 → gradle/compose는 **절대경로**(`/Users/younho/IdeaProjects/msa/gradlew -p ...`) 권장.
 - 커스텀 빌더/템플릿은 관측 계측이 빠질 수 있음(Phase 8: RestClient에 `ObservationRegistry`, Kafka는 `observation-enabled`).
 - 단일노드 Kafka: 내부토픽 `replication-factor=1`, `NewTopic` `replicas(1)`, auto-create off.
+- **Apple Silicon + mongo(Phase 11)**: Docker가 `mongo:8`의 **amd64 변이**를 당겨오면 에뮬레이션에서 AVX가 없어 mongod가 안 뜬다(컨테이너는 running인데 포트 미개방 → Testcontainers "Timed out waiting for log output"). 확인 `docker image inspect mongo:8 --format '{{.Architecture}}'`(arm64여야 함)·컨테이너 `uname -m`(aarch64). 해결 `docker rmi mongo:8 && docker pull --platform linux/arm64 mongo:8`.

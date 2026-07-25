@@ -61,6 +61,8 @@ const DOCS = [
     desc: '재고 분리·OrderPlaced 이벤트·HTTP→Kafka 트레이스·리플레이' },
   { key: 'PHASE-10-OUTBOX', out: 'PHASE-10-OUTBOX.html', title: 'Phase 10 · Outbox+멱등성', group: 'Phase 단계별', file: 'docs/PHASE-10-OUTBOX.md',
     desc: '트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자(effectively-once)' },
+  { key: 'PHASE-11-CQRS', out: 'PHASE-11-CQRS.html', title: 'Phase 11 · CQRS 읽기 모델', group: 'Phase 단계별', file: 'docs/PHASE-11-CQRS.md',
+    desc: '이벤트 투영·MongoDB 읽기 모델·결정성·리플레이로 재구축' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

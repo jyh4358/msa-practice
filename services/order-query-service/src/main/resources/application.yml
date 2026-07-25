@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: order-query-service     # {application} 키 — config-service가 이 이름으로 설정을 찾음
+  config:
+    import: "optional:configserver:http://localhost:8888"
+
+server:
+  port: 8083                      # order 8080 · payment 8081 · inventory 8082 · order-query 8083
+  shutdown: graceful

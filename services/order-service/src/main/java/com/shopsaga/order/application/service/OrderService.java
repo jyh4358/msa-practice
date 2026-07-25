@@ -64,7 +64,9 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
         List<OrderPlacedEvent.Item> items = command.items().stream()
                 .map(i -> new OrderPlacedEvent.Item(i.productId(), i.quantity(), i.unitPrice()))
                 .toList();
-        publishOrderEventPort.orderPlaced(new OrderPlacedEvent(order.getId(), command.customerId(), items));
+        // Phase 11: 총액·발생시각을 이벤트에 담는다 — 읽기 모델이 스스로 계산/시계를 읽지 않도록(투영 결정성).
+        publishOrderEventPort.orderPlaced(new OrderPlacedEvent(
+                order.getId(), command.customerId(), items, order.getTotalAmount(), order.getCreatedAt()));
     }
 
     @Override

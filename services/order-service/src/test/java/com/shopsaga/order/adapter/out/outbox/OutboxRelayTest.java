@@ -34,15 +34,17 @@ class OutboxRelayTest {
     OutboxJpaRepository repository;
     @Mock
     KafkaTemplate<String, Object> kafkaTemplate;
+    // Spring 이 주입하는 ObjectMapper 와 동일하게 JSR-310(Instant) 모듈을 등록한 매퍼를 쓴다.
     @Spy
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     @InjectMocks
     OutboxRelay relay;
 
     private OutboxMessageJpaEntity unpublishedRow() {
         UUID orderId = UUID.randomUUID();
         String payload = serialize(new OrderPlacedEvent(orderId, UUID.randomUUID(),
-                List.of(new OrderPlacedEvent.Item(UUID.randomUUID(), 1, new BigDecimal("10.00")))));
+                List.of(new OrderPlacedEvent.Item(UUID.randomUUID(), 1, new BigDecimal("10.00"))),
+                new BigDecimal("10.00"), Instant.parse("2026-07-18T10:00:00Z")));
         return new OutboxMessageJpaEntity(UUID.randomUUID(), orderId,
                 OrderPlacedEvent.class.getName(), OutboxRelay.ORDER_PLACED_TOPIC, payload, Instant.now());
     }

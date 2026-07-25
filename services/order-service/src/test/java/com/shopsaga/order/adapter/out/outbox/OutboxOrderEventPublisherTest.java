@@ -12,6 +12,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,8 +27,10 @@ class OutboxOrderEventPublisherTest {
 
     @Mock
     OutboxJpaRepository repository;
+    // Spring 이 주입하는 ObjectMapper 와 동일하게 JSR-310(Instant) 모듈을 등록한 매퍼를 쓴다.
+    // (bare new ObjectMapper() 는 Instant 직렬화를 못 해 실제 런타임과 다르게 동작한다.)
     @Spy
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     @InjectMocks
     OutboxOrderEventPublisher publisher;
     @Captor
@@ -39,7 +42,8 @@ class OutboxOrderEventPublisherTest {
         UUID customerId = UUID.randomUUID();
         UUID productId = UUID.randomUUID();
         OrderPlacedEvent event = new OrderPlacedEvent(orderId, customerId,
-                List.of(new OrderPlacedEvent.Item(productId, 2, new BigDecimal("10.00"))));
+                List.of(new OrderPlacedEvent.Item(productId, 2, new BigDecimal("10.00"))),
+                new BigDecimal("20.00"), Instant.parse("2026-07-18T10:00:00Z"));
 
         publisher.orderPlaced(event);
 

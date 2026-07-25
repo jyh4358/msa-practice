@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 11 · CQRS 읽기 모델 · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li class="active"><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-11--cqrs-읽기-모델-이벤트로-채우는-조회-전용-저장소">Phase 11 — CQRS 읽기 모델 (이벤트로 채우는 조회 전용 저장소)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> 새 서비스 <strong>order-query-service</strong>가 <code>OrderPlaced</code> 이벤트를 구독해
+<strong>조회 화면 모양 그대로 비정규화한 읽기 모델</strong>(MongoDB <code>order_views</code>)을 유지한다.
+쓰기(주문 생성)는 order-service, 읽기(조회)는 이 서비스 — <strong>커맨드와 쿼리가 서로 다른 서비스·다른 DB</strong>가 된다.
+읽기 모델은 이벤트로부터 만들어지므로 <strong>지웠다가 처음부터 재생(replay)해도 같은 상태</strong>로 복원된다.</p>
+</blockquote>
+<p>초심자(Java/Spring은 알지만 CQRS는 처음) 기준으로 <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>order-query-service 신설</strong>(포트 8083, 패키지 <code>com.shopsaga.orderquery</code>, 헥사고날) — <strong>조회 전용</strong>(POST/PUT/DELETE 없음).</li>
+<li><strong>MongoDB 읽기 모델</strong>(<code>order_views</code>) — 주문 1건 + 품목 N줄을 <strong>한 문서</strong>에 비정규화 저장(조인 없음).</li>
+<li><strong>투영기(projector)</strong> — <code>@KafkaListener(groupId=&quot;order-query-service&quot;)</code>가 <code>OrderPlaced</code>를 받아 문서를 <strong>upsert</strong>.</li>
+<li><strong>조회 API</strong> — <code>GET /order-views?customerId=</code>(고객 주문 목록), <code>GET /order-views/{orderId}</code>(단건). 게이트웨이 라우트 추가.</li>
+<li><strong>이벤트 계약 확장</strong> — <code>OrderPlacedEvent</code>에 <code>totalAmount</code>·<code>occurredAt</code> 추가(<strong>투영이 스스로 계산·시계를 읽지 않게</strong> = 결정성).</li>
+<li>compose에 <strong><code>mongo:8</code></strong> + order-query-service 추가(<strong><code>--profile async</code></strong>), 중앙설정에 <code>{cipher}</code> 비번.</li>
+</ul>
+<blockquote>
+<p><strong>범위(Phase 11):</strong> 읽기 모델 하나(<code>OrderPlaced</code> → <code>order_views</code>)를 end-to-end로. 상태 전이
+(<code>InventoryReserved</code>/<code>PaymentCharged</code> → reserved/charged)는 그 이벤트들이 생기는 <strong>Phase 12</strong>에서 확장한다. &quot;한 Phase 한 개념&quot;.</p>
+</blockquote>
+<hr>
+<h2 id="1-왜--직전phase-10의-문제">1. 왜 — 직전(Phase 10)의 문제</h2>
+<p>지금까지 조회는 <strong>쓰기 모델을 그대로 읽는 것</strong>이었다. <code>GET /orders/{id}</code>는 <code>orders</code> + <code>order_items</code>를 조인해 만든다.
+이 구조의 문제는 규모가 커질 때 드러난다:</p>
+<ul>
+<li><strong>한 모델이 두 일을 겸한다.</strong> 쓰기는 <strong>정규화</strong>(중복 없음·정합성)를 원하고, 읽기는 <strong>비정규화</strong>(한 번에 다 읽기)를 원한다.
+둘을 한 테이블로 만족시키려면 조회마다 조인·집계를 반복해야 한다.</li>
+<li><strong>읽기 부하가 쓰기를 방해한다.</strong> &quot;내 주문 목록&quot; 같은 조회가 폭증하면 <strong>주문 생성 트랜잭션과 같은 DB</strong>를 경합한다.</li>
+<li><strong>독립 확장이 안 된다.</strong> 읽기만 10배 늘려야 하는데 쓰기 DB까지 같이 키워야 한다.</li>
+</ul>
+<p><strong>CQRS</strong>(Command Query Responsibility Segregation)는 이 둘을 <strong>분리</strong>한다: 쓰기는 쓰기 모델에, 읽기는 <strong>읽기 전용 모델</strong>에.
+그리고 그 읽기 모델을 최신으로 유지하는 방법이 <strong>이벤트 투영</strong>이다 — 이미 Phase 9~10에서 <strong>신뢰성 있는 이벤트 흐름</strong>
+(outbox → Kafka → 멱등 소비)을 깔아 뒀기 때문에, 그 위에 소비자를 하나 더 붙이면 된다.</p>
+<blockquote>
+<p>💡 <strong>이게 Phase 10 다음인 이유:</strong> 투영이 이벤트를 놓치거나(유실) 중복 반영하면 읽기 모델은 <strong>조용히 틀린 값</strong>을 보여준다.
+유실/유령이 없는 이벤트 흐름(Phase 10) 위에서만 투영을 신뢰할 수 있다.</p>
+</blockquote>
+<hr>
+<h2 id="2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</h2>
+<ul>
+<li><strong>CQRS:</strong> 커맨드(상태를 바꾸는 요청)와 쿼리(상태를 읽는 요청)의 <strong>책임을 분리</strong>하는 설계. 극단적으로는 <strong>모델·저장소·서비스까지</strong> 분리(이번 단계).</li>
+<li><strong>쓰기 모델 / 읽기 모델:</strong> 정합성을 위한 정규화 모델 / 조회 편의를 위한 비정규화 모델. 같은 사실의 <strong>두 표현</strong>이다.</li>
+<li><strong>비정규화(denormalization):</strong> 조회 시 조인하지 않도록 필요한 데이터를 <strong>미리 한곳에 모아 두는 것</strong>(여기선 품목을 주문 문서 안에).</li>
+<li><strong>투영(projection):</strong> 이벤트 스트림을 읽어 읽기 모델을 만들어 가는 과정. 그 코드를 <strong>투영기(projector)</strong> 라 한다.</li>
+<li><strong>투영의 결정성(determinism):</strong> 같은 이벤트 스트림을 다시 재생하면 <strong>항상 같은 읽기 모델</strong>이 나오는 성질.
+투영 안에서 <code>Instant.now()</code>·<code>random()</code>·외부 API 호출을 하면 깨진다.</li>
+<li><strong>리플레이(replay)로 재구축:</strong> 읽기 모델을 <strong>지우고</strong> 컨슈머 오프셋을 0으로 되돌려 처음부터 다시 투영 → 읽기 모델 복원.
+읽기 모델은 <strong>파생 데이터</strong>이므로 언제든 버릴 수 있다는 것이 CQRS의 큰 장점이다(스키마를 바꾸고 재구축도 가능).</li>
+<li><strong>결과적 일관성(eventual consistency):</strong> 주문 생성 직후 아주 짧은 순간, 쓰기 측엔 있고 읽기 측엔 <strong>아직 없다</strong>. 잠시 뒤 수렴한다.</li>
+<li><strong>컨슈머 그룹이 다르면 오프셋도 다르다:</strong> inventory와 order-query가 <strong>같은 토픽을 각자 독립적으로</strong> 처음부터 읽을 수 있는 이유.</li>
+</ul>
+<hr>
+<h2 id="3-구성-그림">3. 구성 (그림)</h2>
+<pre><code>                    ┌──────────── 쓰기(Command) ────────────┐
+  client ─POST /orders─▶ gateway ─▶ order-service ─▶ orderdb (정규화: orders + order_items)
+                                        │ outbox → 릴레이 (Phase 10)
+                                        ▼
+                              ┌─ Kafka: order-placed ─┐  ← 하나의 이벤트, 여러 소비자
+                              └────┬─────────────┬────┘
+       group=inventory-service ────┘             └──── group=order-query-service
+                    ▼                                        ▼
+            inventory-service                        order-query-service
+          (재고 예약 · 부수효과)                    (투영 · 읽기 모델 유지)
+                    │                                        │
+              inventorydb                            order-query-mongo
+                                                    order_views (비정규화 문서)
+                                                             ▲
+  client ─GET /order-views?customerId=─▶ gateway ─────────────┘  (조인 없음, 문서 1개 읽기)
+</code></pre><ul>
+<li><strong>같은 토픽 두 소비자</strong>: 컨슈머 그룹이 다르므로 재고 예약과 읽기 모델 투영이 <strong>서로 독립</strong>(한쪽이 죽어도 다른 쪽은 계속).</li>
+<li><strong>읽기 DB가 따로</strong>: <code>order-query-mongo</code>는 <code>orderdb</code>와 완전히 분리 — 조회 폭주가 주문 처리를 건드리지 않는다.</li>
+<li><strong>실행</strong>: mongo·order-query-service도 <strong><code>--profile async</code></strong>(Kafka 필요).</li>
+</ul>
+<hr>
+<h2 id="4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</h2>
+<h3 id="41-이벤트-계약-확장--결정성의-출발점">4.1 이벤트 계약 확장 — 결정성의 출발점</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">OrderPlacedEvent</span><span class="hljs-params">(
+        UUID orderId, UUID customerId, List&lt;Item&gt; items,
+        BigDecimal totalAmount,   // ★ Phase 11 추가
+        Instant occurredAt        // ★ Phase 11 추가 (= 주문 생성 시각)</span>
+) { <span class="hljs-keyword">public</span> <span class="hljs-keyword">record</span> <span class="hljs-title class_">Item</span><span class="hljs-params">(UUID productId, <span class="hljs-type">int</span> quantity, BigDecimal unitPrice)</span> {} }
+</code></pre><p><strong>왜 시각을 이벤트에 담는가:</strong> 투영기가 <code>Instant.now()</code>를 쓰면 리플레이할 때마다 값이 달라져 &quot;지우고 재생하면 같은 상태&quot;가
+거짓이 된다. <strong>시각도 이벤트가 실어 오는 사실</strong>이어야 한다. 총액도 마찬가지로 발행자가 확정한 값을 그대로 쓴다.</p>
+<h3 id="42-읽기-모델-문서-mongodb--id가-멱등성의-근거">4.2 읽기 모델 문서 (MongoDB) — <code>@Id</code>가 멱등성의 근거</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Document(collection = &quot;order_views&quot;)</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderViewDocument</span> {
+    <span class="hljs-meta">@Id</span> <span class="hljs-keyword">private</span> UUID orderId;          <span class="hljs-comment">// ★ orderId를 _id로 → save()가 &quot;덮어쓰기(upsert)&quot;</span>
+    <span class="hljs-meta">@Indexed</span> <span class="hljs-keyword">private</span> UUID customerId;  <span class="hljs-comment">// 고객별 조회 인덱스</span>
+    <span class="hljs-keyword">private</span> String status;
+    <span class="hljs-keyword">private</span> BigDecimal totalAmount;
+    <span class="hljs-keyword">private</span> Instant placedAt;
+    <span class="hljs-keyword">private</span> List&lt;LineDocument&gt; lines;  <span class="hljs-comment">// 품목을 문서 안에 중첩(비정규화) → 조인 없음</span>
+}
+</code></pre><p><code>@Id</code>가 orderId라서 같은 이벤트를 두 번 투영하면 <strong>같은 문서를 같은 값으로 덮어쓴다</strong> = 투영이 자동으로 멱등.
+그래서 이 서비스엔 Phase 10 같은 <code>processed_messages</code> dedup 테이블이 <strong>필요 없다</strong>
+(재고 예약은 &quot;차감&quot;이라 누적 부수효과가 있었지만, 투영은 &quot;현재 모습 덮어쓰기&quot;라서 반복이 무해하다).</p>
+<h3 id="43-투영기--이벤트--읽기-모델">4.3 투영기 — 이벤트 → 읽기 모델</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@UseCase</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderViewProjectionService</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">ProjectOrderPlacedUseCase</span> {
+    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">project</span><span class="hljs-params">(OrderPlacedEvent event)</span> {
+        List&lt;OrderView.Line&gt; lines = event.items().stream()
+                .map(i -&gt; <span class="hljs-keyword">new</span> <span class="hljs-title class_">OrderView</span>.Line(i.productId(), i.quantity(), i.unitPrice()))  <span class="hljs-comment">// lineTotal 미리 계산</span>
+                .toList();
+        repository.save(<span class="hljs-keyword">new</span> <span class="hljs-title class_">OrderView</span>(
+                event.orderId(), event.customerId(), <span class="hljs-string">&quot;CONFIRMED&quot;</span>,
+                event.totalAmount(),   <span class="hljs-comment">// 이벤트 값(재계산 안 함)</span>
+                event.occurredAt(),    <span class="hljs-comment">// ★ 이벤트의 시각(투영 시점의 시계 아님)</span>
+                lines));
+    }
+}
+</code></pre><p><code>lineTotal</code>(단가×수량)을 <strong>저장 시점에 미리 계산</strong>해 넣는 것도 읽기 최적화다 — 조회할 때 계산하지 않는다.</p>
+<h3 id="44-소비--컨슈머-그룹이-다르다">4.4 소비 — 컨슈머 그룹이 다르다</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@KafkaListener(topics = &quot;order-placed&quot;, groupId = &quot;order-query-service&quot;)</span>   <span class="hljs-comment">// inventory와 다른 그룹!</span>
+<span class="hljs-keyword">void</span> <span class="hljs-title function_">on</span><span class="hljs-params">(OrderPlacedEvent event)</span> { projectOrderPlacedUseCase.project(event); }
+</code></pre><p>그룹이 다르므로 <strong>오프셋이 따로</strong> 관리된다 → 재고 소비와 무관하게 이 서비스만 offset 0으로 되돌려 재구축할 수 있다.</p>
+<h3 id="45-조회-api--쓰기-엔드포인트가-없다">4.5 조회 API — 쓰기 엔드포인트가 없다</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@RestController</span> <span class="hljs-meta">@RequestMapping(&quot;/order-views&quot;)</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderViewController</span> {
+    <span class="hljs-meta">@GetMapping</span>        List&lt;OrderSummary&gt; <span class="hljs-title function_">byCustomer</span><span class="hljs-params">(<span class="hljs-meta">@RequestParam</span> UUID customerId)</span> { ... }
+    <span class="hljs-meta">@GetMapping(&quot;/{orderId}&quot;)</span> OrderSummary <span class="hljs-title function_">byOrderId</span><span class="hljs-params">(<span class="hljs-meta">@PathVariable</span> UUID orderId)</span> { ... }
+}
+</code></pre><p>게이트웨이에 라우트 추가(<code>/order-views/**</code> → <code>lb://order-query-service</code>) — 클라이언트는 여전히 <strong>:8000만</strong> 안다.
+<code>GET /orders/{id}</code>(쓰기 모델 직접 조회)는 그대로 남아 있어, <strong>두 방식을 비교</strong>해 볼 수 있다.</p>
+<h3 id="46-금액-표현--decimal128-명시">4.6 금액 표현 — Decimal128 명시</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Bean</span> MongoCustomConversions <span class="hljs-title function_">mongoCustomConversions</span><span class="hljs-params">()</span> {
+    <span class="hljs-keyword">return</span> MongoCustomConversions.create(a -&gt; a.bigDecimal(BigDecimalRepresentation.DECIMAL128));
+}
+</code></pre><p>Spring Data MongoDB 4.5의 기본값은 <code>BigDecimal</code> → <strong>문자열</strong> 저장이다. 값은 보존되지만 문자열이라
+<strong>숫자 비교·범위 쿼리·집계가 사전순으로 어긋난다</strong>(&quot;9&quot; &gt; &quot;10&quot;). 읽기 모델은 조회·집계가 본업이므로
+MongoDB 고유 10진 타입 <code>Decimal128</code>(= <code>NumberDecimal</code>)로 저장한다.</p>
+<h3 id="47-설정인프라">4.7 설정·인프라</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># config-repo/order-query-service.yml — 문서형이라 datasource·Flyway가 없다</span>
+<span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">data:</span>
+    <span class="hljs-attr">mongodb:</span>
+      <span class="hljs-attr">host:</span> <span class="hljs-string">localhost</span>            <span class="hljs-comment"># docker 프로파일이 order-query-mongo 로 오버라이드</span>
+      <span class="hljs-attr">database:</span> <span class="hljs-string">orderquerydb</span>
+      <span class="hljs-attr">username:</span> <span class="hljs-string">orderquery</span>
+      <span class="hljs-attr">password:</span> <span class="hljs-string">&#x27;{cipher}5c12e254…&#x27;</span>      <span class="hljs-comment"># 중앙 암호화(Phase 6)</span>
+      <span class="hljs-attr">authentication-database:</span> <span class="hljs-string">admin</span>      <span class="hljs-comment"># mongo 루트 사용자는 admin DB에 생성됨</span>
+</code></pre><pre><code class="hljs language-yaml"><span class="hljs-comment"># compose — mongo:8 (healthcheck는 mongosh! mongo:6+ 는 레거시 셸 제거됨)</span>
+<span class="hljs-attr">order-query-mongo:</span>
+  <span class="hljs-attr">image:</span> <span class="hljs-string">mongo:8</span>
+  <span class="hljs-attr">profiles:</span> [<span class="hljs-string">async</span>]
+  <span class="hljs-attr">healthcheck:</span>
+    <span class="hljs-attr">test:</span> [<span class="hljs-string">&quot;CMD-SHELL&quot;</span>, <span class="hljs-string">&quot;mongosh --quiet --eval \&quot;db.adminCommand(&#x27;ping&#x27;).ok\&quot; || exit 1&quot;</span>]
+</code></pre><hr>
+<h2 id="5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</h2>
+<ol>
+<li><code>POST :8000/orders</code> → order-service가 주문 저장 + <strong>outbox 기록</strong>(한 트랜잭션, Phase 10) → 201 즉시 응답.</li>
+<li><strong>릴레이</strong>가 outbox row를 Kafka <code>order-placed</code>로 발행(≤1s).</li>
+<li><strong>두 소비자가 각각</strong> 받는다: inventory(재고 예약) · <strong>order-query(읽기 모델 투영)</strong> — 서로 독립.</li>
+<li><code>GET :8000/order-views?customerId=…</code> → <strong>Mongo 문서 하나</strong>를 읽어 품목까지 한 번에 반환(조인 없음).</li>
+</ol>
+<blockquote>
+<p>⏱️ 2~3 사이가 <strong>결과적 일관성 창</strong>이다: 1 직후 4를 호출하면 아직 없을 수 있다(404). 잠시 뒤 나타난다.
+이 &quot;짧은 지연&quot;을 눈으로 보는 것이 이번 단계의 학습 포인트다.</p>
+</blockquote>
+<hr>
+<h2 id="6-원리--트레이드오프">6. 원리 / 트레이드오프</h2>
+<ul>
+<li><strong>얻은 것:</strong> ① 읽기/쓰기 <strong>독립 확장</strong>(조회 폭주가 주문에 영향 없음), ② 조회가 <strong>조인 0회</strong>(문서 1개), ③ 읽기 모델은 <strong>파생물</strong>이라 언제든 지우고 재구축·스키마 변경 가능, ④ 저장소를 <strong>용도에 맞게</strong> 고를 수 있다(쓰기 RDB / 읽기 문서형).</li>
+<li><strong>잃은 것(의도적):</strong> ① <strong>결과적 일관성</strong>(쓰기 직후 읽기에 없을 수 있음 — &quot;내 주문이 안 보여요&quot; UX 문제 → 보통 낙관적 UI·폴링·재조회로 완화), ② <strong>중복 저장</strong>(같은 사실이 두 DB에 존재), ③ <strong>운영 복잡도</strong>(서비스·DB·소비자가 늘고, 투영이 밀리면 lag 모니터링 필요).</li>
+<li><strong>투영은 반드시 결정적이어야 한다:</strong> 그래야 &quot;지우고 offset 0부터 재생 → 동일 상태&quot;가 성립한다. 시계·랜덤·외부 호출을 투영에 넣는 순간 읽기 모델은 <strong>재구축 불가능한 원본 데이터</strong>로 변질된다(= CQRS의 최대 이점 상실).</li>
+<li><strong>⚠️ Apple Silicon 함정(실제로 걸림):</strong> <code>mongo:8</code>은 arm64 이미지를 제공하지만, Docker가 <strong>amd64 변이를 당겨오면</strong> 에뮬레이션으로 돌면서 <code>MongoDB 5.0+ requires a CPU with AVX support</code> 경고만 남기고 <strong>mongod가 아예 뜨지 않는다</strong>(컨테이너는 <code>running</code>인데 포트가 열리지 않음 → Testcontainers는 &quot;Timed out waiting for log output&quot;으로 실패). 판별법은 <code>docker image inspect mongo:8 --format &#39;{{.Architecture}}&#39;</code>(=<code>arm64</code>여야 함) 또는 컨테이너 안에서 <code>uname -m</code>(=<code>aarch64</code>여야 함; <code>x86_64</code>면 잘못된 이미지). 해결: <code>docker rmi mongo:8 &amp;&amp; docker pull --platform linux/arm64 mongo:8</code>. PostgreSQL·Kafka는 이 문제가 없어서 Phase 11에서 처음 만난다.</li>
+<li><strong>왜 dedup 테이블이 없나:</strong> 투영은 <strong>덮어쓰기(idempotent upsert)</strong> 라서 반복이 무해하다. 반면 Phase 10의 재고 예약은 <strong>누적 차감</strong>이라 <code>processed_messages</code>가 필요했다. → <strong>부수효과의 성질</strong>이 멱등 전략을 결정한다.</li>
+<li><strong>읽기 모델은 여러 개일 수 있다:</strong> 같은 이벤트로 &quot;고객용 주문 목록&quot;, &quot;관리자용 통계&quot; 등을 각각 만들면 된다(그룹만 다르게).</li>
+</ul>
+<hr>
+<h2 id="7-검증-실증">7. 검증 (실증)</h2>
+<ul>
+<li><strong>빌드/테스트:</strong> <code>BUILD SUCCESSFUL</code> — 전체 <strong>15개 테스트 통과</strong>(실패 0). 신규 테스트 4종 —<ul>
+<li><strong>투영 매핑</strong>(이벤트 → 읽기 모델, <code>occurredAt</code>을 그대로 사용),</li>
+<li><strong>투영 결정성</strong>(같은 이벤트 2회 투영 → 두 결과 완전 동일; 시계를 썼다면 실패하는 가드),</li>
+<li><strong>실제 Mongo(Testcontainers) 멱등 upsert</strong>(같은 이벤트 2회 → 문서 <strong>1개</strong>),</li>
+<li><strong>비정규화 조회 + Decimal128 왕복</strong>(금액 <code>39.98</code> 정확 보존).</li>
+</ul>
+</li>
+<li><strong>라이브 스모크(<code>--profile async</code>, 15컨테이너):</strong> 주문 전 조회 <code>[]</code> → <code>POST /orders</code>(201, total 20.00) → 투영 → <code>GET /order-views/{orderId}</code> 200.</li>
+<li><strong>결과적 일관성(실측):</strong> 주문 직후 조회 <strong>404</strong>(“아직 투영되지 않았을 수 있음”) → 1s·2s 후에도 404 → <strong>3s 시점 200</strong>으로 수렴. (outbox 릴레이 폴링 ≤1s + Kafka + 투영이 합쳐진 지연.)</li>
+<li><strong>결정성의 증거:</strong> 읽기 모델 <code>placedAt=2026-07-25T14:56:28.033Z</code> = 주문의 <code>created_at</code>(<code>…28.033473+00</code>)과 <strong>동일 시각</strong> → 투영이 자기 시계를 읽지 않았음이 데이터로 증명됨.</li>
+<li><strong>리플레이 재구축(핵심):</strong> 주문 2건 상태를 기준값으로 저장 → Mongo <code>order_views</code> <strong>drop</strong>(0건) → 컨슈머 오프셋 <strong>0으로 리셋</strong> → 재기동 → 2건 재투영 →
+기준값과 <strong>완전 일치(<code>IDENTICAL: True</code>)</strong> — 금액(<code>20.00</code>/<code>25.50</code>)·시각(<code>…28.033Z</code>/<code>…40.017Z</code>)까지 동일.</li>
+<li><strong>저장 타입 확인(mongosh):</strong> <code>_id</code>=UUID(binary), <code>totalAmount</code>·<code>lineTotal</code>=<strong>Decimal128</strong>(<code>20.00</code> 그대로), <code>placedAt</code>=BSON Date.</li>
+<li><strong>독립성:</strong> 같은 토픽 <code>order-placed</code>에 두 그룹(<code>inventory-service</code>, <code>order-query-service</code>)이 <strong>각자 오프셋</strong>으로 등록(둘 다 LAG 0) — 한쪽만 리셋해 재구축해도 재고 소비는 영향 없음.</li>
+<li><strong>경계:</strong> 게이트웨이 경유 목록 조회 200(최근 주문 먼저 — <code>14:58:40</code> → <code>14:56:28</code> 내림차순), <strong>토큰 없으면 401</strong>.</li>
+<li><strong>발견해서 고친 것:</strong> <code>@Indexed</code>만으로는 인덱스가 안 생겼다(Spring Data MongoDB 3.0+ 는 자동 인덱스 생성이 <strong>기본 OFF</strong>) → <code>spring.data.mongodb.auto-index-creation: true</code> 추가 후 <code>indexes=[&quot;_id_&quot;,&quot;customerId&quot;]</code> 확인.</li>
+</ul>
+<blockquote>
+<p>⏱️ 참고: <code>docker stop/start</code> 로 서비스를 되살린 직후엔 Eureka 재등록 전이라 게이트웨이가 잠시 <strong>503</strong>을 준다(재시도하면 정상 — Phase 9a와 동일한 현상).</p>
+</blockquote>
+<blockquote>
+<p>실행: <code>docker compose -f deploy/compose/compose.yml --profile async up -d --build</code>
+보는 법: kafka-ui <code>:8090</code>(그룹별 오프셋/lag) · Swagger <code>:8083/swagger-ui/index.html</code> · <code>mongosh</code> 로 문서 직접 확인.</p>
+</blockquote>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>설명</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>상태 전이 없음</strong></td>
+<td>읽기 모델 status가 항상 <code>CONFIRMED</code> — 예약/결제 상태 전이가 없다(그 이벤트가 아직 없음)</td>
+<td><strong>Phase 12</strong>(<code>InventoryReserved</code>/<code>PaymentCharged</code>/취소 이벤트로 전이)</td>
+</tr>
+<tr>
+<td><strong>결과적 일관성 UX</strong></td>
+<td>주문 직후 읽기 모델 404 가능</td>
+<td>설계상 트레이드오프(완화: 재조회·낙관적 UI). 근본 해결 없음</td>
+</tr>
+<tr>
+<td><strong>투영 lag 관측 없음</strong></td>
+<td>소비 지연을 대시보드로 보지 않음(kafka-ui 수동 확인)</td>
+<td><strong>Phase 14~15</strong>(consumer lag 메트릭·알림)</td>
+</tr>
+<tr>
+<td><strong>투영 실패 처리 없음</strong></td>
+<td>투영 중 예외 → 재시도 무한(브로커가 재배달)</td>
+<td><strong>Phase 14</strong>(DLQ·백오프)</td>
+</tr>
+<tr>
+<td><strong>재구축 절차 수동</strong></td>
+<td>컬렉션 삭제 + 오프셋 리셋을 손으로 함</td>
+<td>운영: 재구축 잡/스크립트(후속)</td>
+</tr>
+<tr>
+<td><strong>읽기 모델 단일</strong></td>
+<td>화면별 최적 모델을 더 만들지 않음</td>
+<td>필요 시 소비자 추가(패턴은 동일)</td>
+</tr>
+<tr>
+<td><strong>Mongo 단일 노드·인증 단순</strong></td>
+<td>학습용(복제셋 아님, 루트 사용자 사용)</td>
+<td>운영: 복제셋·최소권한 사용자, <strong>Phase 15</strong></td>
+</tr>
+<tr>
+<td><strong>시각 정밀도 손실</strong></td>
+<td>주문 <code>created_at</code>은 마이크로초(<code>…28.033473</code>)인데 읽기 모델 <code>placedAt</code>은 <strong>BSON Date = 밀리초</strong>(<code>…28.033</code>)로 절삭</td>
+<td>결정적 절삭이라 리플레이엔 무해. 정밀도가 중요하면 문자열/Long 저장(후속)</td>
+</tr>
+<tr>
+<td><strong>트레이스 분리(Phase 10 상속)</strong></td>
+<td>outbox 릴레이가 별도 스레드라 주문 요청 트레이스와 투영 트레이스가 끊겨 있음</td>
+<td><strong>Phase 12</strong>(<code>traceparent</code> 저장·재주입)</td>
+</tr>
+<tr>
+<td><strong>투영 순서 의존</strong></td>
+<td>파티션 1이라 지금은 순서가 보장되지만, 파티션을 늘리면 같은 주문 이벤트가 순서를 잃을 수 있음(key=orderId로 완화 중)</td>
+<td>운영: key 파티셔닝 유지 + 버전/시퀀스 검사(후속)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어사전">9. 용어사전</h2>
+<ul>
+<li><strong>CQRS:</strong> 커맨드/쿼리 책임 분리. 이번 단계에선 모델·저장소·서비스까지 분리.</li>
+<li><strong>쓰기/읽기 모델:</strong> 정합성용 정규화 모델 / 조회용 비정규화 모델.</li>
+<li><strong>비정규화:</strong> 조인을 없애기 위해 데이터를 미리 한곳에 모아 두기.</li>
+<li><strong>투영(projection)/투영기(projector):</strong> 이벤트로 읽기 모델을 만드는 과정/코드.</li>
+<li><strong>결정성(determinism):</strong> 같은 입력(이벤트 스트림)이면 항상 같은 결과. 리플레이의 전제.</li>
+<li><strong>리플레이 재구축:</strong> 읽기 모델을 지우고 오프셋 0부터 다시 투영해 복원하는 것.</li>
+<li><strong>upsert:</strong> 있으면 덮어쓰고 없으면 삽입. <code>@Id</code>가 있으면 <code>save()</code>가 이 동작.</li>
+<li><strong>Decimal128:</strong> MongoDB의 10진 타입(<code>NumberDecimal</code>) — 금액을 오차 없이 저장·비교.</li>
+<li><strong>컨슈머 그룹:</strong> 오프셋 관리 단위. 그룹이 다르면 같은 토픽을 독립적으로 읽는다.</li>
+</ul>
+<hr>
+<h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
+<ul>
+<li>직전: <a href="PHASE-10-OUTBOX.html">PHASE-10-OUTBOX</a>(이 투영이 신뢰할 수 있는 이유 — 유실/유령 없는 이벤트) · <a href="PHASE-9-ASYNC-KAFKA.html">PHASE-9-ASYNC-KAFKA</a>(토픽·컨슈머 그룹·리플레이 기초)</li>
+<li>아키텍처: <a href="HEXAGONAL.html">HEXAGONAL</a>(투영기=인바운드 어댑터, Mongo=아웃바운드 어댑터) · <a href="PHASE-1-MONOLITH.html">PHASE-1-MONOLITH</a>(원래의 단일 모델 조회와 비교)</li>
+<li>다음: <strong>Phase 12</strong>(Saga: 보상 + 상태 전이 이벤트 → 읽기 모델 status 확장 + outbox <code>traceparent</code> 복원) → 13 오케스트레이션 → 14 복원력</li>
+<li>로드맵: <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a>(Phase 11 §302~) · 큰 그림: <a href="REVIEW-PART-A.html">REVIEW-PART-A</a></li>
+</ul>
+<p><em>각 단계의 “알려진 한계 → 해결 Phase”는 <a href="README.html">README</a> 인덱스에서 모아 볼 수 있습니다.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--직전phase-10의-문제">1. 왜 — 직전(Phase 10)의 문제</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</a></li>
+<li class="toc-h2"><a href="#3-구성-그림">3. 구성 (그림)</a></li>
+<li class="toc-h2"><a href="#4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</a></li>
+<li class="toc-h3"><a href="#41-이벤트-계약-확장--결정성의-출발점">4.1 이벤트 계약 확장 — 결정성의 출발점</a></li>
+<li class="toc-h3"><a href="#42-읽기-모델-문서-mongodb--id가-멱등성의-근거">4.2 읽기 모델 문서 (MongoDB) — @Id가 멱등성의 근거</a></li>
+<li class="toc-h3"><a href="#43-투영기--이벤트--읽기-모델">4.3 투영기 — 이벤트 → 읽기 모델</a></li>
+<li class="toc-h3"><a href="#44-소비--컨슈머-그룹이-다르다">4.4 소비 — 컨슈머 그룹이 다르다</a></li>
+<li class="toc-h3"><a href="#45-조회-api--쓰기-엔드포인트가-없다">4.5 조회 API — 쓰기 엔드포인트가 없다</a></li>
+<li class="toc-h3"><a href="#46-금액-표현--decimal128-명시">4.6 금액 표현 — Decimal128 명시</a></li>
+<li class="toc-h3"><a href="#47-설정인프라">4.7 설정·인프라</a></li>
+<li class="toc-h2"><a href="#5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</a></li>
+<li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>
+<li class="toc-h2"><a href="#7-검증-실증">7. 검증 (실증)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
+<li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
+</body>
+</html>
