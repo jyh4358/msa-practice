@@ -2,6 +2,8 @@ package com.shopsaga.order.adapter.out.persistence;
 
 import com.shopsaga.order.application.port.out.LoadOrderPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
+import com.shopsaga.order.application.port.out.UpdateOrderPort;
+import com.shopsaga.order.application.service.OrderNotFoundException;
 import com.shopsaga.order.domain.Order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -11,22 +13,29 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * 아웃바운드 영속 어댑터: SaveOrderPort/LoadOrderPort 구현.
+ * 아웃바운드 영속 어댑터: 주문 저장/조회/상태전이.
  * 저장은 Spring Data(JpaRepository), 조회는 QueryDSL(OrderQueryRepository)로 fetch join.
  */
 @Component
 @RequiredArgsConstructor
-class OrderPersistenceAdapter implements SaveOrderPort, LoadOrderPort {
+class OrderPersistenceAdapter implements SaveOrderPort, LoadOrderPort, UpdateOrderPort {
 
     private final OrderJpaRepository repository;
     private final OrderQueryRepository queryRepository;
 
     @Override
     public Order save(Order order) {
-        // Phase 0/1: 신규 주문 INSERT 전용 — 도메인 id=null 이라 @GeneratedValue 가 식별자를 부여한다.
-        // (상태 전이 UPDATE 는 Phase 12/13에서 load-then-mutate 로 — docs/HEXAGONAL.md §3.3)
+        // 신규 주문 INSERT. id는 도메인이 생성한 값을 쓰므로 save()는 merge 경로(신규는 SELECT 후 INSERT).
         OrderJpaEntity saved = repository.save(OrderMapper.toJpaEntity(order));
         return OrderMapper.toDomain(saved);
+    }
+
+    @Override
+    public void update(Order order) {
+        // Phase 12: load-then-mutate — managed 엔티티를 불러와 상태 필드만 바꾼다(자식 컬렉션 무손상).
+        OrderJpaEntity managed = repository.findById(order.getId())
+                .orElseThrow(() -> new OrderNotFoundException(order.getId()));
+        managed.applyTransition(order.getStatus(), order.getPaymentId());
     }
 
     @Override

@@ -1,32 +1,38 @@
 package com.shopsaga.inventory.application.service;
 
+import com.shopsaga.events.OrderPlacedEvent;
+import com.shopsaga.events.PaymentDeclinedEvent;
 import com.shopsaga.inventory.application.UseCase;
 import com.shopsaga.inventory.application.port.in.GetStockQuery;
-import com.shopsaga.inventory.application.port.in.ReserveStockUseCase;
+import com.shopsaga.inventory.application.port.in.InventorySagaUseCase;
 import com.shopsaga.inventory.application.port.in.StockView;
 import com.shopsaga.inventory.application.port.out.LoadStockPort;
-import com.shopsaga.inventory.application.port.out.ProcessedMessagePort;
-import com.shopsaga.inventory.application.port.out.ReserveStockPort;
 import com.shopsaga.inventory.domain.InsufficientStockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * 재고 유스케이스 구현. 조회(GetStockQuery) + 예약(ReserveStockUseCase, Kafka 소비자가 호출).
+ * 재고 유스케이스 구현 — 조회 + Saga 참여(예약/보상)의 <b>흐름 조합</b>.
+ *
+ * <p><b>Phase 12에서 달라진 점:</b> 예약 결과를 <b>이벤트로 알린다</b>. Phase 9에서는 재고가 부족해도
+ * 로그만 남겨 주문이 영원히 매달려 있었다(정합성 구멍). 이제 실패도 사실로 발행되어 order가 주문을 취소한다.
+ * 성공 시엔 무엇을 잡았는지 원장에 남겨 두고, 결제가 거절되면 그 원장을 보고 <b>보상</b>한다.
+ *
+ * <p>이 클래스는 <b>트랜잭션 경계를 조합</b>만 한다(실제 단위는 {@link StockSagaTransactions}) —
+ * 성공/실패가 각각 독립된 커밋이어야 하기 때문이다(실패는 롤백하되 실패 이벤트는 남아야 한다).
  */
 @UseCase
 @RequiredArgsConstructor
 @Slf4j
-class StockService implements GetStockQuery, ReserveStockUseCase {
+class StockService implements GetStockQuery, InventorySagaUseCase {
 
     private final LoadStockPort loadStockPort;
-    private final ReserveStockPort reserveStockPort;
-    private final ProcessedMessagePort processedMessagePort;
+    private final StockSagaTransactions transactions;
 
     @Override
     @Transactional(readOnly = true)
@@ -37,28 +43,32 @@ class StockService implements GetStockQuery, ReserveStockUseCase {
     }
 
     @Override
-    @Transactional
-    public void reserveForOrder(UUID messageId, UUID orderId, Map<UUID, Integer> quantityByProduct) {
-        // Phase 10: 멱등 가드 — 이미 처리한 메시지면 부수효과 없이 건너뛴다(재배달 흡수 = effectively-once).
-        //           dedup 조회·부수효과·처리기록이 모두 이 @Transactional 하나에 원자적으로 커밋된다.
-        if (processedMessagePort.isAlreadyProcessed(messageId)) {
-            log.info("이미 처리된 메시지 — 재고 예약 건너뜀 messageId={} orderId={}", messageId, orderId);
+    public void onOrderPlaced(UUID messageId, OrderPlacedEvent event) {
+        if (transactions.alreadyProcessed(messageId)) {
+            log.info("이미 처리된 메시지 — 예약 건너뜀 messageId={} orderId={}", messageId, event.orderId());
             return;
         }
+        Map<UUID, Integer> quantityByProduct = aggregateByProduct(event);
+        try {
+            transactions.reserve(messageId, event, quantityByProduct);
+        } catch (InsufficientStockException | StockNotFoundException e) {
+            // 예약 트랜잭션은 롤백됐다(부분 차감 없음). 실패 사실만 새 트랜잭션에서 발행한다.
+            transactions.recordFailure(messageId, event, e.getMessage());
+        }
+    }
 
-        // 상품ID 정렬(TreeMap)로 교착 회피 — 여러 주문이 같은 상품들을 동시에 예약해도 락 획득 순서를 일관되게.
-        new TreeMap<>(quantityByProduct).forEach((productId, qty) -> {
-            try {
-                reserveStockPort.reserve(productId, qty);
-                log.info("재고 예약 성공 orderId={} product={} qty={}", orderId, productId, qty);
-            } catch (InsufficientStockException | StockNotFoundException e) {
-                // Phase 9a: 보상 없음 — 로그만 남긴다. 재고가 부족해도 주문은 이미 CONFIRMED(결과적 일관성 문제).
-                //           이 잃어버린 정합성이 Phase 12 Saga(보상=재고 해제/주문 취소)의 동기다.
-                log.warn("재고 예약 실패 orderId={} product={} qty={} — {}", orderId, productId, qty, e.getMessage());
-            }
-        });
+    @Override
+    public void onPaymentDeclined(UUID messageId, PaymentDeclinedEvent event) {
+        if (transactions.alreadyProcessed(messageId)) {
+            log.info("이미 처리된 메시지 — 보상 건너뜀 messageId={} orderId={}", messageId, event.orderId());
+            return;
+        }
+        transactions.release(messageId, event.orderId());
+    }
 
-        // 처리 완료 기록 — 예약 실패(부족/미등록)도 "처리됨"으로 남긴다(재처리해도 결과 동일 → 무한 재시도 방지).
-        processedMessagePort.markProcessed(messageId);
+    private Map<UUID, Integer> aggregateByProduct(OrderPlacedEvent event) {
+        Map<UUID, Integer> quantityByProduct = new HashMap<>();
+        event.items().forEach(i -> quantityByProduct.merge(i.productId(), i.quantity(), Integer::sum));
+        return quantityByProduct;
     }
 }

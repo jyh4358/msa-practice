@@ -29,9 +29,10 @@
 | **8b** 관측성 심화 | `a0f0b1f` | 로그→Loki·RED 대시보드·트레이스↔로그 점프 | logback appender×4 + `OpenTelemetryAppenderInstaller`×4 + `logback-spring.xml`×4, `config-repo` otlp.logging/percentiles-histogram, `deploy/grafana/**` 대시보드, `OrderService` @Slf4j 로그 | 〃 |
 | **9a** 비동기(Kafka) | `a0d04f6` | 재고 분리·OrderPlaced 이벤트·HTTP→Kafka 트레이스·리플레이 | `services/inventory-service/**` 신규, `shared/events/**`(OrderPlacedEvent), order `OrderService`(재고 제거+발행)·`PublishOrderEventPort`·Kafka 어댑터·`V4__drop_local_stock`, `config-repo` kafka, compose kafka·kafka-ui·inventory-db·inventory-service(`--profile async`) | [PHASE-9](PHASE-9-ASYNC-KAFKA.md) |
 | **10** Outbox+멱등 | `4c7ac02` | 트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자(effectively-once)·이중 쓰기 제거 | order `adapter/out/outbox/**`(엔티티·리포·발행어댑터·릴레이)·`V5__outbox`·`@EnableScheduling`, `OrderEventKafkaAdapter` 삭제, inventory `processed_messages`(엔티티·리포·`ProcessedMessagePort`·어댑터)·`V2__processed_messages`·`StockService` 멱등 가드·리스너 `messageId` 헤더, `config-repo` outbox.relay | [PHASE-10](PHASE-10-OUTBOX.md) |
-| **11** CQRS 읽기모델 | _(이 커밋 — 다음 갱신 시 기입)_ | 이벤트 투영→MongoDB 비정규화 읽기 모델·조회 전용 서비스·투영 결정성·리플레이 재구축 | `services/order-query-service/**` 신규(투영기·Mongo 어댑터·조회 API·`MongoConfig` Decimal128), `shared/events` `OrderPlacedEvent`에 `totalAmount`·`occurredAt` 추가, order `OrderService` 발행부 확장, `config-repo` order-query-service(+docker)·gateway `/order-views` 라우트, compose `mongo:8`·order-query-service(`--profile async`) | [PHASE-11](PHASE-11-CQRS.md) |
+| **11** CQRS 읽기모델 | `1dfb81c` | 이벤트 투영→MongoDB 비정규화 읽기 모델·조회 전용 서비스·투영 결정성·리플레이 재구축 | `services/order-query-service/**` 신규(투영기·Mongo 어댑터·조회 API·`MongoConfig` Decimal128), `shared/events` `OrderPlacedEvent`에 `totalAmount`·`occurredAt` 추가, order `OrderService` 발행부 확장, `config-repo` order-query-service(+docker)·gateway `/order-views` 라우트, compose `mongo:8`·order-query-service(`--profile async`) | [PHASE-11](PHASE-11-CQRS.md) |
+| **12** Saga(코레오그래피) | _(이 커밋 — 다음 갱신 시 기입)_ | 동기 결제 제거·주문 상태기계·보상(재고 해제)·outbox traceparent 복원→Saga 한 트레이스 | `shared/outbox/**` 신규(outbox·inbox 메커니즘 공유 라이브러리 + 트레이스 복원), `shared/events` 이벤트 5종+`Topics`, order(상태기계 `Order`·`OrderSagaService`·리스너 2종·`V6__processed_messages`, **동기 결제 어댑터 삭제**), inventory(`StockSagaTransactions`·보상 `release`·예약 원장 `V3`·리스너 2종), payment(`PaymentSagaService`·리스너·`V2__outbox_and_inbox`), order-query(단조 상태 전이 `OrderViewStatus`·3토픽 구독), compose `required:false` kafka 의존 | [PHASE-12](PHASE-12-SAGA.md) |
 
-> _(11 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입.)_
+> _(12 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입.)_
 
 ---
 

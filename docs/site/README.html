@@ -373,7 +373,7 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="shopsaga--msa-핸즈온-학습-플랫폼">ShopSaga — MSA 핸즈온 학습 플랫폼</h1>
@@ -387,7 +387,7 @@ code.hljs {
 <li>도메인: 전자상거래 &quot;ShopSaga&quot; (order → inventory → payment)</li>
 </ul>
 <hr>
-<h2 id="현재-상태-phase-11--cqrs-읽기-모델이벤트-투영">현재 상태: Phase 11 — CQRS 읽기 모델(이벤트 투영)</h2>
+<h2 id="현재-상태-phase-12--saga코레오그래피--보상">현재 상태: Phase 12 — Saga(코레오그래피 + 보상)</h2>
 <p>6개 서비스가 <strong>중앙 설정(Config Server)</strong> 에서 설정을 받고, <strong>서비스 디스커버리(Eureka)</strong> 로 서로를
 이름으로 찾으며, <strong>API 게이트웨이</strong>가 단일 진입점이고, <strong>JWT(RS256)</strong> 로 인증/인가가 걸려 있습니다.
 DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</strong> 되어 중앙 관리됩니다.
@@ -400,7 +400,10 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 별도 <strong>릴레이</strong>가 Kafka로 내보내며, inventory는 <strong><code>messageId</code>로 중복을 걸러</strong>(멱등) 같은 메시지를 여러 번 받아도 재고를 <strong>정확히 한 번</strong> 예약합니다.
 <strong>Phase 11</strong>은 <strong>읽기와 쓰기를 분리(CQRS)</strong> 합니다: 새 <strong>order-query-service</strong>가 같은 이벤트를 <strong>다른 컨슈머 그룹</strong>으로 구독해
 <strong>비정규화 읽기 모델</strong>(MongoDB <code>order_views</code>)을 유지하고 <code>GET /order-views</code> 로 <strong>조인 없이</strong> 조회합니다. 읽기 모델은 파생물이라
-<strong>지우고 offset 0부터 재생하면 동일하게 복원</strong>됩니다(투영의 결정성).</p>
+<strong>지우고 offset 0부터 재생하면 동일하게 복원</strong>됩니다(투영의 결정성).
+<strong>Phase 12</strong>부터는 <strong>동기 결제 호출이 사라지고</strong> 주문·재고·결제가 <strong>이벤트로만 협력하는 Saga</strong>가 됩니다(중앙 조정자 없는 코레오그래피):
+주문은 <code>PENDING → INVENTORY_RESERVED → CONFIRMED | CANCELLED</code> 상태 기계가 되고, 실패하면 <strong>보상</strong>으로 되돌립니다
+(결제 거절 → 재고 자동 해제 + 주문 취소). outbox에 <code>traceparent</code>를 실어 <strong>Saga 전체가 하나의 트레이스</strong>로 보입니다.</p>
 <table>
 <thead>
 <tr>
@@ -437,31 +440,34 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 <tr>
 <td><strong>order-service</strong></td>
 <td>8080</td>
-<td>주문 + 재고, 결제는 payment 원격 호출</td>
+<td>주문 접수 + <strong>Saga 상태기계</strong>(이벤트 듣고 확정/취소)</td>
 <td><code>orderdb</code>@5432</td>
 </tr>
 <tr>
 <td><strong>payment-service</strong></td>
 <td>8081</td>
-<td>결제 캡처</td>
+<td>결제 캡처 — <strong><code>InventoryReserved</code> 구독</strong>(호출자 없음)</td>
 <td><code>paymentdb</code>@5433</td>
 </tr>
 <tr>
 <td><strong>inventory-service</strong></td>
 <td>8082</td>
-<td>재고 예약(<code>OrderPlaced</code> <strong>비동기</strong> 소비 — <code>--profile async</code>)</td>
+<td>재고 예약 + <strong>보상(해제)</strong> — <code>OrderPlaced</code>·<code>PaymentDeclined</code> 구독</td>
 <td><code>inventorydb</code>@5434</td>
 </tr>
 <tr>
 <td><strong>order-query-service</strong></td>
 <td>8083</td>
-<td><strong>CQRS 읽기 모델</strong>(<code>OrderPlaced</code> 투영 → 조회 전용 — <code>--profile async</code>)</td>
+<td><strong>CQRS 읽기 모델</strong>(3토픽 투영 → 조회 전용)</td>
 <td><code>orderquerydb</code>(Mongo)@27017</td>
 </tr>
 </tbody></table>
+<blockquote>
+<p>Phase 12부터 order/payment/inventory 는 <strong>서로 호출하지 않고</strong> Kafka 이벤트로만 협력합니다(<code>--profile async</code> 필수).</p>
+</blockquote>
 <ul>
 <li>클라이언트는 <strong>게이트웨이(8000)</strong> 만 알면 됩니다. 서비스 위치는 Eureka가, 인증은 JWT가 처리.</li>
-<li>서비스 간 통신은 <strong>이름 기반</strong>(게이트웨이 <code>lb://order-service</code>, order→payment <code>http://payment-service</code> @LoadBalanced).</li>
+<li>서비스 간 통신: 게이트웨이는 <strong>이름 기반</strong>(<code>lb://order-service</code>), 업무 흐름은 <strong>Kafka 이벤트</strong>(Phase 12 — 동기 호출 제거).</li>
 <li>설정은 <strong>config-service(8888)</strong> 에서 받습니다(로컬엔 이름·import·포트만). DB 비번은 <code>{cipher}</code> 암호문으로 중앙 저장.</li>
 <li>데모 계정: <code>alice/secret</code>(USER), <code>admin/admin123</code>(USER+ADMIN).</li>
 </ul>
@@ -536,6 +542,11 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 <td><strong>CQRS 읽기 모델</strong>(이벤트 투영 → MongoDB 비정규화 조회, 투영 결정성·리플레이 재구축)</td>
 <td><a href="PHASE-11-CQRS.html">PHASE-11-CQRS.md</a></td>
 </tr>
+<tr>
+<td><strong>12</strong></td>
+<td><strong>Saga: 코레오그래피 + 보상</strong>(동기 결제 제거·주문 상태기계·재고 해제 보상·Saga 한 트레이스)</td>
+<td><a href="PHASE-12-SAGA.html">PHASE-12-SAGA.md</a></td>
+</tr>
 </tbody></table>
 <p>공통 아키텍처 컨벤션은 <a href="HEXAGONAL.html">HEXAGONAL.md</a>, 설치/실행은 <a href="SETUP.html">SETUP.md</a>.</p>
 <blockquote>
@@ -596,13 +607,18 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
 각 서비스 Swagger: <code>http://localhost:&lt;port&gt;/swagger-ui/index.html</code> (order/payment).</p>
 </blockquote>
 <hr>
-<h2 id="다음-phase-12--saga코레오그래피--보상">다음: Phase 12 — Saga(코레오그래피 + 보상)</h2>
-<p>Phase <strong>11</strong>(CQRS 읽기 모델: <code>order-query-service</code>가 이벤트를 MongoDB에 투영, 조인 없는 조회·리플레이 재구축)을 마쳤습니다.
-다음 <strong>12 Saga</strong>는 분산 트랜잭션 없이 일관성을 맞춥니다: <code>InventoryReserved</code>/<code>PaymentCharged</code>/<code>PaymentDeclined</code> 이벤트로
-<strong>보상</strong>(재고 해제·주문 취소)을 구현하고, 읽기 모델의 <strong>상태 전이</strong>도 함께 채웁니다. outbox row에 <code>traceparent</code>를 저장·재주입해
-<strong>Saga 전체를 한 트레이스</strong>로 복원합니다(Phase 10에서 미룬 과제).
-이후 <strong>13 오케스트레이션</strong> → 14 복원력(Resilience4j·DLQ) → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
+<h2 id="다음-phase-13--saga-오케스트레이션">다음: Phase 13 — Saga: 오케스트레이션</h2>
+<p>Phase <strong>12</strong>(코레오그래피 Saga: 동기 결제 제거·주문 상태기계·보상·Saga 한 트레이스)를 마쳤습니다.
+Phase 12의 최대 단점은 <strong>흐름이 여러 서비스에 흩어져 한눈에 안 보인다</strong>는 것입니다.
+다음 <strong>13 오케스트레이션</strong>은 같은 Saga를 <strong>중앙 조정자</strong>(<code>saga_instance</code> 상태 테이블 + reply 처리)로 다시 구현해
+<code>SELECT state FROM saga_instance WHERE order_id=…</code> <strong>한 줄로</strong> 진행 상황을 알 수 있게 하고,
+<strong>타임아웃 sweep</strong>으로 정체된 Saga를 깨웁니다(Phase 12가 못 하는 것).
+이후 <strong>14 복원력</strong>(Resilience4j·DLQ) → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.
 자세한 단계는 <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> 참고.</p>
+<blockquote>
+<p>⚠️ <strong>Phase 12부터 주문 흐름은 <code>--profile async</code>(Kafka)가 필수</strong>입니다. 또한 <code>POST /orders</code> 는
+이제 <code>PENDING</code> 을 즉시 반환하며, 최종 결과(CONFIRMED/CANCELLED)는 <strong>조회로 확인</strong>합니다(결과적 일관성).</p>
+</blockquote>
 
   </article>
   <footer class="site-footer">
@@ -610,7 +626,7 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
     <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
   </footer>
 </main>
-<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-11--cqrs-읽기-모델이벤트-투영">현재 상태: Phase 11 — CQRS 읽기 모델(이벤트 투영)</a></li>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-12--saga코레오그래피--보상">현재 상태: Phase 12 — Saga(코레오그래피 + 보상)</a></li>
 <li class="toc-h2"><a href="#단계별-진행--문서">단계별 진행 &amp; 문서</a></li>
 <li class="toc-h2"><a href="#사전-준비-1회">사전 준비 (1회)</a></li>
 <li class="toc-h2"><a href="#실행--검증-현재-phase-7">실행 &amp; 검증 (현재: Phase 7)</a></li>
@@ -618,6 +634,6 @@ curl -s -o /dev/null -w <span class="hljs-string">&#x27;%{http_code}\n&#x27;</sp
 <li class="toc-h3"><a href="#1-빌드--테스트">1) 빌드 &amp; 테스트</a></li>
 <li class="toc-h3"><a href="#2-인프라--서비스-기동-순서-중요-configdiscovery-먼저">2) 인프라 + 서비스 기동 (순서 중요: config·discovery 먼저)</a></li>
 <li class="toc-h3"><a href="#3-인증--호출-게이트웨이-8000-통과">3) 인증 → 호출 (게이트웨이 8000 통과)</a></li>
-<li class="toc-h2"><a href="#다음-phase-12--saga코레오그래피--보상">다음: Phase 12 — Saga(코레오그래피 + 보상)</a></li></ul></nav></aside>
+<li class="toc-h2"><a href="#다음-phase-13--saga-오케스트레이션">다음: Phase 13 — Saga: 오케스트레이션</a></li></ul></nav></aside>
 </body>
 </html>

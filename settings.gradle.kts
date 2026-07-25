@@ -28,3 +28,5 @@ include(":services:inventory-service")
 include(":shared:events")
 // Phase 11: CQRS — 이벤트를 구독해 비정규화 읽기 모델(MongoDB)을 유지하는 조회 전용 서비스.
 include(":services:order-query-service")
+// Phase 12: Saga — outbox 메커니즘(테이블 아님, 코드)을 3개 발행 서비스가 공유하는 라이브러리.
+include(":shared:outbox")

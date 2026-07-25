@@ -35,4 +35,17 @@ public class StockItem {
         }
         this.availableQuantity -= quantity;
     }
+
+    /**
+     * Phase 12(Saga): <b>보상(semantic undo)</b> — 예약했던 수량을 되돌린다.
+     *
+     * <p>이건 DB 롤백이 아니다. 예약 트랜잭션은 이미 오래전에 커밋됐으므로 되돌릴 수 없고,
+     * "다시 더한다"는 <b>새로운 업무 행위</b>로 효과를 상쇄한다. 그래서 보상은 도메인 연산이다.
+     */
+    public void release(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("release quantity must be positive: " + quantity);
+        }
+        this.availableQuantity += quantity;
+    }
 }

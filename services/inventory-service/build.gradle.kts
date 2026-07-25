@@ -42,9 +42,11 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-otlp")
     implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.15.0-alpha")
 
-    // Phase 9: Kafka 소비(OrderPlaced) + 이벤트 계약 공유 모듈.
+    // Phase 9: Kafka 소비/발행 + 이벤트 계약 공유 모듈.
     implementation("org.springframework.kafka:spring-kafka")
     implementation(project(":shared:events"))
+    // Phase 12: outbox·inbox 메커니즘 공유 라이브러리(테이블은 여전히 서비스별 자기 DB).
+    implementation(project(":shared:outbox"))
 
     // 스키마는 Flyway 소유(ddl-auto=validate).
     implementation(libs.flyway.core)

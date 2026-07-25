@@ -13,7 +13,10 @@
 
 ## 지금까지 완료 (Phase 0~9a)
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
-5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED 대시보드·트레이스↔로그) · 9a 비동기(Kafka) · **10 Outbox+멱등(신뢰성 척추)**.
+5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED 대시보드·트레이스↔로그) · 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · **12 Saga(코레오그래피+보상)**.
+
+> ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
+> `POST /orders` 는 `PENDING` 즉시 반환, 최종 상태는 조회로 확인. 15컨테이너(+order-query-service·mongo).
 - 각 Phase 심화문서: `docs/PHASE-*.md`, `docs/SERVICE-DISCOVERY.md`(P4), `docs/SECURITY.md`(P5). 오프라인 HTML: `docs/site/`(더블클릭). 커밋지도: `docs/PHASE-COMMIT-MAP.md`.
 
 ## 서비스 (13 컨테이너, `--profile async` 기준)
@@ -32,13 +35,18 @@
 | order-db/payment-db/inventory-db | 5432/5433/5434(host) | base/base/async | postgres:18-alpine |
 
 - 데모 계정: `alice/secret`(USER), `admin/admin123`(USER+ADMIN).
-- 이벤트 흐름(9a): 주문 → order가 `OrderPlaced`(topic `order-placed`) 발행 → inventory 소비→재고 예약. **HTTP→Kafka 한 트레이스**(producer↔consumer 스팬, `observation-enabled` template+listener 둘 다 필수).
+- **Saga 흐름(12)**: `POST /orders`→order **PENDING** 저장+outbox(`OrderPlaced`) 한 커밋 → 릴레이(traceparent 복원) → `order-events`
+  → inventory 예약+원장기록 → `InventoryReserved` → **order는 상태만 전이**(INVENTORY_RESERVED), **payment는 같은 이벤트로 청구**
+  → `PaymentCharged` → order **CONFIRMED**+`OrderConfirmed`. 실패: `InventoryFailed`→취소(짧은 보상) / `PaymentDeclined`→**inventory 재고 해제**+order 취소(긴 보상).
+  토픽 3개(order/inventory/payment-events), 소비는 `@KafkaHandler` 타입 분기.
 
 ## git 상태 (중요)
-- HEAD **`a0d04f6`**(Phase 9a). **origin/main보다 5 커밋 앞섬, 전부 미푸시**: `8df41ab`(docs)·`cbb96f8`(HTML사이트)·`7e352d8`(8a)·`a0f0b1f`(8b)·`a0d04f6`(9a).
-- **Phase 10(Outbox+멱등)은 구현·실증 완료했으나 아직 미커밋**(working tree). 커밋 시 order `adapter/out/outbox/**`·`V5__outbox`·`OrderServiceApplication`·(삭제)`OrderEventKafkaAdapter`, inventory `processed_messages`·`V2`·`StockService`·`OrderPlacedListener`·`ReserveStockUseCase`·`ProcessedMessage*`, `config-repo/application.yml`, `docs/PHASE-10-OUTBOX.md`·`README`·`PHASE-COMMIT-MAP`·`build-docs.mjs`·`docs/site/**`, 신규 테스트 3종.
+- HEAD **`1dfb81c`**(Phase 11 CQRS). **origin/main과 동기(Phase 11까지 푸시 완료)**.
+- **Phase 12(Saga)는 구현·실증 완료했으나 아직 미커밋**(working tree): `shared/outbox/**` 신규, `shared/events` 이벤트 5종+`Topics`,
+  order(상태기계·`OrderSagaService`·리스너 2종·`V6`·**동기 결제 어댑터 삭제**), inventory(`StockSagaTransactions`·보상·`V3` 원장·리스너 2종),
+  payment(`PaymentSagaService`·리스너·`V2`), order-query(단조 전이·3토픽), compose·config-repo, docs(PHASE-12·README·map·HTML 20p), 테스트 35개.
 - **푸시는 사용자가 명시 요청할 때만.** 커밋도 사용자 요청 시(단계별 의미 커밋).
-- ⚠️ **`docs/PHASE-COMMIT-MAP.md`의 9a 행은 `a0d04f6`로 채움 완료. 10 행이 placeholder** `_(이 커밋 — 다음 갱신 시 기입)_` → **Phase 10 커밋 시 실제 해시로 채울 것.**
+- ⚠️ **`docs/PHASE-COMMIT-MAP.md`의 11 행은 `1dfb81c`로 채움 완료. 12 행이 placeholder** → **Phase 12 커밋 후 다음 커밋 때 실제 해시 기입.**
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
 ## 실행 / 검증 (재현)
@@ -51,17 +59,23 @@ docker compose -f deploy/compose/compose.yml --profile async up -d --build
 # 빌드/테스트(Docker 필요 — Testcontainers):
 DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./gradlew build
 ```
-- 공개 포트: gateway :8000 · Eureka :8761 · Config :8888 · Grafana :3000 · kafka-ui :8090 · kafka :9092.
-- 스모크: 로그인(`:8000/auth/login`)→주문(`:8000/orders`)→kafka-ui/Grafana에서 이벤트·트레이스 확인. 재고 `:8000/inventory/{productId}`.
-- ⚠️ **gateway는 config만 바뀌면 재시작 필요**(라우트는 기동 시 로드). 9a에서 `/inventory` 라우트 반영 위해 `docker restart shopsaga-gateway-service-1` 했음.
+- 공개 포트: gateway :8000 · Eureka :8761 · Config :8888 · Grafana :3000 · kafka-ui :8090 · kafka :9092 · mongo :27017.
+- 스모크(Phase 12): 로그인(`:8000/auth/login`) → 주문(`:8000/orders` → **PENDING**) → **폴링**(`:8000/orders/{id}` → CONFIRMED) ·
+  읽기모델(`:8000/order-views?customerId=`) · 재고(`:8000/inventory/{productId}`) · kafka-ui/Grafana에서 이벤트·트레이스.
+  실패 시연: 수량 9999(재고 부족→CANCELLED) / 합계 `*.99`(결제 거절→재고 원복+CANCELLED).
+- ⚠️ **gateway는 config만 바뀌면 재시작 필요**(라우트는 기동 시 로드).
+- ⚠️ **Gradle 결과를 `| tail` 로 파이프하면 exit code가 tail 것**이 된다 → `> /tmp/x.log 2>&1; echo $?` 로 확인.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 11 (CQRS 읽기 모델)
-Phase 10(Outbox+멱등)까지 완료. 다음:
-1. **CQRS**: `order-query-service`가 `OrderPlaced`/(후속)이벤트를 구독해 **비정규화 읽기모델**(`order_view`, Mongo) 유지. `GET /api/orders/views?customerId=`. 읽기 측은 **outbox→Kafka를 그대로 소비**하므로 Phase 10 위에 안전. 검증 포인트: 읽기 DB 삭제 후 offset 0부터 리플레이 → 동일 상태(투영 결정성).
-2. ⚠️ **Phase 12 Saga 때 outbox 트레이스 복원**: `traceparent`를 outbox row에 저장했다 발행 시 Kafka 헤더로 재주입(현재 릴레이 구간 트레이스 끊김 — Phase 10의 의도된 한계). `outbox.traceparent` 컬럼은 이미 만들어 둠.
-3. (로드맵 순서: 11 CQRS → 12/13 Saga(보상) → 14 복원력(Resilience4j·DLQ) → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.)
-- 로드맵 상세: `MSA-LEARNING-PLAN.md`(Phase 11은 §302~, Saga 부록 ~§482). Phase 10 심화: `docs/PHASE-10-OUTBOX.md`.
+## 다음 단계 — Phase 13 (Saga: 오케스트레이션)
+Phase 12(코레오그래피 Saga)까지 완료. 다음:
+1. **오케스트레이션**: 같은 Saga를 **중앙 조정자**로 재구현 — `@Service` 오케스트레이터 + `saga_instance` 상태 테이블
+   (`STARTED→AWAITING_INVENTORY→AWAITING_PAYMENT→COMPLETED` / `COMPENSATING_INVENTORY→CANCELLED`) + reply 이벤트 switch.
+   참여 서비스는 "멍청한" 커맨드 핸들러가 된다. 교훈 = `SELECT state FROM saga_instance WHERE order_id=…` **한 줄로** 진행 파악
+   (Phase 12의 최대 단점인 "흐름이 흩어짐" 해결).
+2. ⚠️ **타임아웃 sweep을 크래시 복구 테스트보다 먼저** 만들 것(`@Scheduled` 로 정체된 saga 재전송/보상) — Phase 12는 정체 Saga를 못 깨운다.
+3. (로드맵 순서: 13 오케스트레이션 → 14 복원력(Resilience4j·DLQ) → 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.)
+- 로드맵 상세: `MSA-LEARNING-PLAN.md`(Phase 13은 §318~, Saga 부록 §402~). Phase 12 심화: `docs/PHASE-12-SAGA.md`.
 
 ## 매 Phase 작업 흐름 (사용자 선호 — 지켜야 함)
 1. 리서치(버전 특이점, Workflow로 병렬) → 2. 설계(큰 결정은 AskUserQuestion으로 확인) → 3. 구현 →

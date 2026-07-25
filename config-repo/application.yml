@@ -12,7 +12,9 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:9000/oauth2/jwks   # auth-service JWKS(공개키) — 직접 host:port
-  # ── Phase 9: Kafka (order 발행 / inventory 소비). spring-kafka 없는 서비스는 이 설정을 무시. ──
+  # ── Phase 9~12: Kafka. Phase 12부터 order·inventory·payment 가 모두 발행·소비한다(코레오그래피 Saga).
+  #    한 토픽에 여러 이벤트 타입이 흐르므로 소비 측은 JSON 타입 헤더(__TypeId__)로 @KafkaHandler 분기한다
+  #    → JsonDeserializer 에 기본 타입을 주지 않고(타입 헤더 사용), trusted.packages 로 계약 패키지만 허용한다. ──
   kafka:
     bootstrap-servers: localhost:9092    # 호스트 리스너(PLAINTEXT_HOST). docker 프로파일이 kafka:19092로 오버라이드.
     producer:
@@ -31,7 +33,8 @@ spring:
     listener:
       observation-enabled: true          # @KafkaListener → traceparent 추출·자식 스팬
 
-# ── Phase 10: Outbox 릴레이 폴링 주기(order-service의 OutboxRelay만 사용; 릴레이 없는 서비스는 무시). ──
+# ── Phase 10~12: Outbox 릴레이 폴링 주기. Phase 12부터 order·inventory·payment 세 서비스가 모두 사용한다
+#    (공유 라이브러리 shared/outbox 의 OutboxRelay). 릴레이 없는 서비스는 이 설정을 무시. ──
 outbox:
   relay:
     fixed-delay: 1000                    # ms. 미발행 outbox row를 Kafka로 내보내는 폴링 간격.

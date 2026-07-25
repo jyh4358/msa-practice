@@ -29,11 +29,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 동시성(oversell) 회귀 가드 — 비관적 락이 동시 예약에서 재고 초과판매를 막는지 실제 PostgreSQL로 검증.
- * Kafka 자동구성은 제외(브로커 없이 도메인/영속 동시성에만 집중). Docker 필요.
+ *
+ * <p>Phase 12부터 이 서비스는 outbox 릴레이(→ KafkaTemplate 필요)를 갖는다. 그래서 Kafka 자동구성을
+ * 제외하지 않고, 대신 <b>브로커에 붙으려는 동작만</b> 끈다: 리스너를 기동하지 않고 릴레이 폴링 주기를 길게 둔다.
+ * (KafkaTemplate 생성 자체는 브로커 연결이 필요 없다.) Docker 필요.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration")
+        properties = {
+                "spring.kafka.listener.auto-startup=false",   // 브로커 없이 @KafkaListener 를 띄우지 않는다
+                "outbox.relay.fixed-delay=3600000"            // 릴레이 폴링 사실상 비활성(이 테스트의 관심사가 아님)
+        })
 @Testcontainers
 class StockReservationConcurrencyTest {
 

@@ -42,6 +42,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation(libs.springdoc.openapi.ui)
 
+    // Phase 12(Saga): 결제가 이벤트를 소비·발행한다 → Kafka + 이벤트 계약 + outbox/inbox 메커니즘.
+    implementation("org.springframework.kafka:spring-kafka")
+    implementation(project(":shared:events"))
+    implementation(project(":shared:outbox"))
+
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
     runtimeOnly(libs.postgresql)

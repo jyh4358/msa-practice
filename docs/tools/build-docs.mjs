@@ -63,6 +63,8 @@ const DOCS = [
     desc: '트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자(effectively-once)' },
   { key: 'PHASE-11-CQRS', out: 'PHASE-11-CQRS.html', title: 'Phase 11 · CQRS 읽기 모델', group: 'Phase 단계별', file: 'docs/PHASE-11-CQRS.md',
     desc: '이벤트 투영·MongoDB 읽기 모델·결정성·리플레이로 재구축' },
+  { key: 'PHASE-12-SAGA', out: 'PHASE-12-SAGA.html', title: 'Phase 12 · Saga(보상)', group: 'Phase 단계별', file: 'docs/PHASE-12-SAGA.md',
+    desc: '코레오그래피·보상(semantic undo)·주문 상태기계·Saga 한 트레이스' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

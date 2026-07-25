@@ -297,6 +297,9 @@ services:
       config-service: { condition: service_healthy }
       discovery-service: { condition: service_healthy }
       order-db: { condition: service_healthy }
+      # Phase 12: order 가 order-events 토픽을 선언·발행한다(auto-create 꺼짐) → 브로커가 먼저 떠야 한다.
+      # required:false = async 프로파일이 아닐 때는 kafka 없이도 기동(그때는 Saga가 진행되지 않는다).
+      kafka: { condition: service_healthy, required: false }
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
       interval: 15s
@@ -316,6 +319,8 @@ services:
       config-service: { condition: service_healthy }
       discovery-service: { condition: service_healthy }
       payment-db: { condition: service_healthy }
+      # Phase 12: payment 가 payment-events 토픽을 선언·발행하고 inventory-events 를 소비한다.
+      kafka: { condition: service_healthy, required: false }
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
       interval: 15s

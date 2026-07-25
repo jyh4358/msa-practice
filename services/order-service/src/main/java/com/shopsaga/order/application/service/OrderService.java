@@ -7,7 +7,6 @@ import com.shopsaga.order.application.port.in.OrderView;
 import com.shopsaga.order.application.port.in.PlaceOrderCommand;
 import com.shopsaga.order.application.port.in.PlaceOrderUseCase;
 import com.shopsaga.order.application.port.out.LoadOrderPort;
-import com.shopsaga.order.application.port.out.PaymentGatewayPort;
 import com.shopsaga.order.application.port.out.PublishOrderEventPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
 import com.shopsaga.order.domain.Order;
@@ -21,12 +20,13 @@ import java.util.UUID;
 /**
  * 주문 유스케이스 구현.
  *
- * <p>Phase 9: 재고 예약을 <b>비동기 이벤트</b>로 위임한다. order는 더 이상 재고를 직접 예약하지 않고
- * {@code OrderPlaced} 를 발행하며, inventory-service가 소비해 예약한다(결과적 일관성).
+ * <p><b>Phase 12(Saga): 주문 생성이 "시작 신호"만 된다.</b> 예전엔 이 메서드 안에서 결제까지 동기로 끝냈지만,
+ * 이제는 주문을 PENDING 으로 저장하고 {@code OrderPlaced} 를 발행한 뒤 <b>즉시 반환</b>한다.
+ * 재고 예약·결제·확정은 다른 서비스들이 이벤트를 주고받으며 진행한다(코레오그래피).
  * <ul>
- *   <li>주문 시점엔 재고가 확정되지 않는다(재고 부족이어도 주문은 CONFIRMED) → Phase 12 Saga가 보상.</li>
- *   <li>save 와 이벤트 발행이 한 원자 트랜잭션이 아니다(dual-write) → Phase 10 outbox가 해결.</li>
- *   <li>결제는 아직 동기(payment-service) — Phase 12에서 이벤트 흐름으로 전환.</li>
+ *   <li>저장과 이벤트 기록이 <b>한 트랜잭션</b>(outbox) → 이중 쓰기 없음(Phase 10).</li>
+ *   <li>응답 시점의 status 는 <b>PENDING</b> — 확정 여부는 조회로 확인해야 한다(결과적 일관성).</li>
+ *   <li>결제 거절/재고 부족은 더 이상 HTTP 에러가 아니다 → Saga가 주문을 CANCELLED 로 만든다.</li>
  * </ul>
  */
 @UseCase
@@ -36,7 +36,6 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
 
     private final SaveOrderPort saveOrderPort;
     private final LoadOrderPort loadOrderPort;
-    private final PaymentGatewayPort paymentGatewayPort;
     private final PublishOrderEventPort publishOrderEventPort;
 
     @Override
@@ -44,19 +43,13 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
     public OrderView placeOrder(PlaceOrderCommand command) {
         Order order = Order.create(command.customerId());
         command.items().forEach(i -> order.addItem(i.productId(), i.quantity(), i.unitPrice()));
-        log.info("주문 생성 시작 orderId={} customer={} 품목수={}",
-                order.getId(), command.customerId(), command.items().size());
 
-        // 결제 = 원격 호출(payment-service, 여전히 동기). 거절 → 402, 통신 실패 → 502.
-        UUID paymentId = paymentGatewayPort.capture(order.getId(), order.getTotalAmount());
-
-        // 주문 확정 + 저장(로컬).
-        order.confirm(paymentId);
         OrderView saved = OrderView.from(saveOrderPort.save(order));
+        publishOrderPlaced(order, command);   // 같은 트랜잭션의 outbox row (아직 Kafka 전송 아님)
 
-        // 재고 예약을 이벤트로 위임 — OrderPlaced 발행(fire-and-forget). inventory가 비동기 예약.
-        publishOrderPlaced(order, command);
-        log.info("주문 확정 orderId={} paymentId={} total={}", order.getId(), paymentId, order.getTotalAmount());
+        log.info("주문 접수(Saga 시작) orderId={} customer={} 품목수={} total={} status={}",
+                order.getId(), command.customerId(), command.items().size(),
+                order.getTotalAmount(), order.getStatus());
         return saved;
     }
 
@@ -64,7 +57,7 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
         List<OrderPlacedEvent.Item> items = command.items().stream()
                 .map(i -> new OrderPlacedEvent.Item(i.productId(), i.quantity(), i.unitPrice()))
                 .toList();
-        // Phase 11: 총액·발생시각을 이벤트에 담는다 — 읽기 모델이 스스로 계산/시계를 읽지 않도록(투영 결정성).
+        // 총액·발생시각을 이벤트에 담는다 — 소비자가 스스로 계산/시계를 읽지 않도록(투영 결정성·Phase 11).
         publishOrderEventPort.orderPlaced(new OrderPlacedEvent(
                 order.getId(), command.customerId(), items, order.getTotalAmount(), order.getCreatedAt()));
     }

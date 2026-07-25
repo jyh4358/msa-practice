@@ -40,14 +40,78 @@ class OrderTest {
     }
 
     @Test
-    void confirm_setsConfirmedAndPaymentId() {
-        Order order = Order.create(UUID.randomUUID());
-        order.addItem(UUID.randomUUID(), 1, new BigDecimal("10.00"));
+    void sagaHappyPath_pendingToReservedToConfirmed() {
+        Order order = orderWithOneItem();
         UUID paymentId = UUID.randomUUID();
 
-        order.confirm(paymentId);
+        assertThat(order.markInventoryReserved()).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.INVENTORY_RESERVED);
 
+        assertThat(order.confirm(paymentId)).isTrue();
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
         assertThat(order.getPaymentId()).isEqualTo(paymentId);
+    }
+
+    @Test
+    void confirm_requiresInventoryReservedFirst() {
+        Order order = orderWithOneItem();   // PENDING — 재고 예약 이벤트를 아직 못 봤다
+
+        // 순서가 뒤바뀐 배달: 확정하지 않고 무시한다(예외 아님 — 재배달은 정상 상황이므로)
+        assertThat(order.confirm(UUID.randomUUID())).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(order.getPaymentId()).isNull();
+    }
+
+    @Test
+    void transitions_areIdempotent_forRedelivery() {
+        Order order = orderWithOneItem();
+        UUID paymentId = UUID.randomUUID();
+        order.markInventoryReserved();
+        order.confirm(paymentId);
+
+        // 같은 이벤트가 두 번 배달돼도(at-least-once) 상태가 흔들리지 않는다
+        assertThat(order.markInventoryReserved()).isFalse();
+        assertThat(order.confirm(paymentId)).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(order.getPaymentId()).isEqualTo(paymentId);
+    }
+
+    @Test
+    void cancel_worksFromPendingAndReserved_butNotAfterConfirmed() {
+        // 짧은 보상: 재고 실패 → PENDING 에서 바로 취소
+        Order fromPending = orderWithOneItem();
+        assertThat(fromPending.cancel()).isTrue();
+        assertThat(fromPending.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(fromPending.cancel()).isFalse();   // 멱등
+
+        // 긴 보상: 결제 거절 → 재고 예약 상태에서 취소
+        Order fromReserved = orderWithOneItem();
+        fromReserved.markInventoryReserved();
+        assertThat(fromReserved.cancel()).isTrue();
+        assertThat(fromReserved.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+
+        // 확정된 주문은 취소하지 않는다(환불이라는 다른 보상의 영역 — Phase 12 범위 밖)
+        Order confirmed = orderWithOneItem();
+        confirmed.markInventoryReserved();
+        confirmed.confirm(UUID.randomUUID());
+        assertThat(confirmed.cancel()).isFalse();
+        assertThat(confirmed.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void cancelledOrder_cannotBeReservedOrConfirmed() {
+        Order order = orderWithOneItem();
+        order.cancel();
+
+        // 취소 후 늦게 도착한 이벤트들 — 종료 상태를 되살리지 않는다
+        assertThat(order.markInventoryReserved()).isFalse();
+        assertThat(order.confirm(UUID.randomUUID())).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    private Order orderWithOneItem() {
+        Order order = Order.create(UUID.randomUUID());
+        order.addItem(UUID.randomUUID(), 1, new BigDecimal("10.00"));
+        return order;
     }
 }

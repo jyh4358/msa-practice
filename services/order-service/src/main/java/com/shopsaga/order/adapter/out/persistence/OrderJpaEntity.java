@@ -64,4 +64,13 @@ class OrderJpaEntity {
     void addItem(UUID productId, int quantity, BigDecimal unitPrice) {
         items.add(new OrderItemJpaEntity(this, productId, quantity, unitPrice));
     }
+
+    /**
+     * Phase 12: Saga 상태 전이 반영(load-then-mutate).
+     * managed 엔티티의 필드만 바꿔 dirty checking 으로 UPDATE 되게 한다 — merge 로 자식 컬렉션을 건드리지 않는다.
+     */
+    void applyTransition(OrderStatus status, UUID paymentId) {
+        this.status = status;
+        this.paymentId = paymentId;
+    }
 }
