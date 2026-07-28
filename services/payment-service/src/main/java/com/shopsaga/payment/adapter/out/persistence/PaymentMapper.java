@@ -14,6 +14,6 @@ final class PaymentMapper {
 
     static Payment toDomain(PaymentJpaEntity entity) {
         return Payment.restore(entity.getId(), entity.getOrderId(), entity.getAmount(),
-                entity.getStatus(), entity.getCapturedAt());
+                entity.getStatus(), entity.getCapturedAt(), entity.getRefundedAt());
     }
 }

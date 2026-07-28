@@ -3,6 +3,7 @@ package com.shopsaga.order.application.service;
 import com.shopsaga.events.OrderCancelledEvent;
 import com.shopsaga.events.OrderConfirmedEvent;
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.events.commands.ReleaseStockCommand;
 import com.shopsaga.events.commands.SagaReply;
 import com.shopsaga.order.application.port.out.LoadOrderPort;
@@ -193,5 +194,41 @@ class SagaOrchestratorServiceTest {
 
         verify(publishSagaCommandPort, never()).chargePayment(any());
         verify(processedMessagePort).markProcessed(messageId);
+    }
+
+    // ─────────── Phase 14: Phase 13이 남긴 '고아 결제' 회귀 가드 ───────────
+
+    @Test
+    void paymentChargedAfterSagaCancelled_issuesRefundCommand_insteadOfIgnoring() {
+        Order order = order();
+        // 타임아웃 sweep 이 포기해 이미 CANCELLED 로 끝난 Saga
+        SagaInstance saga = sagaAt(SagaState.CANCELLED, order.getId());
+        UUID paymentId = UUID.randomUUID();
+        when(sagaRepository.findBySagaId(saga.getSagaId())).thenReturn(Optional.of(saga));
+
+        // 되살아난 payment 가 큐에 남아 있던 ChargePayment 를 뒤늦게 수행 → 성공 리플라이가 도착
+        service.onReply(UUID.randomUUID(), new SagaReply(saga.getSagaId(), order.getId(),
+                SagaReply.Kind.PAYMENT_CHARGED, paymentId, new BigDecimal("20.00"), null, T0));
+
+        ArgumentCaptor<RefundPaymentCommand> refund = ArgumentCaptor.forClass(RefundPaymentCommand.class);
+        verify(publishSagaCommandPort).refundPayment(refund.capture());
+        assertThat(refund.getValue().paymentId()).isEqualTo(paymentId);
+        // 주문은 되살아나지 않는다 — 취소는 그대로 두고 결제만 상쇄한다.
+        verify(updateOrderPort, never()).update(any());
+        verify(publishOrderEventPort, never()).orderConfirmed(any());
+    }
+
+    @Test
+    void paymentRefundedReply_isRecordedOnly_withoutStateChange() {
+        Order order = order();
+        SagaInstance saga = sagaAt(SagaState.CANCELLED, order.getId());
+        when(sagaRepository.findBySagaId(saga.getSagaId())).thenReturn(Optional.of(saga));
+
+        service.onReply(UUID.randomUUID(), new SagaReply(saga.getSagaId(), order.getId(),
+                SagaReply.Kind.PAYMENT_REFUNDED, UUID.randomUUID(), null, null, T0));
+
+        verify(sagaRepository, never()).update(any());
+        verify(publishSagaCommandPort, never()).refundPayment(any());
+        assertThat(saga.getState()).isEqualTo(SagaState.CANCELLED);
     }
 }

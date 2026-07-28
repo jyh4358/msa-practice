@@ -1,6 +1,7 @@
 package com.shopsaga.order.application.port.out;
 
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.events.commands.ReleaseStockCommand;
 import com.shopsaga.events.commands.ReserveStockCommand;
 
@@ -15,4 +16,7 @@ public interface PublishSagaCommandPort {
     void chargePayment(ChargePaymentCommand command);
 
     void releaseStock(ReleaseStockCommand command);
+
+    /** Phase 14: 이미 끝난 Saga 뒤에 도착한 결제를 되돌리라는 보상 지시(고아 결제 정리). */
+    void refundPayment(RefundPaymentCommand command);
 }

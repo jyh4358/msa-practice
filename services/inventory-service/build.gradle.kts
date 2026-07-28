@@ -47,6 +47,8 @@ dependencies {
     implementation(project(":shared:events"))
     // Phase 12: outbox·inbox 메커니즘 공유 라이브러리(테이블은 여전히 서비스별 자기 DB).
     implementation(project(":shared:outbox"))
+    // Phase 14: 소비 실패 → 유한 재시도 → DLQ 공유 설정.
+    implementation(project(":shared:messaging"))
 
     // 스키마는 Flyway 소유(ddl-auto=validate).
     implementation(libs.flyway.core)

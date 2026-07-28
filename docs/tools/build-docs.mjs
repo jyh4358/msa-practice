@@ -68,6 +68,8 @@ const DOCS = [
   { key: 'PHASE-13-SAGA-ORCHESTRATION', out: 'PHASE-13-SAGA-ORCHESTRATION.html', title: 'Phase 13 · Saga 오케스트레이션', group: 'Phase 단계별', file: 'docs/PHASE-13-SAGA-ORCHESTRATION.md',
     desc: '중앙 조정자·saga_instance·타임아웃 sweep·커맨드 멱등·모드 토글' },
 
+  { key: 'PHASE-14-RESILIENCE', out: 'PHASE-14-RESILIENCE.html', title: 'Phase 14 · 복원력 패턴', group: 'Phase 단계별', file: 'docs/PHASE-14-RESILIENCE.md',
+    desc: 'Resilience4j 5종·게이트웨이 회로차단기·DLQ/poison·outbox 격리·고아 결제 보상' },
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },
   { key: 'REVIEW-PART-A',        out: 'REVIEW-PART-A.html', title: '파트 A 복습 (Phase 0~7)',   group: '지도·복습', file: 'docs/REVIEW-PART-A.md',

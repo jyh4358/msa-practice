@@ -1,12 +1,15 @@
 package com.shopsaga.payment.application.service;
 
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.events.commands.SagaReply;
 import com.shopsaga.outbox.CommandKeys;
+import com.shopsaga.payment.application.port.out.LoadPaymentPort;
 import com.shopsaga.payment.application.port.out.ProcessedCommandPort;
 import com.shopsaga.payment.application.port.out.PublishPaymentEventPort;
 import com.shopsaga.payment.application.port.out.PublishSagaReplyPort;
 import com.shopsaga.payment.application.port.out.SavePaymentPort;
+import com.shopsaga.payment.application.port.out.UpdatePaymentPort;
 import com.shopsaga.payment.domain.Payment;
 import com.shopsaga.payment.domain.PaymentStatus;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,10 @@ class PaymentCommandServiceTest {
     @Mock
     SavePaymentPort savePaymentPort;
     @Mock
+    LoadPaymentPort loadPaymentPort;
+    @Mock
+    UpdatePaymentPort updatePaymentPort;
+    @Mock
     PublishSagaReplyPort publishSagaReplyPort;
     @Mock
     PublishPaymentEventPort publishPaymentEventPort;
@@ -60,7 +67,7 @@ class PaymentCommandServiceTest {
         UUID paymentId = UUID.randomUUID();
         when(savePaymentPort.save(any())).thenAnswer(inv -> {
             Payment p = inv.getArgument(0);
-            return Payment.restore(paymentId, p.getOrderId(), p.getAmount(), PaymentStatus.CAPTURED, T0);
+            return Payment.restore(paymentId, p.getOrderId(), p.getAmount(), PaymentStatus.CAPTURED, T0, null);
         });
 
         service.onChargePayment(command(sagaId, "30.00"));
@@ -112,5 +119,77 @@ class PaymentCommandServiceTest {
                 .isEqualTo(CommandKeys.of(sagaId, PaymentCommandService.CMD_CHARGE));
         assertThat(CommandKeys.of(sagaId, PaymentCommandService.CMD_CHARGE))
                 .isNotEqualTo(CommandKeys.of(UUID.randomUUID(), PaymentCommandService.CMD_CHARGE));
+    }
+
+    // ─────────────────────────── Phase 14: 고아 결제 보상(환불) ───────────────────────────
+
+    private RefundPaymentCommand refundCommand(UUID sagaId, UUID paymentId) {
+        return new RefundPaymentCommand(sagaId, UUID.randomUUID(), paymentId, "Saga 종료 후 도착한 결제", T0);
+    }
+
+    @Test
+    void refund_marksPaymentRefunded_andReplies() {
+        UUID sagaId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+        Payment captured = Payment.restore(paymentId, UUID.randomUUID(), new BigDecimal("30.00"),
+                PaymentStatus.CAPTURED, T0, null);
+        when(processedCommandPort.findOutcome(any())).thenReturn(Optional.empty());
+        when(loadPaymentPort.loadById(paymentId)).thenReturn(Optional.of(captured));
+
+        service.onRefundPayment(refundCommand(sagaId, paymentId));
+
+        // row 를 지우는 게 아니라 REFUNDED 상태로 남긴다(semantic undo — 감사 기록 보존).
+        ArgumentCaptor<Payment> updated = ArgumentCaptor.forClass(Payment.class);
+        verify(updatePaymentPort).update(updated.capture());
+        assertThat(updated.getValue().getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(updated.getValue().getRefundedAt()).isNotNull();
+
+        verify(publishSagaReplyPort).reply(replyCaptor.capture());
+        assertThat(replyCaptor.getValue().kind()).isEqualTo(SagaReply.Kind.PAYMENT_REFUNDED);
+    }
+
+    @Test
+    void resentRefundCommand_doesNotRefundTwice_butStillReplies() {
+        UUID sagaId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+        when(processedCommandPort.findOutcome(CommandKeys.of(sagaId, PaymentCommandService.CMD_REFUND)))
+                .thenReturn(Optional.of(new ProcessedCommandPort.PriorOutcome(SagaReply.Kind.PAYMENT_REFUNDED, null)));
+
+        service.onRefundPayment(refundCommand(sagaId, paymentId));
+
+        verify(loadPaymentPort, never()).loadById(any());
+        verify(updatePaymentPort, never()).update(any());
+        // ⚠️ 그래도 리플라이는 다시 보낸다 — 무시하면 조정자가 영영 기다린다.
+        verify(publishSagaReplyPort).reply(replyCaptor.capture());
+        assertThat(replyCaptor.getValue().kind()).isEqualTo(SagaReply.Kind.PAYMENT_REFUNDED);
+    }
+
+    @Test
+    void refund_whenAlreadyRefunded_isNoOp_butReplies() {
+        UUID sagaId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+        Payment already = Payment.restore(paymentId, UUID.randomUUID(), new BigDecimal("30.00"),
+                PaymentStatus.REFUNDED, T0, T0);
+        when(processedCommandPort.findOutcome(any())).thenReturn(Optional.empty());
+        when(loadPaymentPort.loadById(paymentId)).thenReturn(Optional.of(already));
+
+        service.onRefundPayment(refundCommand(sagaId, paymentId));
+
+        verify(updatePaymentPort, never()).update(any());
+        verify(publishSagaReplyPort).reply(any());
+    }
+
+    @Test
+    void refund_whenPaymentMissing_repliesWithReason_insteadOfLoopingForever() {
+        UUID sagaId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+        when(processedCommandPort.findOutcome(any())).thenReturn(Optional.empty());
+        when(loadPaymentPort.loadById(paymentId)).thenReturn(Optional.empty());
+
+        service.onRefundPayment(refundCommand(sagaId, paymentId));
+
+        verify(publishSagaReplyPort).reply(replyCaptor.capture());
+        assertThat(replyCaptor.getValue().kind()).isEqualTo(SagaReply.Kind.PAYMENT_REFUNDED);
+        assertThat(replyCaptor.getValue().reason()).contains("환불 대상 결제 없음");
     }
 }

@@ -350,6 +350,8 @@ Phase 12에서는 order와 inventory가 `PaymentDeclined` 를 **동시에** 듣�
 
 ### 7.2 ⚠️ 검증이 드러낸 결함 — 고아 결제(orphan payment)
 
+> ✅ **후속:** 이 결함은 [Phase 14](PHASE-14-RESILIENCE.md) 에서 **환불 보상**으로 해결했다(§7.5에 재현·해결 실측).
+
 ④와 ⑤를 이어 보면 **설계상의 구멍**이 드러난다:
 ```
 17:40  조정자가 포기 → 재고 해제 → 주문 CANCELLED
@@ -375,12 +377,12 @@ Phase 12에서는 order와 inventory가 `PaymentDeclined` 를 **동시에** 듣�
 
 | 한계 | 설명 | 해결 |
 |---|---|---|
-| **poison 메시지·무한 재시도** | 커맨드 처리 중 예기치 못한 예외는 계속 재배달된다 | **Phase 14**(DLQ·백오프·`attempts` 격리) |
+| **poison 메시지·무한 재시도** | 커맨드 처리 중 예기치 못한 예외는 계속 재배달된다 | ✅ **[Phase 14](PHASE-14-RESILIENCE.md)**(DLQ·유한 백오프·`attempts` 격리) |
 | **조정자 SPOF** | order-service가 죽으면 모든 Saga가 멈춘다(데이터는 안전) | 운영: 다중 인스턴스 + sweep 중복 실행 방지(리더 선출/락) |
 | **sweep 중복 실행** | order-service를 2개 이상 띄우면 두 인스턴스가 같은 Saga를 동시에 재촉할 수 있다 | 운영: `SELECT … FOR UPDATE SKIP LOCKED` 또는 ShedLock |
-| **★ 고아 결제(orphan payment)** | 타임아웃으로 포기한 뒤 참여자가 살아나면 지시를 수행해 버린다 → **취소된 주문에 결제만 남음**(§7.2에서 실측). 타임아웃은 "죽음"과 "느림"을 구분 못 한다 | 환불 보상(`PaymentRefunded`) 추가 · 커맨드에 만료시각 · 결제는 자동 포기 대신 운영자 개입 |
+| **★ 고아 결제(orphan payment)** | 타임아웃으로 포기한 뒤 참여자가 살아나면 지시를 수행해 버린다 → **취소된 주문에 결제만 남음**(§7.2에서 실측). 타임아웃은 "죽음"과 "느림"을 구분 못 한다 | ✅ **[Phase 14](PHASE-14-RESILIENCE.md) 에서 해결** — 종료된 Saga에 늦게 온 결제 성공을 `RefundPaymentCommand` 로 상쇄(§7.5에 실측) |
 | **확정 후 취소 불가** | CONFIRMED 주문은 되돌리지 않는다(환불 보상 미구현) | 후속(환불 보상 체인) |
-| **보상 자체의 실패** | 재고 해제가 계속 실패하면 sweep이 3회 후 취소로 종료 — 재고는 잠긴 채 남는다 | **Phase 14** + 운영 알림/수동 개입 |
+| **보상 자체의 실패** | 재고 해제가 계속 실패하면 sweep이 3회 후 취소로 종료 — 재고는 잠긴 채 남는다 | **[Phase 14](PHASE-14-RESILIENCE.md)**(DLQ·outbox 격리) + 운영 알림/수동 개입 |
 | **커맨드 토픽 공유** | inventory·payment가 같은 `saga-commands` 를 구독해 남의 커맨드도 받아 무시한다(낭비) | 운영: 서비스별 커맨드 토픽 분리 |
 | **두 모드 동시 사용 불가** | `saga.mode` 는 상호배타(동시에 켜면 이중 처리) | 설계상 — 비교 학습용 토글 |
 

@@ -40,10 +40,20 @@ class PaymentJpaEntity {
     @Column(name = "captured_at", nullable = false)
     private Instant capturedAt;
 
+    /** Phase 14: 보상(환불) 시각. NULL = 정상 결제. */
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
     PaymentJpaEntity(UUID orderId, BigDecimal amount, PaymentStatus status, Instant capturedAt) {
         this.orderId = orderId;
         this.amount = amount;
         this.status = status;
         this.capturedAt = capturedAt;
+    }
+
+    /** Phase 14: 영속 상태를 환불로 전이(더티 체킹으로 UPDATE). */
+    void markRefunded(Instant when) {
+        this.status = PaymentStatus.REFUNDED;
+        this.refundedAt = when;
     }
 }

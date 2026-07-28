@@ -30,3 +30,5 @@ include(":shared:events")
 include(":services:order-query-service")
 // Phase 12: Saga — outbox 메커니즘(테이블 아님, 코드)을 3개 발행 서비스가 공유하는 라이브러리.
 include(":shared:outbox")
+// Phase 14: 소비 실패 처리(유한 백오프 재시도 → DLQ) 메커니즘을 소비 서비스 4곳이 공유하는 라이브러리.
+include(":shared:messaging")

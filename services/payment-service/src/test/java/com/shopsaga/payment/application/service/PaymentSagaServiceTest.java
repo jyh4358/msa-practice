@@ -57,7 +57,7 @@ class PaymentSagaServiceTest {
         UUID paymentId = UUID.randomUUID();
         when(savePaymentPort.save(any())).thenAnswer(inv -> {
             Payment p = inv.getArgument(0);
-            return Payment.restore(paymentId, p.getOrderId(), p.getAmount(), PaymentStatus.CAPTURED, NOW);
+            return Payment.restore(paymentId, p.getOrderId(), p.getAmount(), PaymentStatus.CAPTURED, NOW, null);
         });
         UUID messageId = UUID.randomUUID();
 

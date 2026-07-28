@@ -12,3 +12,8 @@ management:
     web:
       exposure:
         include: health,info,flyway
+
+# ── Phase 14: 장애 주입(학습 전용!). inventory-service 의 재고 조회에 지연/오류를 주입한다.
+#    운영에는 절대 두지 않는다 — 여기서는 복원력 패턴을 '눈으로 보기 위한' 손잡이다. ──
+chaos:
+  enabled: true

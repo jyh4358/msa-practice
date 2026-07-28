@@ -1,6 +1,7 @@
 package com.shopsaga.payment.application.port.in;
 
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 
 /**
  * Phase 13: 결제 서비스의 <b>커맨드 핸들러</b>.
@@ -12,4 +13,10 @@ import com.shopsaga.events.commands.ChargePaymentCommand;
 public interface PaymentCommandUseCase {
 
     void onChargePayment(ChargePaymentCommand command);
+
+    /**
+     * Phase 14: 결제 보상(환불). Saga가 이미 끝난 뒤 뒤늦게 성립한 '고아 결제'를 되돌린다.
+     * 참여 서비스 입장에서는 청구와 똑같이 "시키는 대로 하고 결과를 돌려주는" 커맨드일 뿐이다.
+     */
+    void onRefundPayment(RefundPaymentCommand command);
 }

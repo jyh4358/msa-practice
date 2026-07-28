@@ -45,6 +45,8 @@ dependencies {
     // Phase 11: 이벤트 구독(투영) — Kafka 소비 + 이벤트 계약 공유 모듈. (쓰기 DB는 쳐다보지 않는다.)
     implementation("org.springframework.kafka:spring-kafka")
     implementation(project(":shared:events"))
+    // Phase 14: 소비 실패 → 유한 재시도 → DLQ 공유 설정(읽기 모델은 발행하지 않으므로 outbox 는 없다).
+    implementation(project(":shared:messaging"))
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     // 투영 결정성/조회 통합 테스트 — 실제 MongoDB 컨테이너 필요(Docker).

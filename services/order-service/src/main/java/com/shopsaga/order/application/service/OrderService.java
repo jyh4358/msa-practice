@@ -5,14 +5,19 @@ import com.shopsaga.order.application.UseCase;
 import com.shopsaga.order.application.port.in.GetOrderQuery;
 import com.shopsaga.order.application.port.in.OrderView;
 import com.shopsaga.order.application.port.in.PlaceOrderCommand;
+import com.shopsaga.order.application.port.in.PlaceOrderResult;
 import com.shopsaga.order.application.port.in.PlaceOrderUseCase;
+import com.shopsaga.order.application.port.in.StockPrecheck;
 import com.shopsaga.order.application.port.out.LoadOrderPort;
 import com.shopsaga.order.application.port.out.PublishOrderEventPort;
 import com.shopsaga.order.application.port.out.SagaStarterPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
+import com.shopsaga.order.application.port.out.StockAvailabilityPort;
 import com.shopsaga.order.domain.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -39,10 +44,26 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
     private final LoadOrderPort loadOrderPort;
     private final PublishOrderEventPort publishOrderEventPort;
     private final SagaStarterPort sagaStarterPort;
+    /** Phase 14: 재고 사전 확인(부가 기능). 토글로 끌 수 있으므로 빈이 없을 수도 있다. */
+    private final ObjectProvider<StockAvailabilityPort> stockAvailabilityPort;
+
+    /**
+     * 사전 확인이 "부족"이라고 해도 <b>기본은 그대로 접수</b>한다(참고용). true 로 켜면 409 로 빠르게 거절한다.
+     * 끄고 켜 보면 "빠른 실패 UX"와 "Saga 단일 판정" 사이의 트레이드오프가 눈에 보인다.
+     */
+    @Value("${order.stock-precheck.reject-on-insufficient:false}")
+    private boolean rejectOnInsufficient;
 
     @Override
     @Transactional
-    public OrderView placeOrder(PlaceOrderCommand command) {
+    public PlaceOrderResult placeOrder(PlaceOrderCommand command) {
+        // ⚠️ 사전 확인은 트랜잭션 안에서 원격 호출을 한다는 점에서 이상적이진 않다(커넥션 점유).
+        //    TimeLimiter 로 상한이 걸려 있어 허용한 것이며, 상한이 없다면 트랜잭션 밖으로 빼야 한다.
+        StockPrecheck precheck = precheck(command);
+        if (rejectOnInsufficient && precheck.status() == StockPrecheck.Status.INSUFFICIENT) {
+            throw new StockPrecheckRejectedException(precheck.detail());
+        }
+
         Order order = Order.create(command.customerId());
         command.items().forEach(i -> order.addItem(i.productId(), i.quantity(), i.unitPrice()));
 
@@ -53,10 +74,22 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
         //           주문 저장과 같은 트랜잭션이라 "주문만 저장되고 Saga는 안 뜨는" 상태가 없다.
         sagaStarterPort.start(order, command);
 
-        log.info("주문 접수(Saga 시작) orderId={} customer={} 품목수={} total={} status={}",
+        log.info("주문 접수(Saga 시작) orderId={} customer={} 품목수={} total={} status={} 사전확인={}",
                 order.getId(), command.customerId(), command.items().size(),
-                order.getTotalAmount(), order.getStatus());
-        return saved;
+                order.getTotalAmount(), order.getStatus(), precheck.status());
+        return new PlaceOrderResult(saved, precheck);
+    }
+
+    /** 사전 확인 어댑터가 꺼져 있으면 "모름"으로 취급한다 — 없어도 주문은 그대로 흐른다. */
+    private StockPrecheck precheck(PlaceOrderCommand command) {
+        StockAvailabilityPort port = stockAvailabilityPort.getIfAvailable();
+        if (port == null) {
+            return StockPrecheck.unknown("사전 확인 비활성");
+        }
+        List<StockAvailabilityPort.Line> lines = command.items().stream()
+                .map(i -> new StockAvailabilityPort.Line(i.productId(), i.quantity()))
+                .toList();
+        return port.precheck(lines);
     }
 
     private void publishOrderPlaced(Order order, PlaceOrderCommand command) {

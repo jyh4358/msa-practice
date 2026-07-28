@@ -44,11 +44,18 @@ public class OutboxRelay {
     private final ObjectMapper objectMapper;
     private final Tracer tracer;
     private final Propagator propagator;
+    /**
+     * Phase 14: 이 횟수만큼 실패한 row 는 <b>더 이상 집어 오지 않는다</b>(격리).
+     * 무한 재시도는 배치 앞자리를 영구히 점유해 뒤의 정상 이벤트를 굶긴다 —
+     * 소비 쪽 poison pill 의 발행 쪽 쌍둥이다. 격리된 row 는 사라지지 않고 DB에 남아 사람이 처리한다.
+     */
+    private final int maxAttempts;
 
     @Scheduled(fixedDelayString = "${outbox.relay.fixed-delay:1000}")
     @Transactional
     public void relay() {
-        List<OutboxMessage> batch = repository.findTop100ByPublishedAtIsNullOrderByCreatedAtAsc();
+        List<OutboxMessage> batch =
+                repository.findTop100ByPublishedAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(maxAttempts);
         if (batch.isEmpty()) {
             return;
         }
@@ -64,8 +71,14 @@ public class OutboxRelay {
                 }
                 // published_at 을 남겨두지 않는다 → 다음 폴링에서 재시도(at-least-once).
                 msg.recordFailedAttempt();
-                log.warn("Outbox 발행 실패 messageId={} attempts={} — {}",
-                        msg.getId(), msg.getAttempts(), e.toString());
+                if (msg.getAttempts() >= maxAttempts) {
+                    // 여기서 끝. 이 row 는 다음 폴링부터 조회 대상에서 빠진다(격리) — 메트릭 outbox.stuck 로 노출.
+                    log.error("Outbox 발행 포기 — 격리 messageId={} topic={} type={} attempts={} 원인={}",
+                            msg.getId(), msg.getTopic(), simpleTypeOf(msg), msg.getAttempts(), e.toString());
+                } else {
+                    log.warn("Outbox 발행 실패 messageId={} attempts={}/{} — {}",
+                            msg.getId(), msg.getAttempts(), maxAttempts, e.toString());
+                }
             }
         }
     }

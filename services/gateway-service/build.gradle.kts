@@ -42,6 +42,17 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     // Phase 5: 게이트웨이를 리액티브 OAuth2 리소스 서버로(엣지 JWT 검증). jose(RS256) 전이 포함.
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    // Phase 14: 엣지 복원력.
+    //  · spring-cloud-circuitbreaker(reactor) → 라우트에 CircuitBreaker 필터 + fallbackUri 사용.
+    //    (이 스타터가 resilience4j-spring-boot3 를 전이로 끌고 온다 — 게이트웨이에도 resilience4j.* 설정이 바인딩된다.)
+    //    다만 회로 설정은 yml 이 아니라 EdgeCircuitBreakerConfig 의 Customizer 한 곳에서만 한다(출처 이원화 방지).
+    //  · reactor 연산자 + micrometer 는 RateLimiter/Bulkhead 를 직접 붙이고 관측하기 위해 명시 추가.
+    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
+    implementation(libs.resilience4j.reactor)
+    // bulkhead/ratelimiter 코어는 spring-cloud 스타터에 전이되지 않는다(circuitbreaker·timelimiter만) → 명시.
+    implementation(libs.resilience4j.bulkhead)
+    implementation(libs.resilience4j.ratelimiter)
+    implementation(libs.resilience4j.micrometer)
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

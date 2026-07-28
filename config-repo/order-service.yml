@@ -15,4 +15,75 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,flyway
+        include: health,info,flyway,circuitbreakers,retries,ratelimiters,bulkheads,metrics
+  health:
+    circuitbreakers:
+      enabled: true          # Phase 14: /actuator/health 에 회로 상태(CLOSED/OPEN/HALF_OPEN) 노출
+
+# ── Phase 14: 복원력(Resilience4j). 서블릿 서비스의 애너테이션 aspect 설정.
+#    게이트웨이는 spring-cloud-circuitbreaker 를 쓰므로 이 블록이 아니라 자바 Customizer 로 설정한다. ──
+resilience4j:
+  # ★★ aspect 적용 순서 — 여기서 두 번 헷갈린다. 실측으로 확인한 사실만 적는다.
+  #
+  #  ① 값이 '작을수록' 바깥이다(스프링 AOP 표준: 낮은 order = 높은 우선순위 = 바깥).
+  #     Resilience4j 문서의 "higher value = higher priority" 표현은 오해를 부른다.
+  #     2.2.0 기본값(Integer.MAX_VALUE=2147483647 기준):
+  #       Retry ...642 < CircuitBreaker ...643 < RateLimiter ...644 < TimeLimiter ...645 < Bulkhead ...646
+  #       → 기본 중첩은 Retry(CircuitBreaker(RateLimiter(TimeLimiter(Bulkhead(호출))))) 로, Retry 가 가장 바깥.
+  #  ② Bulkhead 는 setter 가 없어 '설정으로 바꿀 수 없다'(고정 2147483646).
+  #     그래서 나머지 넷을 그 값 앞뒤로 배치해 목표 순서를 만든다.
+  #
+  #  목표(학습 계획): RateLimiter → TimeLimiter → CircuitBreaker → Bulkhead → Retry  (바깥 → 안쪽)
+  #  ⚠️ 이 순서에서는 TimeLimiter 가 CircuitBreaker 보다 바깥이라 '타임아웃은 회로를 열지 못한다'.
+  #     타임아웃도 회로 판단에 넣고 싶다면 circuitBreakerAspectOrder 를 timeLimiterAspectOrder 보다 작게(=더 바깥).
+  ratelimiter:
+    rateLimiterAspectOrder: 2147483643      # 가장 바깥
+    instances:
+      inventory:
+        limit-for-period: 50             # 초당 50건까지만 사전 확인 호출(상대를 눌러 죽이지 않는다)
+        limit-refresh-period: 1s
+        timeout-duration: 0              # 대기 없이 즉시 거절 → UNKNOWN 으로 강등
+  timelimiter:
+    timeLimiterAspectOrder: 2147483644
+    instances:
+      inventory:
+        timeout-duration: 800ms          # 사전 확인은 '빠르지 않으면 의미가 없다'
+        cancel-running-future: true
+  circuitbreaker:
+    circuitBreakerAspectOrder: 2147483645
+    instances:
+      inventory:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5       # 표본이 적을 때 성급히 열지 않기 위한 하한
+        failure-rate-threshold: 50       # 최근 10건 중 50% 실패 → OPEN
+        wait-duration-in-open-state: 10s # 10초 뒤 스스로 HALF_OPEN 으로 회복 시도
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true  # /actuator/health 에 회로 상태 노출
+  bulkhead:
+    # ⚠️ bulkheadAspectOrder 는 존재하지 않는다(getter 만 있고 setter 가 없음 → 바인딩 실패로 기동이 깨진다).
+    #    고정값 2147483646 이라 '안쪽에서 두 번째' 자리에 놓인다 — 목표 순서와 마침 일치한다.
+    instances:
+      inventory:
+        max-concurrent-calls: 8          # 사전 확인이 스레드를 잠식하지 못하게
+        max-wait-duration: 0
+  retry:
+    retryAspectOrder: 2147483647     # 가장 안쪽(Bulkhead 고정값보다 커야 한다)
+    instances:
+      inventory:
+        max-attempts: 3                  # 최초 1회 + 재시도 2회
+        wait-duration: 100ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        # 회로차단기가 던지는 '거절'을 재시도하면 안 된다 — 차단의 의미가 사라진다.
+        ignore-exceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+          - io.github.resilience4j.bulkhead.BulkheadFullException
+          - io.github.resilience4j.ratelimiter.RequestNotPermitted
+
+# ── Phase 14: 재고 사전 확인(동기 호출). '실패해도 되는 부가 기능'이라는 전제를 설정으로도 남긴다. ──
+order:
+  stock-precheck:
+    enabled: true
+    reject-on-insufficient: false        # true 로 켜면 확인 결과가 '부족'일 때 409 로 빠르게 거절(참고값 기준)

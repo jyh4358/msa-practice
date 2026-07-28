@@ -46,6 +46,8 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     implementation(project(":shared:events"))
     implementation(project(":shared:outbox"))
+    // Phase 14: 소비 실패 → 유한 재시도 → DLQ 공유 설정.
+    implementation(project(":shared:messaging"))
 
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)

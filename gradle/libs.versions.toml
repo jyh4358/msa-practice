@@ -7,6 +7,10 @@ springDepMgmt = "1.1.7"
 springCloud = "2025.0.3"       # Northfields — Boot 3.5.x 공식 짝
 springdoc = "2.8.17"           # OpenAPI/Swagger UI — Boot 3.5 호환 (2.8.x = OpenAPI 3.1)
 querydsl = "5.1.0"             # 타입세이프 쿼리 (jakarta classifier) — 리포지토리 JPQL 대체
+resilience4j = "2.2.0"         # Phase 14 복원력. ⚠️ Spring Cloud 2025.0.3 BOM이 관리하는 버전과 반드시 일치시킬 것.
+                               #    2.3.0 으로 올리면 BOM이 전이 의존성만 2.2.0 으로 되돌려 놓아
+                               #    spring-boot3(2.3.0) + spring6(2.2.0) 혼합 클래스패스가 되고
+                               #    NoClassDefFoundError(RxJava3FallbackDecorator)로 기동이 깨진다.
 
 [libraries]
 # Spring Cloud BOM (Phase 4+에서 본격 사용; 지금은 버전 관리만)
@@ -22,6 +26,13 @@ querydsl-jpa = { module = "com.querydsl:querydsl-jpa", version.ref = "querydsl" 
 querydsl-apt = { module = "com.querydsl:querydsl-apt", version.ref = "querydsl" }
 jakarta-persistence-api = { module = "jakarta.persistence:jakarta.persistence-api", version = "3.1.0" }
 jakarta-annotation-api = { module = "jakarta.annotation:jakarta.annotation-api", version = "2.1.1" }
+# Phase 14: Resilience4j — 서블릿 서비스는 스타터(@CircuitBreaker 등 애너테이션 + actuator/메트릭),
+#           게이트웨이는 spring-cloud-circuitbreaker 를 쓰므로 메트릭 바인딩(micrometer)만 추가한다.
+resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+resilience4j-micrometer = { module = "io.github.resilience4j:resilience4j-micrometer", version.ref = "resilience4j" }
+resilience4j-reactor = { module = "io.github.resilience4j:resilience4j-reactor", version.ref = "resilience4j" }
+resilience4j-bulkhead = { module = "io.github.resilience4j:resilience4j-bulkhead", version.ref = "resilience4j" }
+resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratelimiter", version.ref = "resilience4j" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }

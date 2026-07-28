@@ -34,5 +34,15 @@ dependencies {
     api(project(":shared:events"))
     // 트레이스 컨텍스트 저장·복원(traceparent) — Saga 전체를 한 트레이스로 잇기 위해 필요.
     api("io.micrometer:micrometer-tracing")
+    // Phase 14: 격리된 outbox row 수를 게이지로 노출(outbox.stuck).
+    api("io.micrometer:micrometer-core")
     implementation("org.springframework.boot:spring-boot-starter-json")
+
+    // Phase 14: 릴레이의 재시도 상한/격리 동작은 브로커 없이 단위 테스트로 지킨다.
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }

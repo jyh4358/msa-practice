@@ -3,14 +3,17 @@ package com.shopsaga.payment.application.service;
 import com.shopsaga.events.PaymentChargedEvent;
 import com.shopsaga.events.PaymentDeclinedEvent;
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.events.commands.SagaReply;
 import com.shopsaga.outbox.CommandKeys;
 import com.shopsaga.payment.application.UseCase;
 import com.shopsaga.payment.application.port.in.PaymentCommandUseCase;
+import com.shopsaga.payment.application.port.out.LoadPaymentPort;
 import com.shopsaga.payment.application.port.out.ProcessedCommandPort;
 import com.shopsaga.payment.application.port.out.PublishPaymentEventPort;
 import com.shopsaga.payment.application.port.out.PublishSagaReplyPort;
 import com.shopsaga.payment.application.port.out.SavePaymentPort;
+import com.shopsaga.payment.application.port.out.UpdatePaymentPort;
 import com.shopsaga.payment.domain.Payment;
 import com.shopsaga.payment.domain.PaymentDeclinedException;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +39,12 @@ import java.util.UUID;
 class PaymentCommandService implements PaymentCommandUseCase {
 
     static final String CMD_CHARGE = "ChargePayment";
+    /** Phase 14: 환불 보상의 결정적 dedup 키 이름(청구와 다른 키여야 서로 간섭하지 않는다). */
+    static final String CMD_REFUND = "RefundPayment";
 
     private final SavePaymentPort savePaymentPort;
+    private final LoadPaymentPort loadPaymentPort;
+    private final UpdatePaymentPort updatePaymentPort;
     private final PublishSagaReplyPort publishSagaReplyPort;
     private final PublishPaymentEventPort publishPaymentEventPort;
     private final ProcessedCommandPort processedCommandPort;
@@ -83,5 +90,53 @@ class PaymentCommandService implements PaymentCommandUseCase {
             log.warn("[커맨드] 결제 거절 → 거절 리플라이 sagaId={} orderId={} amount={} reason={}",
                     command.sagaId(), command.orderId(), command.amount(), e.getMessage());
         }
+    }
+
+    /**
+     * Phase 14: <b>고아 결제 보상</b> — 이미 끝난 Saga 뒤에 성립한 결제를 되돌린다.
+     *
+     * <p>결제 row 를 지우지 않고 {@code REFUNDED} 상태로 남긴다: 돈이 움직인 사실은 사라지지 않는다
+     * (보상 = rollback 이 아니라 semantic undo). 그래서 "결제 1건, 환불 1건"이 감사 기록으로 남는다.
+     */
+    @Override
+    @Transactional
+    public void onRefundPayment(RefundPaymentCommand command) {
+        UUID commandKey = CommandKeys.of(command.sagaId(), CMD_REFUND);
+        Instant now = Instant.now();
+
+        Optional<ProcessedCommandPort.PriorOutcome> prior = processedCommandPort.findOutcome(commandKey);
+        if (prior.isPresent()) {
+            publishSagaReplyPort.reply(new SagaReply(command.sagaId(), command.orderId(),
+                    prior.get().kind(), command.paymentId(), null, prior.get().reason(), now));
+            log.info("[커맨드] 중복 RefundPayment — 재환불 없이 리플라이 재전송 sagaId={}", command.sagaId());
+            return;
+        }
+
+        Optional<Payment> found = loadPaymentPort.loadById(command.paymentId());
+        if (found.isEmpty()) {
+            // 되돌릴 결제가 없다 = 재시도해도 소용없다. 실패로 기록하고 조정자에게 알린 뒤 종료(무한 재배달 방지).
+            replyAndRecord(command, commandKey, "환불 대상 결제 없음: " + command.paymentId(), now);
+            log.error("[커맨드] 환불 대상 결제를 찾을 수 없음 sagaId={} paymentId={}",
+                    command.sagaId(), command.paymentId());
+            return;
+        }
+
+        Payment payment = found.get();
+        if (payment.refund(now)) {
+            updatePaymentPort.update(payment);
+            log.warn("[커맨드] 고아 결제 환불 sagaId={} orderId={} paymentId={} amount={} 사유={}",
+                    command.sagaId(), command.orderId(), payment.getId(), payment.getAmount(), command.reason());
+        } else {
+            // 이미 환불된 결제 — 도메인이 멱등하게 막았다. 조정자에겐 성공으로 응답한다.
+            log.info("[커맨드] 이미 환불된 결제 — 변경 없음 paymentId={}", payment.getId());
+        }
+        replyAndRecord(command, commandKey, null, now);
+    }
+
+    private void replyAndRecord(RefundPaymentCommand command, UUID commandKey, String reason, Instant now) {
+        publishSagaReplyPort.reply(new SagaReply(command.sagaId(), command.orderId(),
+                SagaReply.Kind.PAYMENT_REFUNDED, command.paymentId(), null, reason, now));
+        processedCommandPort.record(commandKey, command.sagaId(), command.orderId(),
+                SagaReply.Kind.PAYMENT_REFUNDED, reason);
     }
 }

@@ -1,5 +1,6 @@
 package com.shopsaga.inventory;
 
+import com.shopsaga.messaging.KafkaErrorHandlingConfiguration;
 import com.shopsaga.outbox.OutboxConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -14,7 +15,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication
 @EntityScan({"com.shopsaga.inventory", "com.shopsaga.outbox"})
 @EnableJpaRepositories({"com.shopsaga.inventory", "com.shopsaga.outbox"})
-@Import(OutboxConfiguration.class)
+@Import({OutboxConfiguration.class, KafkaErrorHandlingConfiguration.class})   // Phase 14: 소비 실패 → DLQ
 public class InventoryServiceApplication {
 
     public static void main(String[] args) {

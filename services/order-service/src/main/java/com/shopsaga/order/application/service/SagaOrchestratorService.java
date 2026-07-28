@@ -3,6 +3,7 @@ package com.shopsaga.order.application.service;
 import com.shopsaga.events.OrderCancelledEvent;
 import com.shopsaga.events.OrderConfirmedEvent;
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.events.commands.ReleaseStockCommand;
 import com.shopsaga.events.commands.SagaReply;
 import com.shopsaga.order.application.UseCase;
@@ -76,6 +77,8 @@ class SagaOrchestratorService implements SagaReplyUseCase {
             case PAYMENT_CHARGED -> onPaymentCharged(saga, reply, now);
             case PAYMENT_DECLINED -> onPaymentDeclined(saga, reply, now);
             case STOCK_RELEASED -> onStockReleased(saga, reply, now);
+            case PAYMENT_REFUNDED -> log.warn("고아 결제 정리 완료 sagaId={} orderId={} paymentId={}",
+                    saga.getSagaId(), saga.getOrderId(), reply.paymentId());
         }
 
         processedMessagePort.markProcessed(messageId);
@@ -108,10 +111,14 @@ class SagaOrchestratorService implements SagaReplyUseCase {
                 saga.getSagaId(), saga.getOrderId());
     }
 
-    /** 결제 성공 → 주문 확정으로 성공 종료. */
+    /** 결제 성공 → 주문 확정으로 성공 종료. 단, <b>이미 끝난 Saga의 뒤늦은 성공</b>이면 보상해야 한다. */
     private void onPaymentCharged(SagaInstance saga, SagaReply reply, Instant now) {
         if (!saga.complete(now)) {
-            log.info("전이 조건 불충족 — 무시 kind=PAYMENT_CHARGED sagaId={} state={}", saga.getSagaId(), saga.getState());
+            // ★ Phase 14: Phase 13이 남긴 '고아 결제' 결함을 여기서 막는다.
+            //    타임아웃으로 포기한 Saga는 이미 CANCELLED 인데, 되살아난 payment 가 큐에 남아 있던
+            //    ChargePayment 를 뒤늦게 수행하면 "취소된 주문에 결제만 살아 있는" 상태가 된다.
+            //    무시하면 돈이 빠져나간 채로 남으므로, 되돌릴 수 없는 대신 <b>상쇄</b>를 지시한다.
+            compensateOrphanPayment(saga, reply, now);
             return;
         }
         sagaRepository.update(saga);
@@ -145,6 +152,26 @@ class SagaOrchestratorService implements SagaReplyUseCase {
         sagaRepository.update(saga);
         cancelOrder(saga.getOrderId(), "결제 거절 → 재고 해제 완료", now);
         log.info("Saga 종료 sagaId={} orderId={} → CANCELLED (보상 완료)", saga.getSagaId(), saga.getOrderId());
+    }
+
+    /**
+     * Phase 14: 종료된 Saga 뒤에 도착한 결제 성공을 되돌리라고 지시한다.
+     *
+     * <p>Saga 상태는 건드리지 않는다 — 이미 CANCELLED 로 끝난 사건이고, 환불은 그 <b>뒤에 붙는 정리 작업</b>이다.
+     * (상태를 되돌리면 "취소됐다가 다시 진행 중"이 되어 sweep 대상으로 되살아난다.)
+     * 결제 id 가 없으면 되돌릴 대상을 특정할 수 없으므로 로그만 남긴다(설계상 성공 리플라이엔 항상 있다).
+     */
+    private void compensateOrphanPayment(SagaInstance saga, SagaReply reply, Instant now) {
+        if (reply.paymentId() == null) {
+            log.error("Saga 종료 후 결제 성공이 왔는데 paymentId 가 없어 보상 불가 sagaId={} state={}",
+                    saga.getSagaId(), saga.getState());
+            return;
+        }
+        log.error("★ 고아 결제 감지 — 환불 지시 sagaId={} orderId={} paymentId={} sagaState={}",
+                saga.getSagaId(), saga.getOrderId(), reply.paymentId(), saga.getState());
+        publishSagaCommandPort.refundPayment(new RefundPaymentCommand(
+                saga.getSagaId(), saga.getOrderId(), reply.paymentId(),
+                "Saga 종료(" + saga.getState() + ") 후 도착한 결제", now));
     }
 
     private void cancelOrder(UUID orderId, String reason, Instant now) {

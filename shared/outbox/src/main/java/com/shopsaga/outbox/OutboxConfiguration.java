@@ -1,9 +1,12 @@
 package com.shopsaga.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.propagation.Propagator;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -42,8 +45,25 @@ public class OutboxConfiguration {
     @Bean
     public OutboxRelay outboxRelay(OutboxRepository repository, KafkaTemplate<String, Object> kafkaTemplate,
                                    ObjectMapper objectMapper,
-                                   ObjectProvider<Tracer> tracer, ObjectProvider<Propagator> propagator) {
+                                   ObjectProvider<Tracer> tracer, ObjectProvider<Propagator> propagator,
+                                   @Value("${outbox.relay.max-attempts:5}") int maxAttempts) {
         return new OutboxRelay(repository, kafkaTemplate, objectMapper,
-                tracer.getIfAvailable(), propagator.getIfAvailable());
+                tracer.getIfAvailable(), propagator.getIfAvailable(), maxAttempts);
+    }
+
+    /**
+     * Phase 14: 격리된(재시도 상한 초과) outbox row 수를 게이지로 노출한다.
+     *
+     * <p>격리는 "조용히 버리는" 것이 아니다 — 버려도 되는 이벤트란 없다. 릴레이는 그 row 를 건너뛰어
+     * 나머지를 흐르게 하되, <b>사람이 알아챌 수 있도록</b> 숫자를 남긴다. 이 값이 0 보다 크면 경보 대상이다.
+     * (Grafana 에서 {@code outbox_stuck} 로 조회. 메트릭 레지스트리가 없으면 조용히 건너뛴다.)
+     */
+    @Bean
+    public MeterBinder outboxStuckGauge(OutboxRepository repository,
+                                        @Value("${outbox.relay.max-attempts:5}") int maxAttempts) {
+        return registry -> Gauge.builder("outbox.stuck",
+                        () -> repository.countByPublishedAtIsNullAndAttemptsGreaterThanEqual(maxAttempts))
+                .description("재시도 상한을 넘겨 격리된 미발행 outbox row 수(0이어야 정상)")
+                .register(registry);
     }
 }

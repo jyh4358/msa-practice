@@ -1,6 +1,7 @@
 package com.shopsaga.order.adapter.in.web;
 
 import com.shopsaga.order.application.service.OrderNotFoundException;
+import com.shopsaga.order.application.service.StockPrecheckRejectedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,5 +28,14 @@ class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleBadRequest(IllegalArgumentException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
+     * Phase 14: 재고 사전 확인 기반 빠른 거절 → 409(옵션 기능, 기본 꺼짐).
+     * 확정 판정이 아니라 <b>참고값</b> 기준이라는 점을 응답 본문에서도 알린다.
+     */
+    @ExceptionHandler(StockPrecheckRejectedException.class)
+    ProblemDetail handlePrecheckRejected(StockPrecheckRejectedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 }

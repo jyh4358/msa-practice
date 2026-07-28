@@ -42,6 +42,11 @@ dependencies {
     implementation(project(":shared:events"))
     // Phase 12: outbox·inbox 메커니즘 공유 라이브러리(테이블은 여전히 서비스별 자기 DB).
     implementation(project(":shared:outbox"))
+    // Phase 14: 소비 실패 → 유한 재시도 → DLQ 공유 설정.
+    implementation(project(":shared:messaging"))
+    // Phase 14: 재고 사전 확인(동기 호출)에 복원력 5종. 애너테이션 aspect 라 AOP 스타터가 반드시 필요하다.
+    implementation(libs.resilience4j.spring.boot3)
+    implementation("org.springframework.boot:spring-boot-starter-aop")
     // Phase 4: Eureka 클라이언트(부팅 시 자동 등록) + spring-cloud-loadbalancer(전이 포함)
     //          → @LoadBalanced RestClient 로 payment-service 를 이름으로 호출.
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")

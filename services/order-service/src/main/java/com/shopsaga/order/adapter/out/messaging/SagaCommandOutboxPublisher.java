@@ -2,6 +2,7 @@ package com.shopsaga.order.adapter.out.messaging;
 
 import com.shopsaga.events.Topics;
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.events.commands.ReleaseStockCommand;
 import com.shopsaga.events.commands.ReserveStockCommand;
 import com.shopsaga.order.application.port.out.PublishSagaCommandPort;
@@ -33,6 +34,11 @@ class SagaCommandOutboxPublisher implements PublishSagaCommandPort {
 
     @Override
     public void releaseStock(ReleaseStockCommand command) {
+        outboxWriter.write(command.orderId(), command, Topics.SAGA_COMMANDS);
+    }
+
+    @Override
+    public void refundPayment(RefundPaymentCommand command) {
         outboxWriter.write(command.orderId(), command, Topics.SAGA_COMMANDS);
     }
 }

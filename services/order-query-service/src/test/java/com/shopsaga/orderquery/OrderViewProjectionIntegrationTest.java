@@ -37,7 +37,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration")
+        properties = {
+                "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration",
+                // Kafka 자동설정을 제외하면 KafkaTemplate 이 없으므로 Phase 14의 DLQ 설정도 함께 끈다.
+                "messaging.dlq.enabled=false"})
 @Testcontainers
 class OrderViewProjectionIntegrationTest {
 

@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 14 · 복원력 패턴 · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li class="active"><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-14--복원력-패턴-일부러-부수고-버티는지-본다">Phase 14 — 복원력 패턴 (일부러 부수고, 버티는지 본다)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> 지금까지는 &quot;모두 살아 있을 때&quot;의 정합성을 만들었다. 이번엔 <strong>일부가 죽거나 느려졌을 때</strong>
+나머지가 살아남게 한다. 동기 구간은 <strong>Resilience4j 5종</strong>으로, 비동기 구간은 <strong>유한 재시도 + DLQ</strong>로 막는다.
+그리고 Phase 13이 실측으로 남긴 결함 — <strong>고아 결제</strong> — 를 보상으로 갚는다.</p>
+</blockquote>
+<p>초심자(Java/Spring은 알지만 분산 장애 대응은 처음) 기준으로 <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>Resilience4j 5종</strong>(RateLimiter·TimeLimiter·CircuitBreaker·Bulkhead·Retry)을 order→inventory <strong>재고 사전 확인</strong> 호출에 적용.</li>
+<li><strong>게이트웨이 회로차단기 + fallback</strong> — 다운스트림이 죽어도 엣지에서 즉시 503으로 끊고, 회복되면 스스로 닫힌다.</li>
+<li><strong>엣지 과부하 차단</strong> — Resilience4j RateLimiter/Bulkhead 를 게이트웨이 글로벌 필터로(429/503).</li>
+<li><strong>장애 주입 스위치</strong>(<code>POST /inventory/chaos</code>) — 재시작 없이 지연·오류율을 바꿔 패턴을 눈으로 확인.</li>
+<li><strong>DLQ / poison 메시지</strong> — <code>ErrorHandlingDeserializer</code> + <code>DefaultErrorHandler</code> + <code>DeadLetterPublishingRecoverer</code>
+→ 유한 백오프 후 <code>&lt;토픽&gt;.DLT</code>. <strong>파티션이 막히지 않는다.</strong></li>
+<li><strong>outbox 격리</strong> — 발행이 계속 실패하는 row 는 <code>attempts</code> 상한을 넘기면 조회에서 제외(+ <code>outbox.stuck</code> 게이지).</li>
+<li><strong>★ 고아 결제 보상</strong> — Phase 13에서 발견한 &quot;취소된 주문에 결제만 남는&quot; 결함을 <code>RefundPaymentCommand</code> 로 상쇄.</li>
+</ul>
+<hr>
+<h2 id="1-왜--지금까지-쌓인-문제">1. 왜 — 지금까지 쌓인 문제</h2>
+<p>Phase 13까지 만든 것은 <strong>논리적 정합성</strong>이다. 하지만 실제 장애에서는 아래가 그대로 드러났다.</p>
+<p><strong>① 소비 중 예외 = 무한 재배달 = 파티션 정지.</strong>
+Kafka 소비자는 &quot;처리 성공&quot;으로만 오프셋을 넘긴다. 리스너가 예외를 던지면 <strong>같은 레코드가 영원히 다시 온다</strong>.
+그 파티션 뒤에 줄 선 정상 메시지는 전부 함께 멈춘다(<strong>head-of-line blocking</strong>).
+깨진 메시지 하나가 서비스를 마비시키는 것 — 이런 메시지를 <strong>poison pill</strong>(독약)이라 부른다.</p>
+<p><strong>② 발행이 안 되는 outbox row 도 같은 문제.</strong>
+릴레이는 미발행 row 를 오래된 순서로 100건씩 집어 온다. 구조적으로 발행 불가한 row 가 있으면
+매 폴링마다 앞자리를 차지해 <strong>뒤의 정상 이벤트가 굶는다</strong>. 소비 쪽 poison pill 의 발행 쪽 쌍둥이다.</p>
+<p><strong>③ 죽은 의존성을 계속 때린다.</strong>
+게이트웨이는 order-service 가 죽어도 매 요청을 그쪽으로 보내고 타임아웃까지 기다린다.
+요청이 쌓이면 커넥션/스레드가 고갈되고, <strong>멀쩡한 다른 라우트까지 함께 죽는다</strong>(캐스케이드 장애).</p>
+<p><strong>④ Phase 13이 남긴 실측 결함 — 고아 결제.</strong>
+타임아웃 sweep 이 결제를 포기하고 주문을 취소한 뒤, 되살아난 payment 가 큐에 남아 있던
+<code>ChargePayment</code> 를 뒤늦게 수행한다 → <strong>취소된 주문에 결제만 살아남는다</strong>
+(<code>docs/PHASE-13-SAGA-ORCHESTRATION.md</code> §7.2에 기록).</p>
+<hr>
+<h2 id="2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+<th>없으면 생기는 일</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Circuit Breaker</strong>(회로차단기)</td>
+<td>실패율이 임계를 넘으면 회로를 <strong>열어</strong> 이후 호출을 즉시 실패시킨다. 일정 시간 뒤 스스로 시험 호출(HALF_OPEN).</td>
+<td>죽은 상대를 계속 때리며 매 요청이 타임아웃까지 대기</td>
+</tr>
+<tr>
+<td><strong>Retry</strong>(재시도)</td>
+<td>일시적 결함을 몇 번 다시 시도. <strong>반드시 유한하게 + 백오프</strong>.</td>
+<td>한 번 튄 오류가 그대로 실패 / 무한 재시도는 장애를 감춤</td>
+</tr>
+<tr>
+<td><strong>Bulkhead</strong>(격벽)</td>
+<td><strong>동시</strong> 호출 수 상한. 배의 격벽처럼 침수를 한 칸에 가둔다.</td>
+<td>느린 다운스트림 하나가 전체 스레드를 잠식</td>
+</tr>
+<tr>
+<td><strong>RateLimiter</strong></td>
+<td><strong>초당</strong> 호출 수 상한.</td>
+<td>우리가 상대를 눌러 죽인다</td>
+</tr>
+<tr>
+<td><strong>TimeLimiter</strong></td>
+<td>응답 시간 상한.</td>
+<td>느린 상대에게 스레드가 묶여 우리도 죽는다</td>
+</tr>
+<tr>
+<td><strong>Fallback</strong>(강등)</td>
+<td>실패 시 돌려줄 <strong>정직한 대체 응답</strong>.</td>
+<td>부가 기능 실패가 본 기능을 끌어내린다</td>
+</tr>
+<tr>
+<td><strong>DLQ / DLT</strong></td>
+<td>끝내 처리 못 한 메시지를 옮겨 두는 토픽(<code>&lt;원본&gt;.DLT</code>).</td>
+<td>poison pill 이 파티션을 영구 정지</td>
+</tr>
+<tr>
+<td><strong>Poison pill</strong></td>
+<td>몇 번을 다시 해도 반드시 실패하는 메시지(깨진 JSON 등).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>head-of-line blocking</strong></td>
+<td>앞의 하나가 막혀 뒤가 전부 대기하는 현상.</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>핵심 감각:</strong> 복원력 패턴은 &quot;실패를 없애는&quot; 장치가 아니다. <strong>실패를 빨리, 국소적으로 끝내는</strong> 장치다.
+목표는 &quot;죽지 않는 시스템&quot;이 아니라 &quot;<strong>한 곳의 죽음이 전체로 번지지 않는 시스템</strong>&quot;이다.</p>
+</blockquote>
+<hr>
+<h2 id="3-구성-그림">3. 구성 (그림)</h2>
+<pre><code>                    ┌──────────────── 엣지(게이트웨이) ────────────────┐
+  클라이언트 ──▶   │ RateLimiter(20/s) → Bulkhead(20) → CircuitBreaker │ ──▶ lb://order-service
+                    │      429              503            503(fallback) │
+                    └──────────────────────────────────────────────────┘
+                                                │
+                                                ▼
+  order-service ── POST /orders ─┬─ [사전 확인] ──▶ inventory-service  (동기·부가 기능)
+                                 │     RateLimiter → TimeLimiter → CircuitBreaker
+                                 │     → Bulkhead → Retry → RestClient
+                                 │     실패하면 UNKNOWN 으로 강등(주문은 계속 진행)
+                                 │
+                                 └─ 주문 저장 + outbox 기록(한 트랜잭션) ──▶ Saga(비동기)
+
+  [비동기 구간의 방어]
+   발행: OutboxRelay ─ 실패 시 attempts++ ─ 상한(5) 초과 → 조회에서 제외(격리) + outbox.stuck 게이지
+   소비: ErrorHandlingDeserializer → DefaultErrorHandler
+           ├ 일시적 결함  → 지수 백오프 재시도(최대 3회)
+           └ 역직렬화 실패 → 재시도 없이 즉시 &lt;토픽&gt;.DLT
+</code></pre><p><strong>Phase 12에서 없앤 동기 호출을 왜 한 군데 다시 넣었나?</strong>
+동기 호출은 그 자체가 나쁜 게 아니라 <strong>필수 경로에 있을 때</strong> 나쁘다.
+재고 사전 확인은 &quot;지금 화면에 보여 줄 힌트&quot;일 뿐 — 실패해도 Saga 가 정답을 보장한다.
+<strong>필수가 아닌 호출 + fallback</strong> 이라는 조건에서 동기 호출이 어떻게 허용되는지를 몸으로 배우는 자리다.</p>
+<hr>
+<h2 id="4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</h2>
+<h3 id="41-복원력-5종을-한-메서드에-inventorystockclient">4.1 복원력 5종을 한 메서드에 (<code>InventoryStockClient</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@RateLimiter(name = &quot;inventory&quot;)</span>
+<span class="hljs-meta">@TimeLimiter(name = &quot;inventory&quot;)</span>
+<span class="hljs-meta">@CircuitBreaker(name = &quot;inventory&quot;)</span>
+<span class="hljs-meta">@Bulkhead(name = &quot;inventory&quot;)</span>
+<span class="hljs-meta">@Retry(name = &quot;inventory&quot;)</span>
+CompletableFuture&lt;Integer&gt; <span class="hljs-title function_">availableQuantity</span><span class="hljs-params">(UUID productId, String bearerToken)</span> {
+    <span class="hljs-keyword">return</span> CompletableFuture.supplyAsync(() -&gt; fetch(productId, bearerToken), stockPrecheckExecutor);
+}
+</code></pre><ul>
+<li><strong><code>CompletableFuture</code> 반환이 필수다</strong> — <code>@TimeLimiter</code> 는 동기 메서드에 걸 수 없다(끊을 방법이 없으므로).</li>
+<li><strong>토큰을 인자로 받는다</strong> — 본문은 <strong>다른 스레드</strong>에서 돌기 때문에 <code>SecurityContextHolder</code> 가 비어 있다.</li>
+<li><strong>예외를 삼키지 않는다</strong> — 여기서 잡으면 회로차단기가 실패를 배우지 못한다.</li>
+</ul>
+<h3 id="42-fallback-은-애너테이션이-아니라-옆-클래스에서-stockavailabilityrestadapter">4.2 fallback 은 애너테이션이 아니라 옆 클래스에서 (<code>StockAvailabilityRestAdapter</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">try</span> {
+    <span class="hljs-type">int</span> <span class="hljs-variable">available</span> <span class="hljs-operator">=</span> client.availableQuantity(line.productId(), bearerToken).join();
+    <span class="hljs-keyword">return</span> available &gt;= line.quantity() ? StockPrecheck.available() : StockPrecheck.insufficient(...);
+} <span class="hljs-keyword">catch</span> (Exception e) {
+    <span class="hljs-keyword">return</span> StockPrecheck.unknown(describe(unwrap(e)));   <span class="hljs-comment">// ★ 강등: 주문은 그대로 진행</span>
+}
+</code></pre><p><strong>클래스를 둘로 나눈 이유 두 가지 — 둘 다 실수하기 쉬운 지점이다.</strong></p>
+<ol>
+<li><strong>Spring AOP 는 자기 자신 호출에 적용되지 않는다.</strong> 같은 클래스 안에서 <code>this.availableQuantity(...)</code> 를
+부르면 프록시를 거치지 않아 <strong>애너테이션이 전부 무시된다</strong>. 복원력 코드가 &quot;조용히 아무것도 안 하는&quot; 대표적 사고.</li>
+<li><strong><code>fallbackMethod</code> 를 안쪽 aspect 에 달면 안 된다.</strong> 예를 들어 <code>@Retry</code> 에 fallback 을 달면
+바깥의 회로차단기는 언제나 &quot;성공&quot;만 보게 되어 <strong>회로가 영원히 열리지 않는다.</strong></li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>실측으로 밟은 함정:</strong> 강등 사유를 한글(&quot;회로 열림&quot;)로 만들어 응답 헤더에 실었더니 <strong>헤더가 통째로 사라졌다.</strong>
+HTTP 헤더는 기본이 ISO-8859-1 이다. 그래서 헤더에 실리는 값은 <code>CIRCUIT_OPEN</code>·<code>TIMEOUT</code> 같은 <strong>ASCII</strong>로만 만들고,
+한글 설명은 로그에만 남긴다.</p>
+</blockquote>
+<h3 id="43--aspect-적용-순서--문서만-믿으면-틀린다">4.3 ★ aspect 적용 순서 — 문서만 믿으면 틀린다</h3>
+<p>애너테이션을 <strong>쓴 순서는 아무 의미가 없다.</strong> 실제 중첩은 각 aspect 의 order 값으로 정해진다.
+Resilience4j 2.2.0 클래스를 직접 뜯어 확인한 기본값은 다음과 같다(<code>Integer.MAX_VALUE</code> = 2147483647).</p>
+<table>
+<thead>
+<tr>
+<th>aspect</th>
+<th>기본 order</th>
+<th>설정 키</th>
+<th>변경 가능?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Retry</td>
+<td>2147483642</td>
+<td><code>resilience4j.retry.retryAspectOrder</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>CircuitBreaker</td>
+<td>2147483643</td>
+<td><code>resilience4j.circuitbreaker.circuitBreakerAspectOrder</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>RateLimiter</td>
+<td>2147483644</td>
+<td><code>resilience4j.ratelimiter.rateLimiterAspectOrder</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>TimeLimiter</td>
+<td>2147483645</td>
+<td><code>resilience4j.timelimiter.timeLimiterAspectOrder</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Bulkhead</strong></td>
+<td><strong>2147483646</strong></td>
+<td>(없음 — getter 만 존재)</td>
+<td>❌ <strong>고정</strong></td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>값이 작을수록 바깥</strong>이다(스프링 AOP 표준: 낮은 order = 높은 우선순위 = 바깥).
+Resilience4j 문서의 <em>&quot;higher value = higher priority&quot;</em> 표현은 오해를 부른다 — 실제로 5·4·3·2·1 로 넣으면
+의도와 <strong>정반대</strong>로 중첩된다.</li>
+<li>그래서 기본 중첩은 <code>Retry(CircuitBreaker(RateLimiter(TimeLimiter(Bulkhead(호출)))))</code> — <strong>Retry 가 가장 바깥</strong>.</li>
+<li><strong><code>bulkheadAspectOrder</code> 는 아예 없다.</strong> 넣으면 <code>No setter found for property</code> 로 <strong>애플리케이션이 기동조차 못 한다</strong>
+(실제로 게이트웨이가 이걸로 재시작 루프에 빠졌다).</li>
+</ul>
+<p>이 프로젝트는 학습 계획의 권장 순서 <code>RateLimiter → TimeLimiter → CircuitBreaker → Bulkhead → Retry</code>(바깥→안쪽)로 맞췄다:</p>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">resilience4j:</span>
+  <span class="hljs-attr">ratelimiter:</span>     { <span class="hljs-attr">rateLimiterAspectOrder:</span> <span class="hljs-number">2147483643</span> }   <span class="hljs-comment"># 가장 바깥</span>
+  <span class="hljs-attr">timelimiter:</span>     { <span class="hljs-attr">timeLimiterAspectOrder:</span> <span class="hljs-number">2147483644</span> }
+  <span class="hljs-attr">circuitbreaker:</span>  { <span class="hljs-attr">circuitBreakerAspectOrder:</span> <span class="hljs-number">2147483645</span> }
+  <span class="hljs-comment"># bulkhead: 2147483646 (고정)</span>
+  <span class="hljs-attr">retry:</span>           { <span class="hljs-attr">retryAspectOrder:</span> <span class="hljs-number">2147483647</span> }         <span class="hljs-comment"># 가장 안쪽</span>
+</code></pre><p><strong>이 순서가 바꾸는 것 (§7.1에서 실측 확인):</strong></p>
+<ul>
+<li>Retry 가 가장 안쪽 → 회로차단기는 &quot;재시도까지 끝낸 최종 결과&quot; <strong>1건</strong>만 센다. 재시도가 통계를 부풀리지 않는다.</li>
+<li>TimeLimiter 가 회로차단기보다 <strong>바깥</strong> → <strong>타임아웃은 회로를 열지 못한다.</strong>
+느린 상대에게는 매번 타임아웃만 나고 회로는 CLOSED 로 남는다.
+타임아웃도 회로 판단에 넣고 싶으면 <code>circuitBreakerAspectOrder</code> 를 <code>timeLimiterAspectOrder</code> 보다 <strong>작게</strong>(더 바깥) 두면 된다.
+(또는 회로차단기의 <code>slow-call-duration-threshold</code> 로 &quot;느린 호출&quot;을 실패로 세는 방법도 있다.)</li>
+</ul>
+<h3 id="44-게이트웨이--회로차단기-필터--fallback">4.4 게이트웨이 — 회로차단기 필터 + fallback</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-bullet">-</span> <span class="hljs-attr">id:</span> <span class="hljs-string">orders-route</span>
+  <span class="hljs-attr">uri:</span> <span class="hljs-string">lb://order-service</span>
+  <span class="hljs-attr">filters:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">CircuitBreaker</span>
+      <span class="hljs-attr">args:</span> { <span class="hljs-attr">name:</span> <span class="hljs-string">ordersCb</span>, <span class="hljs-attr">fallbackUri:</span> <span class="hljs-string">forward:/fallback/order-service</span> }
+</code></pre><pre><code class="hljs language-java">factory.configureDefault(id -&gt; <span class="hljs-keyword">new</span> <span class="hljs-title class_">Resilience4JConfigBuilder</span>(id)
+        .circuitBreakerConfig(CircuitBreakerConfig.custom()
+                .slidingWindowSize(<span class="hljs-number">10</span>).minimumNumberOfCalls(<span class="hljs-number">5</span>)
+                .failureRateThreshold(<span class="hljs-number">50</span>)
+                .waitDurationInOpenState(Duration.ofSeconds(<span class="hljs-number">10</span>))
+                .permittedNumberOfCallsInHalfOpenState(<span class="hljs-number">3</span>).build())
+        .timeLimiterConfig(TimeLimiterConfig.custom()
+                .timeoutDuration(Duration.ofSeconds(<span class="hljs-number">3</span>)).build())   <span class="hljs-comment">// 기본 1초는 쓰기에 너무 빡빡</span>
+        .build());
+</code></pre><ul>
+<li><strong>회로 이름을 라우트마다 다르게</strong> 둔다. 하나로 묶으면 order 장애가 inventory 회로까지 연다.</li>
+<li><strong>기본 TimeLimiter 가 1초</strong>라는 점을 모르면 &quot;이유 없는 간헐적 503&quot;에 시달린다. 명시하는 편이 안전하다.</li>
+<li>fallback 은 <strong>정직한 실패</strong>(503 + ProblemDetail)여야 한다. 성공인 척하면 클라이언트가 더 위험해진다.</li>
+</ul>
+<h3 id="45-엣지-과부하-차단-edgethrottlefilter">4.5 엣지 과부하 차단 (<code>EdgeThrottleFilter</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">return</span> chain.filter(exchange)
+        .transformDeferred(BulkheadOperator.of(bulkhead))
+        .transformDeferred(RateLimiterOperator.of(rateLimiter))
+        .onErrorResume(RequestNotPermitted.class,  e -&gt; reject(exchange, TOO_MANY_REQUESTS, ...))
+        .onErrorResume(BulkheadFullException.class, e -&gt; reject(exchange, SERVICE_UNAVAILABLE, ...));
+</code></pre><p>Spring Cloud Gateway 기본 <code>RequestRateLimiter</code> 필터는 <strong>Redis 를 요구</strong>한다. 학습 플랫폼에 Redis 를 들이는 대신
+Resilience4j 리액터 연산자를 직접 붙였다.
+⚠️ 대신 <strong>인스턴스별 로컬 카운터</strong>다 — 게이트웨이를 2개 띄우면 한도도 2배. 분산 한도가 필요하면 Redis 기반이 맞다.</p>
+<h3 id="46-소비-실패--유한-재시도--dlq-sharedmessaging">4.6 소비 실패 → 유한 재시도 → DLQ (<code>shared/messaging</code>)</h3>
+<pre><code class="hljs language-java"><span class="hljs-type">ExponentialBackOffWithMaxRetries</span> <span class="hljs-variable">backOff</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ExponentialBackOffWithMaxRetries</span>(<span class="hljs-number">3</span>);   <span class="hljs-comment">// 유한!</span>
+<span class="hljs-type">DefaultErrorHandler</span> <span class="hljs-variable">handler</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DefaultErrorHandler</span>(recoverer, backOff);
+</code></pre><pre><code class="hljs language-yaml"><span class="hljs-attr">spring.kafka.consumer:</span>
+  <span class="hljs-attr">key-deserializer:</span>   <span class="hljs-string">org.springframework.kafka.support.serializer.ErrorHandlingDeserializer</span>
+  <span class="hljs-attr">value-deserializer:</span> <span class="hljs-string">org.springframework.kafka.support.serializer.ErrorHandlingDeserializer</span>
+  <span class="hljs-attr">properties:</span>
+    <span class="hljs-attr">spring.deserializer.value.delegate.class:</span> <span class="hljs-string">org.springframework.kafka.support.serializer.JsonDeserializer</span>
+</code></pre><p><strong>꼭 알아야 하는 네 가지</strong></p>
+<ol>
+<li><strong><code>ErrorHandlingDeserializer</code> 로 감싸지 않으면 에러 핸들러가 손도 못 댄다.</strong> 역직렬화 예외는
+리스너에 <strong>도달하기 전</strong> 컨슈머 스레드에서 터지기 때문이다. 감싸면 <code>DeserializationException</code> 으로 바뀌어
+<code>DefaultErrorHandler</code> 의 <strong>비재시도 목록</strong>에 걸리고 즉시 DLT 로 간다.</li>
+<li><strong>DLT 토픽을 선언해야 한다.</strong> auto-create 가 꺼져 있으므로 없으면 <strong>DLT 발행이 실패</strong>해 결국 파티션이 다시 막힌다.
+여러 개를 한 빈으로 낼 땐 <code>KafkaAdmin.NewTopics</code> 를 쓴다 — <code>List&lt;NewTopic&gt;</code> 빈은 수집되지 않는다.</li>
+<li><strong>DLT 발행용 템플릿이 둘이다.</strong> 역직렬화 실패 레코드는 자바 객체가 아니라 <strong>원본 바이트</strong>로 실어야 원문을 볼 수 있다.
+<code>JsonSerializer</code> 로는 byte[] 가 base64 문자열로 뭉개진다.
+⚠️ 그 템플릿을 <code>@Bean</code> 으로 내면 안 된다 — Boot 의 <code>KafkaTemplate</code> 자동설정이 <code>@ConditionalOnMissingBean</code> 이라
+<strong>자동설정 템플릿이 통째로 사라진다</strong>(→ outbox 릴레이 주입 실패).</li>
+<li><strong><code>messaging.dlq.enabled=false</code> 토글이 필요하다.</strong> Kafka 자동설정을 제외한 컨텍스트(브로커 없는 통합 테스트)에는
+<code>KafkaTemplate</code> 자체가 없어 이 설정이 기동을 깨뜨린다.</li>
+</ol>
+<h3 id="47-outbox-격리-발행-쪽-poison">4.7 outbox 격리 (발행 쪽 poison)</h3>
+<pre><code class="hljs language-java">List&lt;OutboxMessage&gt; batch =
+        repository.findTop100ByPublishedAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(maxAttempts);
+</code></pre><p>상한을 넘긴 row 는 <strong>조회 자체에서 빠진다</strong>(격리). 지우지는 않는다 — 버려도 되는 이벤트란 없다.
+대신 <code>outbox.stuck</code> 게이지로 &quot;사람이 봐야 할 것이 몇 건인지&quot;를 남긴다. <strong>0보다 크면 경보 대상.</strong></p>
+<h3 id="48--고아-결제-보상-phase-13-결함-갚기">4.8 ★ 고아 결제 보상 (Phase 13 결함 갚기)</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onPaymentCharged</span><span class="hljs-params">(SagaInstance saga, SagaReply reply, Instant now)</span> {
+    <span class="hljs-keyword">if</span> (!saga.complete(now)) {
+        compensateOrphanPayment(saga, reply, now);   <span class="hljs-comment">// 무시하지 않는다 — 상쇄한다</span>
+        <span class="hljs-keyword">return</span>;
+    }
+    ...
+}
+</code></pre><ul>
+<li>늦게 온 성공을 <strong>무시하면 돈이 빠져나간 채로 남는다.</strong> 이미 일어난 일은 롤백할 수 없으므로 <strong>상쇄(semantic undo)</strong> 한다.</li>
+<li>Saga 상태는 <strong>건드리지 않는다.</strong> 되돌리면 &quot;취소됐다가 다시 진행 중&quot;이 되어 sweep 대상으로 되살아난다.</li>
+<li>payment 는 결제 row 를 <strong>지우지 않고</strong> <code>REFUNDED</code> 로 남긴다 — 돈이 움직인 사실은 감사(audit) 대상이다.</li>
+<li>멱등성은 결정적 커맨드 키 <code>CommandKeys.of(sagaId, &quot;RefundPayment&quot;)</code> 가 보장한다(청구 키와 다르므로 서로 간섭 없음).</li>
+</ul>
+<hr>
+<h2 id="5-요청-하나가-흐르는-순서-사전-확인이-실패하는-경우">5. 요청 하나가 흐르는 순서 (사전 확인이 실패하는 경우)</h2>
+<pre><code>1. POST /orders                        → 게이트웨이 RateLimiter 통과 → Bulkhead 통과
+2. ordersCb(CLOSED) → lb://order-service
+3. order-service: 재고 사전 확인 호출
+     RateLimiter 통과 → TimeLimiter 800ms 시작 → CircuitBreaker(CLOSED) → Bulkhead(8) → Retry
+       ├ 시도 1 실패(500) → 100ms 대기
+       ├ 시도 2 실패(500) → 200ms 대기
+       └ 시도 3 실패(500) → Retry 소진 → 예외를 위로
+     CircuitBreaker 가 &#39;실패 1건&#39;으로 기록(재시도 3회가 아니라 1건!)
+4. 어댑터가 예외를 잡아 StockPrecheck.UNKNOWN 으로 강등
+5. 주문은 그대로 PENDING 저장 + outbox 기록 → 201 Created
+     응답 헤더: X-Stock-Precheck: UNKNOWN (InternalServerError)
+6. 실패가 5건 중 50%를 넘으면 회로 OPEN → 이후 요청은 inventory 를 때리지 않고 즉시 UNKNOWN
+7. 10초 뒤 HALF_OPEN → 시험 호출 3건 성공 → CLOSED (사람 개입 없음)
+8. Saga 는 평소대로 진행 → 재고·결제 판정 → CONFIRMED / CANCELLED
+</code></pre><p><strong>포인트:</strong> 5번에서 주문이 정상 접수된다는 것. 부가 기능이 완전히 죽어도 본 기능은 흐른다.</p>
+<hr>
+<h2 id="6-원리--트레이드오프">6. 원리 / 트레이드오프</h2>
+<h3 id="61-실패를-없애기-vs-실패를-국소화하기">6.1 &quot;실패를 없애기&quot; vs &quot;실패를 국소화하기&quot;</h3>
+<p>복원력 패턴은 하나도 성공률을 높이지 않는다. 오히려 <strong>더 빨리 실패시킨다</strong>(fast-fail).
+얻는 것은 <strong>자원 보호</strong>와 <strong>장애 격리</strong>다. 회로가 열리면 죽은 상대를 때리느라 묶여 있던 스레드가 풀려
+멀쩡한 요청이 계속 처리된다.</p>
+<h3 id="62-동기-호출을-다시-허용한-조건">6.2 동기 호출을 다시 허용한 조건</h3>
+<p>Phase 2의 동기 결제 호출은 <strong>필수 경로</strong>에 있었기에 payment 가 죽으면 주문이 죽었다.
+Phase 14의 사전 확인은 ① 결과가 없어도 되고(UNKNOWN) ② 정답은 다른 곳(Saga)이 보장하고
+③ 상한(800ms)이 걸려 있다. <strong>이 세 조건이 갖춰질 때만</strong> 동기 호출을 넣어도 된다.</p>
+<h3 id="63-사전-확인은-왜-기본값이-거절하지-않음인가">6.3 사전 확인은 왜 기본값이 &quot;거절하지 않음&quot;인가</h3>
+<p>사전 확인은 <strong>락 없이 읽은 값</strong>이라 확인과 실제 예약 사이에 다른 주문이 재고를 가져갈 수 있다(TOCTOU).
+틀린 값으로 거절하면 &quot;살 수 있었는데 못 산&quot; 손해가 난다. 그래서 기본은 참고값이고,
+<code>order.stock-precheck.reject-on-insufficient=true</code> 로 켜면 뻔한 실패를 즉시 409로 돌려준다 — <strong>업무가 정할 문제</strong>다.</p>
+<h3 id="64-재시도는-왜-반드시-유한해야-하나">6.4 재시도는 왜 반드시 유한해야 하나</h3>
+<p>무한 재시도는 장애를 <strong>감춘다</strong>. 지표는 정상이고 로그만 흐르는데 실제로는 아무것도 진행되지 않는다.
+유한 재시도 + DLQ 는 &quot;여기까지 해 봤고 안 됐다&quot;는 사실을 <strong>드러낸다.</strong> 드러나야 고칠 수 있다.</p>
+<h3 id="65-dlq-는-쓰레기통이-아니다">6.5 DLQ 는 쓰레기통이 아니다</h3>
+<p>DLT 에 쌓인 메시지는 <strong>처리해야 할 일감</strong>이다. 쌓이는데 아무도 안 보면 조용한 데이터 유실과 같다.
+운영에서는 DLT lag 에 경보를 건다(이 프로젝트는 kafka-ui 로 눈으로 확인).</p>
+<h3 id="66-회로차단기-파라미터의-감각">6.6 회로차단기 파라미터의 감각</h3>
+<ul>
+<li><code>minimumNumberOfCalls</code> 가 없으면 <strong>첫 실패 1건에 회로가 열린다</strong>(표본 부족).</li>
+<li><code>waitDurationInOpenState</code> 가 너무 짧으면 열렸다 닫혔다를 반복(플래핑), 너무 길면 회복이 늦다.</li>
+<li>회로가 <strong>자동으로</strong> HALF_OPEN → CLOSED 가 되는 것이 핵심이다. 사람이 껐다 켜야 한다면 복원력이 아니다.</li>
+</ul>
+<h3 id="67-이번-설계가-포기한-것">6.7 이번 설계가 포기한 것</h3>
+<ul>
+<li>엣지 한도가 <strong>인스턴스 로컬</strong>이라 스케일아웃 시 총량이 늘어난다(분산 한도는 Redis 필요).</li>
+<li>현재 순서에서 <strong>타임아웃은 회로를 열지 못한다</strong>(§4.3). 느린 장애는 회로가 아니라 TimeLimiter 만 막는다.</li>
+<li>DLT 재투입(replay) 도구가 없다 — 지금은 kafka-ui 로 보는 것까지.</li>
+</ul>
+<hr>
+<h2 id="7-검증-실증">7. 검증 (실증)</h2>
+<blockquote>
+<p>실행: <code>docker compose -f deploy/compose/compose.yml --profile async up -d --build</code> (15 컨테이너)
+장애 주입: <code>POST /inventory/chaos?failRate=..&amp;delayMs=..</code> · 해제: <code>DELETE /inventory/chaos</code></p>
+</blockquote>
+<h3 id="71-resilience4j-5종--실측">7.1 Resilience4j 5종 — 실측</h3>
+<table>
+<thead>
+<tr>
+<th>시나리오</th>
+<th>조치</th>
+<th>관측 결과</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>정상</td>
+<td><code>failRate=0</code></td>
+<td><code>201</code>, <code>X-Stock-Precheck: AVAILABLE</code></td>
+</tr>
+<tr>
+<td><strong>TimeLimiter</strong></td>
+<td><code>delayMs=3000</code> (상한 800ms)</td>
+<td><code>201</code>, <code>X-Stock-Precheck: UNKNOWN (TIMEOUT)</code> — <strong>응답 0.88초</strong>(3초 안 기다림)</td>
+</tr>
+<tr>
+<td><strong>Retry → CircuitBreaker</strong></td>
+<td><code>failRate=100</code>, 6회 요청</td>
+<td>1<del>4회 <code>UNKNOWN (InternalServerError)</code>, **5</del>6회 <code>UNKNOWN (CIRCUIT_OPEN)</code>**</td>
+</tr>
+<tr>
+<td>회로 상태</td>
+<td><code>/actuator/health</code></td>
+<td><code>state: OPEN</code>, <code>failureRate 80%</code>, <code>bufferedCalls 5</code>, <code>notPermittedCalls 2</code></td>
+</tr>
+<tr>
+<td><strong>자동 회복</strong></td>
+<td><code>failRate=0</code> + 12초 대기</td>
+<td><code>AVAILABLE</code> 로 복귀 (HALF_OPEN→CLOSED, 사람 개입 없음)</td>
+</tr>
+<tr>
+<td><strong>모든 경우</strong></td>
+<td>위 전부</td>
+<td><strong>주문은 항상 <code>201 PENDING</code></strong> — 부가 기능 실패가 본 기능을 막지 않음</td>
+</tr>
+</tbody></table>
+<p><strong>★ aspect 순서가 실측으로 증명된 지점 두 가지</strong></p>
+<ul>
+<li><code>bufferedCalls=5</code> = 성공 1건(정상) + 실패 4건(요청 4회). <strong>요청마다 3번 재시도했는데 회로는 1건으로 셌다</strong>
+→ <code>Retry</code> 가 회로차단기보다 <strong>안쪽</strong>임이 확인된다.</li>
+<li>타임아웃 시나리오는 <strong>회로 통계에 잡히지 않았다</strong>(bufferedCalls 에 미포함)
+→ <code>TimeLimiter</code> 가 회로차단기보다 <strong>바깥</strong>임이 확인된다. §4.3에서 예고한 트레이드오프 그대로다.</li>
+</ul>
+<h3 id="72-게이트웨이-회로차단기--fallback">7.2 게이트웨이 회로차단기 + fallback</h3>
+<pre><code>정상   : ordersCb = CLOSED
+order-service 정지 후 8회 호출:
+         ordersCb = OPEN, failureRate 50.0%, notPermittedCalls 5     ← 5건은 아예 보내지도 않음
+         응답 본문: {&quot;title&quot;:&quot;일시적으로 사용할 수 없음&quot;,&quot;status&quot;:503,
+                    &quot;detail&quot;:&quot;order-service 를 지금 사용할 수 없습니다(회로 열림 또는 응답 지연)…&quot;}
+재기동 후: ordersCb = CLOSED                                          ← 스스로 회복
+</code></pre><blockquote>
+<p>⚠️ 재기동 직후 <strong>약 30~40초</strong>는 Eureka 재등록 전이라 계속 503 이 나온다. 회로 문제가 아니라 디스커버리 지연이다.</p>
+</blockquote>
+<h3 id="73-엣지-ratelimiter--40건-동시-폭주-한도-20s">7.3 엣지 RateLimiter — 40건 동시 폭주 (한도 20/s)</h3>
+<pre><code>  20 × 429   ← RateLimiter 가 차단
+  20 × 503   ← 통과했으나 다운스트림(회로 열림) fallback
+</code></pre><p>정확히 20건만 통과했다. <strong>초과분이 다운스트림에 도달하지 않는 것</strong>이 핵심이다.</p>
+<h3 id="74-dlq--poison-메시지">7.4 DLQ / poison 메시지</h3>
+<p>토픽 자동 생성 확인: <code>order-events.DLT</code>, <code>inventory-events.DLT</code>, <code>payment-events.DLT</code>, <code>saga-commands.DLT</code>, <code>saga-replies.DLT</code></p>
+<p><strong>① 역직렬화 불가(poison pill) → 재시도 없이 즉시 DLT</strong></p>
+<pre><code>$ echo &#39;THIS-IS-NOT-JSON&#39; | kafka-console-producer.sh --topic order-events
+
+WARN  소비 실패 — 배달 시도 1/4 topic=order-events partition=0 offset=53
+      원인=ListenerExecutionFailedException ← IllegalStateException: No type information in headers…
+ERROR ★ DLT 이동 topic=order-events → order-events.DLT partition=0 offset=53
+</code></pre><p>백오프 재시도가 <strong>한 번도 일어나지 않았다</strong>(0.08초 만에 DLT). 재시도해도 결과가 같기 때문.
+DLT 레코드 헤더: <code>kafka_dlt-exception-fqcn: …DeserializationException</code>, <code>kafka_dlt-original-topic: order-events</code>.</p>
+<p><strong>② 파티션이 막히지 않았는가</strong> — poison 직후 새 주문을 넣자 읽기 모델에 <code>CONFIRMED 12.0</code> 으로 정상 투영.
+<strong>한 개의 독약이 뒤의 정상 메시지를 막지 못한다.</strong></p>
+<p><strong>③ 일시적 결함은 재시도로 살아난다</strong> — Mongo 를 정지시킨 채 주문 접수:</p>
+<pre><code>WARN  소비 실패 — 배달 시도 1/4 … 원인=… ← MongoTimeoutException: … UnknownHostException: order-query-mongo
+</code></pre><p>Mongo 재기동 후 <strong>DLT 로 가지 않고 재시도가 성공</strong> → 해당 주문이 읽기 모델에 <code>CONFIRMED 13.0</code> 으로 투영됐다.
+<strong>&quot;영구 실패는 즉시 격리, 일시 실패는 재시도&quot;</strong> 가 그대로 갈린다.</p>
+<h3 id="75--고아-결제-보상-phase-13-결함-재현--해결">7.5 ★ 고아 결제 보상 (Phase 13 결함 재현 → 해결)</h3>
+<p>payment-service 를 정지한 채 주문 → sweep 이 재촉 3회 후 포기 → 보상 → 취소. 이후 payment 재기동.</p>
+<pre><code>[1] saga=AWAITING_INVENTORY/att=0  order=PENDING
+[2] saga=AWAITING_PAYMENT/att=0    order=INVENTORY_RESERVED
+[4] saga=AWAITING_PAYMENT/att=1    order=INVENTORY_RESERVED     ← sweep 재촉 1
+[7] saga=AWAITING_PAYMENT/att=2    order=INVENTORY_RESERVED     ← sweep 재촉 2
+[9] saga=AWAITING_PAYMENT/att=3    order=INVENTORY_RESERVED     ← sweep 재촉 3
+[12] saga=CANCELLED/att=0          order=CANCELLED              ← 포기 → 보상 → 취소
+
+# payment 재기동 → 큐에 남아 있던 ChargePayment 를 뒤늦게 수행
+ERROR ★ 고아 결제 감지 — 환불 지시 sagaId=ba7cea10… paymentId=970ed91f… sagaState=CANCELLED
+WARN  [커맨드] RefundPayment 수신 … 사유=Saga 종료(CANCELLED) 후 도착한 결제
+WARN  [커맨드] 고아 결제 환불 … amount=33.00
+WARN  고아 결제 정리 완료 …
+</code></pre><p><strong>최종 상태 (Phase 13에서는 결제만 살아남았던 자리)</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>Phase 13</th>
+<th><strong>Phase 14</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>order</td>
+<td>CANCELLED</td>
+<td>CANCELLED</td>
+</tr>
+<tr>
+<td>saga</td>
+<td>CANCELLED</td>
+<td>CANCELLED</td>
+</tr>
+<tr>
+<td><strong>payment</strong></td>
+<td><strong>CAPTURED (고아!)</strong></td>
+<td><strong>REFUNDED</strong> ✅</td>
+</tr>
+<tr>
+<td>재고</td>
+<td>원복</td>
+<td>원복(71 → 71)</td>
+</tr>
+</tbody></table>
+<p><code>processed_commands</code> 에 <code>PAYMENT_REFUNDED</code> 1건이 기록되어 <strong>재전송돼도 이중 환불이 없다.</strong>
+전 과정이 <strong>한 트레이스</strong>(<code>945fd5e7…</code>)로 order-service ↔ payment-service 를 가로질러 이어진다.</p>
+<h3 id="76-outbox-격리-발행-쪽-poison">7.6 outbox 격리 (발행 쪽 poison)</h3>
+<p>Kafka 를 정지시킨 채 주문을 넣고 4분간 방치했다.</p>
+<pre><code>== 미발행 outbox attempts 분포 ==            == kafka 복구 후 ==
+ attempts | count                            attempts | count
+ ---------+-------                           ---------+-------
+        5 |     6                                   5 |     6      ← 그대로 격리 상태
+
+ERROR Outbox 발행 포기 — 격리 messageId=843c4810… topic=saga-commands type=ReserveStockCommand
+      attempts=5 원인=java.util.concurrent.TimeoutException
+ERROR Outbox 발행 포기 — 격리 messageId=60381a56… topic=order-events   type=OrderCancelledEvent  attempts=5 …
+
+격리된 주문 1fdf5f39… → CANCELLED     ← 커맨드가 못 나가 sweep 이 포기 → 취소(단, 취소 이벤트도 격리됨)
+새 주문   61ca3fb6… → CONFIRMED       ← ★ 격리된 row 가 뒤의 정상 흐름을 막지 않는다
+</code></pre><p>핵심은 마지막 두 줄이다. <strong>격리된 6건이 남아 있는 상태에서 새 주문은 끝까지 정상 처리된다.</strong>
+격리가 없었다면 이 6건이 매 폴링마다 배치 앞자리를 차지해 뒤의 이벤트가 계속 밀렸을 것이다.</p>
+<p>동시에 이것이 <strong>격리의 비용</strong>도 보여 준다 — 격리된 row 는 <b>사라지지 않고 남은 일감</b>이다.
+위 예에서 그 주문은 DB 상 CANCELLED 이지만 취소 이벤트가 발행되지 않아 읽기 모델은 모른다.
+그래서 <code>outbox.stuck</code> 게이지가 0보다 크면 <strong>사람이 개입해야 한다</strong>(한계 #5).</p>
+<blockquote>
+<p>⚠️ 이 시나리오는 <strong>재현에 시간이 걸린다.</strong> 실패 1회마다 <code>max.block.ms</code>(5초) + send 타임아웃(5초)이 걸려
+상한 5회에 도달하는 데 수 분이 필요하다. 단위 테스트(<code>OutboxRelayTest</code>)가 같은 성질을 빠르게 지킨다.</p>
+</blockquote>
+<h3 id="77-회귀-가드-자동-테스트-76개-통과">7.7 회귀 가드 (자동 테스트 76개 통과)</h3>
+<table>
+<thead>
+<tr>
+<th>테스트</th>
+<th>지키는 것</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>StockAvailabilityRestAdapterTest</code></td>
+<td>회로 열림·타임아웃 → <strong>예외를 던지지 않고</strong> UNKNOWN 강등 / 확정 부족이 UNKNOWN 보다 우선</td>
+</tr>
+<tr>
+<td><code>OutboxRelayTest</code></td>
+<td>상한 이하만 폴링 / ack 후에만 published / 실패 시 attempts 증가·미발행 유지</td>
+</tr>
+<tr>
+<td><code>PaymentCommandServiceTest</code></td>
+<td>환불 성공·중복 커맨드 무시(리플라이는 재전송)·이미 환불됨·대상 없음</td>
+</tr>
+<tr>
+<td><code>SagaOrchestratorServiceTest</code></td>
+<td>종료된 Saga 뒤 결제 성공 → <strong>환불 지시</strong> / 주문은 되살아나지 않음</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>한계</th>
+<th>왜 지금은 이대로</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>엣지 한도가 <strong>인스턴스 로컬</strong> — 게이트웨이를 2개 띄우면 한도도 2배</td>
+<td>Redis 를 들이지 않기 위해</td>
+<td>Phase 16(k8s) 이후 Redis 기반 <code>RequestRateLimiter</code> 또는 Ingress 레벨</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>타임아웃이 회로를 열지 못한다</strong>(현재 aspect 순서)</td>
+<td>학습 계획의 권장 순서를 그대로 체험하기 위해</td>
+<td>순서 변경 또는 <code>slow-call-duration-threshold</code> 사용 — §4.3</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>DLT 재투입(replay) 도구 없음</strong> — 쌓인 메시지를 사람이 손으로 봐야 함</td>
+<td>소비 쪽 신뢰성 확보가 우선</td>
+<td>Phase 15(계약/스키마) 이후 관리 API 또는 Kafka Streams</td>
+</tr>
+<tr>
+<td>4</td>
+<td>DLT lag <strong>경보 없음</strong> — 쌓여도 대시보드를 봐야 안다</td>
+<td>관측 파이프라인은 Phase 8에서 끝</td>
+<td>Phase 18 Grafana Alertmanager</td>
+</tr>
+<tr>
+<td>5</td>
+<td>outbox 격리 row 를 <strong>자동 복구하지 않는다</strong></td>
+<td>자동 재시도는 같은 실패의 반복</td>
+<td>운영 절차 + <code>outbox.stuck</code> 경보(Phase 18)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>chaos 엔드포인트가 인증만 통과하면 누구나</strong> 호출 가능</td>
+<td>학습 전용(<code>chaos.enabled</code>)</td>
+<td>운영 프로파일에서 제거 / Phase 15 권한 강화</td>
+</tr>
+<tr>
+<td>7</td>
+<td>사전 확인이 <strong>트랜잭션 안에서</strong> 원격 호출</td>
+<td>TimeLimiter 800ms 상한이 있어 허용</td>
+<td>상한이 없다면 트랜잭션 밖으로 빼야 한다</td>
+</tr>
+<tr>
+<td>8</td>
+<td>환불은 <strong>가짜 PG stub</strong> — 실제 결제망 환불 실패는 다루지 않음</td>
+<td>결제 게이트웨이가 stub</td>
+<td>Phase 18(캡스톤)</td>
+</tr>
+<tr>
+<td>9</td>
+<td>스키마 <strong>깨지는 변경</strong>은 여전히 DLT 폭탄</td>
+<td>계약 검증 장치가 없음</td>
+<td><strong>Phase 15</strong>(계약 테스트·스키마 진화)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어사전">9. 용어사전</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>한 줄 정의</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Circuit Breaker</strong></td>
+<td>실패율이 임계를 넘으면 회로를 열어 호출을 즉시 실패시키고, 일정 시간 뒤 스스로 시험하는 장치</td>
+</tr>
+<tr>
+<td><strong>CLOSED / OPEN / HALF_OPEN</strong></td>
+<td>정상 통과 / 차단(fast-fail) / 회복 시험 중</td>
+</tr>
+<tr>
+<td><strong>fast-fail</strong></td>
+<td>기다리지 않고 즉시 실패시켜 자원을 지키는 것</td>
+</tr>
+<tr>
+<td><strong>Bulkhead</strong></td>
+<td>동시 실행 수 상한. 침수를 한 칸에 가두는 배의 격벽에서 온 이름</td>
+</tr>
+<tr>
+<td><strong>RateLimiter</strong></td>
+<td>단위 시간당 호출 수 상한</td>
+</tr>
+<tr>
+<td><strong>TimeLimiter</strong></td>
+<td>응답 시간 상한. <code>CompletableFuture</code> 반환이 필요</td>
+</tr>
+<tr>
+<td><strong>Fallback</strong></td>
+<td>실패 시 돌려주는 대체 응답(성공인 척이 아니라 정직한 실패여야 한다)</td>
+</tr>
+<tr>
+<td><strong>Graceful degradation</strong></td>
+<td>일부 기능을 포기하고 핵심 기능만 살려 계속 서비스하는 것</td>
+</tr>
+<tr>
+<td><strong>Poison pill</strong></td>
+<td>몇 번을 다시 해도 반드시 실패하는 메시지</td>
+</tr>
+<tr>
+<td><strong>DLQ / DLT</strong></td>
+<td>끝내 처리 못 한 메시지를 옮겨 두는 큐/토픽(<code>&lt;원본&gt;.DLT</code>)</td>
+</tr>
+<tr>
+<td><strong>head-of-line blocking</strong></td>
+<td>앞의 하나가 막혀 뒤가 전부 대기하는 현상</td>
+</tr>
+<tr>
+<td><strong>Exponential backoff</strong></td>
+<td>재시도 간격을 점점 늘리는 것(상대에게 회복할 틈을 준다)</td>
+</tr>
+<tr>
+<td><strong>Chaos engineering</strong></td>
+<td>일부러 장애를 주입해 시스템이 견디는지 확인하는 방법론</td>
+</tr>
+<tr>
+<td><strong>고아 결제(orphan payment)</strong></td>
+<td>주문은 취소됐는데 결제만 남은 상태. Phase 14에서 환불 보상으로 해결</td>
+</tr>
+<tr>
+<td><strong>TOCTOU</strong></td>
+<td>Time-Of-Check to Time-Of-Use — 확인 시점과 사용 시점 사이에 상태가 바뀌는 문제</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
+<ul>
+<li>직전 단계: <a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a> — 이번 Phase가 갚은 결함(§7.2)이 여기 있다.</li>
+<li>신뢰성 척추: <a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox + 멱등성</a> — <code>attempts</code> 컬럼이 여기서 생겼고 이번에 쓰였다.</li>
+<li>관측성: <a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a> — 회로 상태·재시도는 메트릭으로 봐야 한다.</li>
+<li>아키텍처 규칙: <a href="HEXAGONAL.html">HEXAGONAL.md</a> — 복원력은 <strong>어댑터</strong>의 관심사다(도메인은 회로를 모른다).</li>
+<li>커밋 지도: <a href="PHASE-COMMIT-MAP.html">PHASE-COMMIT-MAP.md</a> · 로드맵: <code>MSA-LEARNING-PLAN.md</code></li>
+<li>공식 문서: <a href="https://resilience4j.readme.io/docs/getting-started-3">Resilience4j Getting Started (Spring Boot 3)</a> ·
+<a href="https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html">Spring for Apache Kafka — Handling Exceptions</a></li>
+</ul>
+<hr>
+<p><strong>다음 단계 → Phase 15 (플랫폼 강화):</strong> Spring Cloud Bus 로 설정 broadcast, <strong>계약 테스트</strong>(Spring Cloud Contract),
+<strong>이벤트 스키마 진화</strong>(tolerant reader). 이번 Phase의 한계 #9(깨지는 스키마 변경 = DLT 폭탄)가 거기서 해결된다.</p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--지금까지-쌓인-문제">1. 왜 — 지금까지 쌓인 문제</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</a></li>
+<li class="toc-h2"><a href="#3-구성-그림">3. 구성 (그림)</a></li>
+<li class="toc-h2"><a href="#4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</a></li>
+<li class="toc-h3"><a href="#41-복원력-5종을-한-메서드에-inventorystockclient">4.1 복원력 5종을 한 메서드에 (InventoryStockClient)</a></li>
+<li class="toc-h3"><a href="#42-fallback-은-애너테이션이-아니라-옆-클래스에서-stockavailabilityrestadapter">4.2 fallback 은 애너테이션이 아니라 옆 클래스에서 (StockAvailabilityRestAdapter)</a></li>
+<li class="toc-h3"><a href="#43--aspect-적용-순서--문서만-믿으면-틀린다">4.3 ★ aspect 적용 순서 — 문서만 믿으면 틀린다</a></li>
+<li class="toc-h3"><a href="#44-게이트웨이--회로차단기-필터--fallback">4.4 게이트웨이 — 회로차단기 필터 + fallback</a></li>
+<li class="toc-h3"><a href="#45-엣지-과부하-차단-edgethrottlefilter">4.5 엣지 과부하 차단 (EdgeThrottleFilter)</a></li>
+<li class="toc-h3"><a href="#46-소비-실패--유한-재시도--dlq-sharedmessaging">4.6 소비 실패 → 유한 재시도 → DLQ (shared/messaging)</a></li>
+<li class="toc-h3"><a href="#47-outbox-격리-발행-쪽-poison">4.7 outbox 격리 (발행 쪽 poison)</a></li>
+<li class="toc-h3"><a href="#48--고아-결제-보상-phase-13-결함-갚기">4.8 ★ 고아 결제 보상 (Phase 13 결함 갚기)</a></li>
+<li class="toc-h2"><a href="#5-요청-하나가-흐르는-순서-사전-확인이-실패하는-경우">5. 요청 하나가 흐르는 순서 (사전 확인이 실패하는 경우)</a></li>
+<li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>
+<li class="toc-h3"><a href="#61-실패를-없애기-vs-실패를-국소화하기">6.1 &quot;실패를 없애기&quot; vs &quot;실패를 국소화하기&quot;</a></li>
+<li class="toc-h3"><a href="#62-동기-호출을-다시-허용한-조건">6.2 동기 호출을 다시 허용한 조건</a></li>
+<li class="toc-h3"><a href="#63-사전-확인은-왜-기본값이-거절하지-않음인가">6.3 사전 확인은 왜 기본값이 &quot;거절하지 않음&quot;인가</a></li>
+<li class="toc-h3"><a href="#64-재시도는-왜-반드시-유한해야-하나">6.4 재시도는 왜 반드시 유한해야 하나</a></li>
+<li class="toc-h3"><a href="#65-dlq-는-쓰레기통이-아니다">6.5 DLQ 는 쓰레기통이 아니다</a></li>
+<li class="toc-h3"><a href="#66-회로차단기-파라미터의-감각">6.6 회로차단기 파라미터의 감각</a></li>
+<li class="toc-h3"><a href="#67-이번-설계가-포기한-것">6.7 이번 설계가 포기한 것</a></li>
+<li class="toc-h2"><a href="#7-검증-실증">7. 검증 (실증)</a></li>
+<li class="toc-h3"><a href="#71-resilience4j-5종--실측">7.1 Resilience4j 5종 — 실측</a></li>
+<li class="toc-h3"><a href="#72-게이트웨이-회로차단기--fallback">7.2 게이트웨이 회로차단기 + fallback</a></li>
+<li class="toc-h3"><a href="#73-엣지-ratelimiter--40건-동시-폭주-한도-20s">7.3 엣지 RateLimiter — 40건 동시 폭주 (한도 20/s)</a></li>
+<li class="toc-h3"><a href="#74-dlq--poison-메시지">7.4 DLQ / poison 메시지</a></li>
+<li class="toc-h3"><a href="#75--고아-결제-보상-phase-13-결함-재현--해결">7.5 ★ 고아 결제 보상 (Phase 13 결함 재현 → 해결)</a></li>
+<li class="toc-h3"><a href="#76-outbox-격리-발행-쪽-poison">7.6 outbox 격리 (발행 쪽 poison)</a></li>
+<li class="toc-h3"><a href="#77-회귀-가드-자동-테스트-76개-통과">7.7 회귀 가드 (자동 테스트 76개 통과)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
+<li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
+</body>
+</html>

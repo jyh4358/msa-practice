@@ -2,6 +2,7 @@ package com.shopsaga.payment.adapter.in.event;
 
 import com.shopsaga.events.Topics;
 import com.shopsaga.events.commands.ChargePaymentCommand;
+import com.shopsaga.events.commands.RefundPaymentCommand;
 import com.shopsaga.payment.application.port.in.PaymentCommandUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,14 @@ class SagaCommandListener {
         log.info("[커맨드] ChargePayment 수신 sagaId={} orderId={} amount={}",
                 command.sagaId(), command.orderId(), command.amount());
         paymentCommandUseCase.onChargePayment(command);
+    }
+
+    /** Phase 14: 고아 결제 보상 지시. 청구와 같은 경로로 들어오되 dedup 키가 달라 서로 간섭하지 않는다. */
+    @KafkaHandler
+    void onRefundPayment(RefundPaymentCommand command) {
+        log.warn("[커맨드] RefundPayment 수신 sagaId={} orderId={} paymentId={} 사유={}",
+                command.sagaId(), command.orderId(), command.paymentId(), command.reason());
+        paymentCommandUseCase.onRefundPayment(command);
     }
 
     @KafkaHandler(isDefault = true)

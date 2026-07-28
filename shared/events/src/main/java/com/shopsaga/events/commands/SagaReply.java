@@ -31,7 +31,12 @@ public record SagaReply(
         STOCK_RESERVATION_FAILED,
         STOCK_RELEASED,
         PAYMENT_CHARGED,
-        PAYMENT_DECLINED
+        PAYMENT_DECLINED,
+        /**
+         * Phase 14: 결제 보상 완료. Saga 가 이미 끝난 뒤 도착한 결제를 되돌렸다는 뜻이며,
+         * 조정자에게는 "고아 결제가 정리됐다"는 감사 기록으로만 쓰인다(상태 전이는 없음).
+         */
+        PAYMENT_REFUNDED
     }
 
     public static SagaReply ok(UUID sagaId, UUID orderId, Kind kind, Instant at) {
