@@ -90,3 +90,5 @@ Phase 12(코레오그래피 Saga)까지 완료. 다음:
 - 커스텀 빌더/템플릿은 관측 계측이 빠질 수 있음(Phase 8: RestClient에 `ObservationRegistry`, Kafka는 `observation-enabled`).
 - 단일노드 Kafka: 내부토픽 `replication-factor=1`, `NewTopic` `replicas(1)`, auto-create off.
 - **Apple Silicon + mongo(Phase 11)**: Docker가 `mongo:8`의 **amd64 변이**를 당겨오면 에뮬레이션에서 AVX가 없어 mongod가 안 뜬다(컨테이너는 running인데 포트 미개방 → Testcontainers "Timed out waiting for log output"). 확인 `docker image inspect mongo:8 --format '{{.Architecture}}'`(arm64여야 함)·컨테이너 `uname -m`(aarch64). 해결 `docker rmi mongo:8 && docker pull --platform linux/arm64 mongo:8`.
+- **Colima 디스크 포화(Phase 13에서 실제 발생)**: 반복 `up --build`로 이미지가 쌓여 `/var/lib/docker` 가 93% 차면 **DB 오류로 위장**한다 — Mongo `__log_fs_write: fatal log failure`, Postgres `Consistent recovery state has not been yet reached`(크래시 복구 루프). 코드 버그로 오인하기 쉬우니 **먼저 `colima ssh -- df -h /var/lib/docker` 확인**. 해결: `down -v` + `docker system prune -af --volumes`(단, 이미지를 전부 다시 받으므로 재빌드에 수 분 소요).
+- **`spring.json.trusted.packages` 는 하위 패키지 미포함**: `com.shopsaga.events` 만 적으면 `com.shopsaga.events.commands.*` 역직렬화가 거부돼 소비가 전부 막힌다(Phase 13에서 겪음). 패키지마다 명시할 것.

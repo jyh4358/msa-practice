@@ -11,7 +11,7 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 ---
 
-## 현재 상태: Phase 12 — Saga(코레오그래피 + 보상)
+## 현재 상태: Phase 13 — Saga 오케스트레이션(중앙 조정자 + 타임아웃)
 
 6개 서비스가 **중앙 설정(Config Server)** 에서 설정을 받고, **서비스 디스커버리(Eureka)** 로 서로를
 이름으로 찾으며, **API 게이트웨이**가 단일 진입점이고, **JWT(RS256)** 로 인증/인가가 걸려 있습니다.
@@ -29,6 +29,8 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 **Phase 12**부터는 **동기 결제 호출이 사라지고** 주문·재고·결제가 **이벤트로만 협력하는 Saga**가 됩니다(중앙 조정자 없는 코레오그래피):
 주문은 `PENDING → INVENTORY_RESERVED → CONFIRMED | CANCELLED` 상태 기계가 되고, 실패하면 **보상**으로 되돌립니다
 (결제 거절 → 재고 자동 해제 + 주문 취소). outbox에 `traceparent`를 실어 **Saga 전체가 하나의 트레이스**로 보입니다.
+**Phase 13**은 **같은 업무를 중앙 조정자로 다시** 만듭니다: `saga_instance` 테이블로 진행 상황을 **한 줄로 조회**하고,
+**타임아웃 sweep**이 응답 없는 Saga를 재촉·종료합니다(Phase 12가 못 하던 일). `saga.mode` 로 **두 방식을 갈아 끼우며 비교**할 수 있습니다.
 
 | 서비스 | 포트 | 역할 | DB |
 |---|---|---|---|
@@ -69,6 +71,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **10** | **신뢰성 척추**(트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자 — 이중 쓰기 제거, effectively-once) | [PHASE-10-OUTBOX.md](./docs/PHASE-10-OUTBOX.md) |
 | **11** | **CQRS 읽기 모델**(이벤트 투영 → MongoDB 비정규화 조회, 투영 결정성·리플레이 재구축) | [PHASE-11-CQRS.md](./docs/PHASE-11-CQRS.md) |
 | **12** | **Saga: 코레오그래피 + 보상**(동기 결제 제거·주문 상태기계·재고 해제 보상·Saga 한 트레이스) | [PHASE-12-SAGA.md](./docs/PHASE-12-SAGA.md) |
+| **13** | **Saga: 오케스트레이션**(중앙 조정자·`saga_instance`·타임아웃 sweep·커맨드 멱등·모드 토글) | [PHASE-13-SAGA-ORCHESTRATION.md](./docs/PHASE-13-SAGA-ORCHESTRATION.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 

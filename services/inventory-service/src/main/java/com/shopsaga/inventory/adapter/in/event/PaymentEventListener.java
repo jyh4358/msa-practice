@@ -6,6 +6,7 @@ import com.shopsaga.inventory.application.port.in.InventorySagaUseCase;
 import com.shopsaga.outbox.OutboxRelay;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
  * 같은 이벤트를 order도 듣고 주문을 취소한다(두 소비자가 각자 반응).
  */
 @Component
+@ConditionalOnProperty(name = "saga.mode", havingValue = "choreography")   // Phase 13: 보상도 조정자가 지시한다
 @KafkaListener(topics = Topics.PAYMENT_EVENTS, groupId = "inventory-service")
 @RequiredArgsConstructor
 @Slf4j

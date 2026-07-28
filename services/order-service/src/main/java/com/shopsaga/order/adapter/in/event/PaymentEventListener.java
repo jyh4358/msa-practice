@@ -7,6 +7,7 @@ import com.shopsaga.order.application.port.in.OrderSagaUseCase;
 import com.shopsaga.outbox.OutboxRelay;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
  * 결제 성공은 주문 확정(Saga 성공 종료), 거절은 주문 취소(긴 보상 경로)로 이어진다.
  */
 @Component
+@ConditionalOnProperty(name = "saga.mode", havingValue = "choreography")   // Phase 13: 오케스트레이션에선 조정자가 대신한다
 @KafkaListener(topics = Topics.PAYMENT_EVENTS, groupId = "order-service")
 @RequiredArgsConstructor
 @Slf4j

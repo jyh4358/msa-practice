@@ -6,6 +6,7 @@ import com.shopsaga.inventory.application.port.in.InventorySagaUseCase;
 import com.shopsaga.outbox.OutboxRelay;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  * observation-enabled 리스너라 발행자의 traceparent 를 이어받는다(릴레이가 복원해 실어 보낸 것).
  */
 @Component
+@ConditionalOnProperty(name = "saga.mode", havingValue = "choreography")   // Phase 13: 오케스트레이션에선 커맨드로 받는다
 @KafkaListener(topics = Topics.ORDER_EVENTS, groupId = "inventory-service")
 @RequiredArgsConstructor
 @Slf4j

@@ -19,4 +19,10 @@ class KafkaTopicConfig {
     NewTopic inventoryEventsTopic() {
         return TopicBuilder.name(Topics.INVENTORY_EVENTS).partitions(1).replicas(1).build();
     }
+
+    /** Phase 13: 조정자에게 결과를 돌려주는 리플라이 토픽(payment 도 같은 토픽에 낸다 — 선언은 멱등). */
+    @Bean
+    NewTopic sagaRepliesTopic() {
+        return TopicBuilder.name(Topics.SAGA_REPLIES).partitions(1).replicas(1).build();
+    }
 }

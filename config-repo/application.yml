@@ -27,7 +27,10 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "com.shopsaga.events"   # 공유 이벤트 계약 패키지만 역직렬화 신뢰
+        # 공유 계약 패키지만 역직렬화 신뢰(임의 클래스 역직렬화 = 원격 코드 실행 위험).
+        # ⚠️ 하위 패키지는 자동 포함되지 않는다 — Phase 13의 commands 패키지를 빠뜨려
+        #    "not in the trusted packages" 로 커맨드 소비가 전부 실패했다. 각각 명시할 것.
+        spring.json.trusted.packages: "com.shopsaga.events,com.shopsaga.events.commands"
     template:
       observation-enabled: true          # KafkaTemplate → traceparent 헤더 주입(HTTP→Kafka 트레이스 연결)
     listener:
@@ -38,6 +41,17 @@ spring:
 outbox:
   relay:
     fixed-delay: 1000                    # ms. 미발행 outbox row를 Kafka로 내보내는 폴링 간격.
+
+# ── Phase 13: Saga 실행 방식. 같은 업무를 두 방식으로 만들어 비교하기 위한 토글이다.
+#    orchestration(기본) = 조정자가 커맨드로 지시하고 리플라이를 받는다(흐름이 saga_instance 한 곳에).
+#    choreography        = Phase 12 방식. 각 서비스가 남의 이벤트를 듣고 스스로 반응(조정자 없음).
+#    ⚠️ 두 방식이 동시에 켜지면 이중 처리되므로 리스너들이 이 값으로 상호배타 게이팅된다. ──
+saga:
+  mode: orchestration
+  timeout:
+    sweep-interval: 5000                 # ms. 정체된 Saga를 찾는 주기.
+    deadline: 15s                        # 이 시간 동안 리플라이가 없으면 정체로 판단 → 커맨드 재전송.
+    max-attempts: 3                      # 이만큼 재촉해도 응답이 없으면 보상/취소로 종료(멈춘 Saga를 남기지 않는다).
 
 eureka:
   client:

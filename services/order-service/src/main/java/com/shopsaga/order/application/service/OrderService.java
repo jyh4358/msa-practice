@@ -8,6 +8,7 @@ import com.shopsaga.order.application.port.in.PlaceOrderCommand;
 import com.shopsaga.order.application.port.in.PlaceOrderUseCase;
 import com.shopsaga.order.application.port.out.LoadOrderPort;
 import com.shopsaga.order.application.port.out.PublishOrderEventPort;
+import com.shopsaga.order.application.port.out.SagaStarterPort;
 import com.shopsaga.order.application.port.out.SaveOrderPort;
 import com.shopsaga.order.domain.Order;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
     private final SaveOrderPort saveOrderPort;
     private final LoadOrderPort loadOrderPort;
     private final PublishOrderEventPort publishOrderEventPort;
+    private final SagaStarterPort sagaStarterPort;
 
     @Override
     @Transactional
@@ -46,6 +48,10 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
 
         OrderView saved = OrderView.from(saveOrderPort.save(order));
         publishOrderPlaced(order, command);   // 같은 트랜잭션의 outbox row (아직 Kafka 전송 아님)
+
+        // Phase 13: Saga를 어떻게 시작할지는 모드에 따라 다르다(코레오그래피=무동작 / 오케스트레이션=커맨드 발행).
+        //           주문 저장과 같은 트랜잭션이라 "주문만 저장되고 Saga는 안 뜨는" 상태가 없다.
+        sagaStarterPort.start(order, command);
 
         log.info("주문 접수(Saga 시작) orderId={} customer={} 품목수={} total={} status={}",
                 order.getId(), command.customerId(), command.items().size(),

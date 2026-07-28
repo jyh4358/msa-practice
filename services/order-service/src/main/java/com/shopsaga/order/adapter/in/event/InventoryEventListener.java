@@ -7,6 +7,7 @@ import com.shopsaga.order.application.port.in.OrderSagaUseCase;
 import com.shopsaga.outbox.OutboxRelay;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -23,6 +24,7 @@ import java.util.UUID;
  * 그래야 소비자가 발행자의 변경에 깨지지 않는다.
  */
 @Component
+@ConditionalOnProperty(name = "saga.mode", havingValue = "choreography")   // Phase 13: 오케스트레이션에선 조정자가 대신한다
 @KafkaListener(topics = Topics.INVENTORY_EVENTS, groupId = "order-service")
 @RequiredArgsConstructor
 @Slf4j

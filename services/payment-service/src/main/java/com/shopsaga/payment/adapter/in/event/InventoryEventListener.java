@@ -6,6 +6,7 @@ import com.shopsaga.outbox.OutboxRelay;
 import com.shopsaga.payment.application.port.in.PaymentSagaUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -20,6 +21,7 @@ import java.util.UUID;
  * "재고가 예약됐다"는 사실을 스스로 듣고 청구한다 — order는 payment의 존재조차 몰라도 된다(느슨한 결합).
  */
 @Component
+@ConditionalOnProperty(name = "saga.mode", havingValue = "choreography")   // Phase 13: 오케스트레이션에선 커맨드로 받는다
 @KafkaListener(topics = Topics.INVENTORY_EVENTS, groupId = "payment-service")
 @RequiredArgsConstructor
 @Slf4j

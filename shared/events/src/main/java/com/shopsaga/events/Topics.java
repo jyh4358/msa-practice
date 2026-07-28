@@ -18,6 +18,17 @@ public final class Topics {
     /** payment-service 발행: PaymentCharged / PaymentDeclined */
     public static final String PAYMENT_EVENTS = "payment-events";
 
+    /**
+     * Phase 13(오케스트레이션): 조정자 → 참여 서비스 <b>커맨드</b>(ReserveStock / ReleaseStock / ChargePayment).
+     *
+     * <p>이벤트 토픽과 분리하는 이유: 이벤트는 "누구든 들으라"는 방송이지만, 커맨드는 <b>특정 수신자에게 시키는 일</b>이다.
+     * 섞으면 "사실"과 "지시"의 구분이 흐려지고, 소비자가 남의 지시까지 보게 된다.
+     */
+    public static final String SAGA_COMMANDS = "saga-commands";
+
+    /** Phase 13: 참여 서비스 → 조정자 <b>리플라이</b>(모든 결과가 한 토픽·한 타입으로 모인다). */
+    public static final String SAGA_REPLIES = "saga-replies";
+
     private Topics() {
     }
 }

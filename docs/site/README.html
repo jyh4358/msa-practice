@@ -373,7 +373,7 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="shopsaga--msa-핸즈온-학습-플랫폼">ShopSaga — MSA 핸즈온 학습 플랫폼</h1>
@@ -387,7 +387,7 @@ code.hljs {
 <li>도메인: 전자상거래 &quot;ShopSaga&quot; (order → inventory → payment)</li>
 </ul>
 <hr>
-<h2 id="현재-상태-phase-12--saga코레오그래피--보상">현재 상태: Phase 12 — Saga(코레오그래피 + 보상)</h2>
+<h2 id="현재-상태-phase-13--saga-오케스트레이션중앙-조정자--타임아웃">현재 상태: Phase 13 — Saga 오케스트레이션(중앙 조정자 + 타임아웃)</h2>
 <p>6개 서비스가 <strong>중앙 설정(Config Server)</strong> 에서 설정을 받고, <strong>서비스 디스커버리(Eureka)</strong> 로 서로를
 이름으로 찾으며, <strong>API 게이트웨이</strong>가 단일 진입점이고, <strong>JWT(RS256)</strong> 로 인증/인가가 걸려 있습니다.
 DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</strong> 되어 중앙 관리됩니다.
@@ -403,7 +403,9 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 <strong>지우고 offset 0부터 재생하면 동일하게 복원</strong>됩니다(투영의 결정성).
 <strong>Phase 12</strong>부터는 <strong>동기 결제 호출이 사라지고</strong> 주문·재고·결제가 <strong>이벤트로만 협력하는 Saga</strong>가 됩니다(중앙 조정자 없는 코레오그래피):
 주문은 <code>PENDING → INVENTORY_RESERVED → CONFIRMED | CANCELLED</code> 상태 기계가 되고, 실패하면 <strong>보상</strong>으로 되돌립니다
-(결제 거절 → 재고 자동 해제 + 주문 취소). outbox에 <code>traceparent</code>를 실어 <strong>Saga 전체가 하나의 트레이스</strong>로 보입니다.</p>
+(결제 거절 → 재고 자동 해제 + 주문 취소). outbox에 <code>traceparent</code>를 실어 <strong>Saga 전체가 하나의 트레이스</strong>로 보입니다.
+<strong>Phase 13</strong>은 <strong>같은 업무를 중앙 조정자로 다시</strong> 만듭니다: <code>saga_instance</code> 테이블로 진행 상황을 <strong>한 줄로 조회</strong>하고,
+<strong>타임아웃 sweep</strong>이 응답 없는 Saga를 재촉·종료합니다(Phase 12가 못 하던 일). <code>saga.mode</code> 로 <strong>두 방식을 갈아 끼우며 비교</strong>할 수 있습니다.</p>
 <table>
 <thead>
 <tr>
@@ -547,6 +549,11 @@ DB 비밀번호 등 시크릿은 <strong>암호화(<code>{cipher}</code>)</stron
 <td><strong>Saga: 코레오그래피 + 보상</strong>(동기 결제 제거·주문 상태기계·재고 해제 보상·Saga 한 트레이스)</td>
 <td><a href="PHASE-12-SAGA.html">PHASE-12-SAGA.md</a></td>
 </tr>
+<tr>
+<td><strong>13</strong></td>
+<td><strong>Saga: 오케스트레이션</strong>(중앙 조정자·<code>saga_instance</code>·타임아웃 sweep·커맨드 멱등·모드 토글)</td>
+<td><a href="PHASE-13-SAGA-ORCHESTRATION.html">PHASE-13-SAGA-ORCHESTRATION.md</a></td>
+</tr>
 </tbody></table>
 <p>공통 아키텍처 컨벤션은 <a href="HEXAGONAL.html">HEXAGONAL.md</a>, 설치/실행은 <a href="SETUP.html">SETUP.md</a>.</p>
 <blockquote>
@@ -626,7 +633,7 @@ Phase 12의 최대 단점은 <strong>흐름이 여러 서비스에 흩어져 한
     <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
   </footer>
 </main>
-<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-12--saga코레오그래피--보상">현재 상태: Phase 12 — Saga(코레오그래피 + 보상)</a></li>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-13--saga-오케스트레이션중앙-조정자--타임아웃">현재 상태: Phase 13 — Saga 오케스트레이션(중앙 조정자 + 타임아웃)</a></li>
 <li class="toc-h2"><a href="#단계별-진행--문서">단계별 진행 &amp; 문서</a></li>
 <li class="toc-h2"><a href="#사전-준비-1회">사전 준비 (1회)</a></li>
 <li class="toc-h2"><a href="#실행--검증-현재-phase-7">실행 &amp; 검증 (현재: Phase 7)</a></li>
