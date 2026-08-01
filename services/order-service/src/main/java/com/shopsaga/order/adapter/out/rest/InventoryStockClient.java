@@ -85,13 +85,16 @@ class InventoryStockClient {
                 })
                 .retrieve()
                 .body(StockResponse.class);
-        if (body == null) {
-            throw new IllegalStateException("빈 응답: " + productId);
+        // ⚠️ Phase 15에서 계약 테스트가 잡아낸 결함: 필드가 사라져도 int 는 0으로 채워져
+        //    "재고 0"이라는 <b>그럴듯한 거짓말</b>이 조용히 흘러갔다. 그래서 Integer 로 받고 명시적으로 막는다.
+        //    (tolerant reader = '모르는 필드를 무시한다'이지 '필요한 필드가 없어도 괜찮다'가 아니다.)
+        if (body == null || body.availableQuantity() == null) {
+            throw new IllegalStateException("재고 응답에 availableQuantity 가 없다: " + productId);
         }
         log.debug("재고 사전 확인 productId={} available={}", productId, body.availableQuantity());
         return body.availableQuantity();
     }
 
     /** inventory-service 의 {@code StockView} 와 맞춘 응답 DTO(계약은 HTTP 스키마로만 공유). */
-    record StockResponse(UUID productId, int availableQuantity) {}
+    record StockResponse(UUID productId, Integer availableQuantity) {}
 }

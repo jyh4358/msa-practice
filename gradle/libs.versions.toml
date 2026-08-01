@@ -7,6 +7,7 @@ springDepMgmt = "1.1.7"
 springCloud = "2025.0.3"       # Northfields — Boot 3.5.x 공식 짝
 springdoc = "2.8.17"           # OpenAPI/Swagger UI — Boot 3.5 호환 (2.8.x = OpenAPI 3.1)
 querydsl = "5.1.0"             # 타입세이프 쿼리 (jakarta classifier) — 리포지토리 JPQL 대체
+springCloudContract = "4.3.4"  # Phase 15 계약 테스트. Spring Cloud 2025.0.3 BOM이 관리하는 버전과 동일하게 핀(5.0.x는 Oakwood용)
 resilience4j = "2.2.0"         # Phase 14 복원력. ⚠️ Spring Cloud 2025.0.3 BOM이 관리하는 버전과 반드시 일치시킬 것.
                                #    2.3.0 으로 올리면 BOM이 전이 의존성만 2.2.0 으로 되돌려 놓아
                                #    spring-boot3(2.3.0) + spring6(2.2.0) 혼합 클래스패스가 되고
@@ -37,3 +38,5 @@ resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratel
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDepMgmt" }
+# Phase 15: 계약(contract)에서 프로듀서 테스트와 소비자용 stub jar 를 생성하는 플러그인.
+spring-cloud-contract = { id = "org.springframework.cloud.contract", version.ref = "springCloudContract" }

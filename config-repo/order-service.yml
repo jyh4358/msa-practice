@@ -15,7 +15,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,flyway,circuitbreakers,retries,ratelimiters,bulkheads,metrics
+        include: health,info,flyway,circuitbreakers,retries,ratelimiters,bulkheads,metrics,refresh,busrefresh   # Phase 15: 설정 리프레시(단일) / 버스 방송(전체)
   health:
     circuitbreakers:
       enabled: true          # Phase 14: /actuator/health 에 회로 상태(CLOSED/OPEN/HALF_OPEN) 노출

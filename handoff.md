@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-07-29, Phase 14 완료 시점)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 15 완료 시점)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -15,7 +15,8 @@
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
 5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED·트레이스↔로그) ·
 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · 12 Saga 코레오그래피+보상 · 13 Saga 오케스트레이션 ·
-**14 복원력**(Resilience4j 5종·게이트웨이 회로차단기+fallback·엣지 과부하 차단·DLQ/poison·outbox 격리·고아 결제 환불 보상).
+14 복원력(Resilience4j 5종·회로차단기+fallback·DLQ/poison·outbox 격리·고아 결제 보상) ·
+**15 플랫폼 강화**(Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·스키마 진화 tolerant reader).
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
@@ -80,23 +81,30 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
   · 회로 상태 `GET :8000/actuator/circuitbreakers`(토큰 필요) · order 쪽은 `/actuator/health` 의 `circuitBreakers`
   · poison pill: `echo 'NOT-JSON' | kafka-console-producer.sh --topic order-events` → `order-events.DLT` 로 이동, 파티션 안 막힘
   · **고아 결제 보상**: payment 정지 → 주문 → sweep 포기(~70s) → payment 재기동 → payment.status = **REFUNDED**
+- **Phase 15 설정 방송**: config-repo 수정 → 아무 서비스 한 곳에 busrefresh →
+  `docker exec shopsaga-inventory-service-1 sh -c "wget -q --post-data='{}' --header='Content-Type: application/json' --header='Authorization: Bearer $TOKEN' -O- http://localhost:8082/actuator/busrefresh"`
+  · 시연: `order.stock-precheck.reject-on-insufficient` false→true 후 수량 99999 주문 → **409**(재시작 없음)
+- **Phase 15 계약 테스트**: `./gradlew :services:inventory-service:contractTest`(프로듀서) ·
+  `./gradlew :services:order-service:test --tests '*InventoryContractConsumerTest*' --rerun-tasks`(소비자) ·
+  `./gradlew :services:order-service:contractTest`(이벤트 계약) · 생성 코드는 `build/generated-test-sources/contractTest`
 - ⚠️ **gateway는 config만 바뀌어도 재시작 필요**(라우트는 기동 시 로드).
 - ⚠️ **Gradle 결과를 `| tail` 로 파이프하면 exit code가 tail 것** → `> /tmp/x.log 2>&1; echo $?` 로 확인할 것(실제로 오판했음).
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 15 (플랫폼 강화)
-로드맵 `MSA-LEARNING-PLAN.md` §331~.
-1. **Spring Cloud Bus**(Kafka 백엔드) — `spring-cloud-starter-bus-kafka` + `POST /actuator/busrefresh` 로 설정 broadcast.
-2. **계약 테스트**(Spring Cloud Contract) — 프로듀서가 이벤트/API 계약 발행, 소비자가 스텁으로 검증.
-3. **이벤트 스키마 진화** — JSON + tolerant reader("필드 추가만"), 깨는 변경을 일부러 실패로 시연.
-   → **Phase 14 한계 #9**(깨지는 스키마 변경 = DLT 폭탄)가 여기서 해결된다.
-4. (로드맵 순서: 15 강화 → 16 k8s → 17 CI/CD → 18 캡스톤.)
+## 다음 단계 — Phase 16 (로컬 Kubernetes, kind)
+로드맵 `MSA-LEARNING-PLAN.md` §337~. **이전(migration)이지 재작성이 아니다 — 같은 이미지를 k8s로.**
+- ⚠️ **RAM 최대 고비**: kind 를 띄우기 전에 **compose 인프라를 먼저 내릴 것**(`colima stop` 또는 `compose down`). 둘 다 동시 금지.
+- **16a**: `kind create cluster` → `kind load docker-image`(레지스트리 없이; 안 하면 `ImagePullBackOff`).
+  order-service 의 Deployment/Service/ConfigMap/Secret + **liveness/readiness probe**(`management.endpoint.health.probes.enabled` 필요). NodePort 도달.
+- **16b**: **Eureka 삭제** → k8s Service DNS(`http://order-service:8080`). 디스커버리가 앱→플랫폼으로 이동 = 이 Phase의 핵심 교훈.
+  Config Server → ConfigMap/Secret. 게이트웨이는 유지 + 앞에 Ingress(ingress-nginx). `replicas` 스케일 + `kubectl delete pod` 자가치유 시연.
+- 이후 17 CI/CD → 18 캡스톤.
 
-### Phase 14가 남긴 것(문서 §8에 전체 표)
-- 엣지 한도가 **인스턴스 로컬**(분산 한도는 Redis 필요) · **타임아웃은 회로를 열지 못한다**(aspect 순서 선택의 결과)
-- **DLT 재투입 도구 없음**, DLT lag 경보 없음 · outbox 격리 row 자동 복구 안 함
-- `chaos` 엔드포인트는 학습 전용(`chaos.enabled`) — 운영 프로파일에서 제거해야 함
+### Phase 15가 남긴 것(문서 §8에 전체 표)
+- **스키마 레지스트리 없음**(규칙을 테스트로만 강제) · **API 버저닝(`/api/v1`) 미적용** — 둘 다 사용자와 합의해 유예
+- 이벤트 계약은 **outbox 까지만** 검증(브로커 왕복 제외) · 소비자 계약 테스트가 **UP-TO-DATE 로 건너뛸 수 있음**(`--rerun-tasks` 필요)
+- 게이트웨이엔 Bus 없음(라우트는 기동 시 로드) · config-repo 는 native 백엔드(Git 아님)
 
 ## 매 Phase 작업 흐름 (사용자 선호 — 지켜야 함)
 1. 리서치(버전 특이점) → 2. 설계(큰 결정은 AskUserQuestion) → 3. 구현 →
@@ -130,3 +138,13 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - **`List<NewTopic>` 빈은 KafkaAdmin 이 수집하지 않는다** → 여러 토픽은 `KafkaAdmin.NewTopics` 로.
 - **Spring AOP 는 자기 자신 호출(self-invocation)에 적용되지 않는다** → 복원력 애너테이션이 조용히 무시된다. 빈을 분리할 것.
 - outbox 격리 재현은 오래 걸린다(실패 1회당 `max.block.ms` 5초 + send 타임아웃 5초 × 상한 5회).
+- **★ spring-cloud-stream 바인더는 `spring.kafka.{producer,consumer}` 설정을 물려받는다** → Phase 14의 JsonSerializer/ErrorHandlingDeserializer가
+  Bus 의 byte[] 메시지를 **base64로 이중 인코딩**해 조용히 무력화한다(토픽엔 쌓이는데 아무도 리프레시 안 됨·에러도 없음).
+  `spring.cloud.stream.kafka.binder.configuration` 으로 ByteArray(De)Serializer 를 되돌려야 한다.
+- **`@Value` 는 리프레시로 안 바뀐다** → `@ConfigurationProperties` 로 받아야 재바인딩된다. `@ConditionalOnProperty`(빈 존재 여부)는 재시작 필요.
+- 컨테이너의 wget 은 **busybox** — `--method` 없음. `--post-data='{}'` + `Content-Type: application/json`(없으면 actuator 415).
+- SCC 4.3에는 **Kafka 메시징 통합이 없다**(Camel/SI/Stream/JMS만) → `MessageVerifier` 직접 구현.
+  스트림이 클래스패스에 있으면 검증기 제네릭이 **`Message<?>`** 여야 한다(아니면 `NoSuchBeanDefinitionException`).
+- SCC 계약에서 `testMode = EXPLICIT` 를 주면 **메시징 테스트가 생성되지 않는다**(기본값 유지할 것).
+  matcher 는 `predefined:` 대신 **명시 정규식(`value:`)** — predefined 는 단언이 생성되지 않는 경우가 있다(생성 코드를 꼭 열어 볼 것).
+- 소비자 계약 테스트는 `~/.m2` stub 이 Gradle 입력이 아니라 **UP-TO-DATE 로 건너뛴다** → `--rerun-tasks`.

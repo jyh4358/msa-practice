@@ -1,0 +1,53 @@
+# Phase 15 — OrderPlaced 이벤트의 계약.
+#
+# 동기 API 계약이 "경로·상태코드·응답 스키마"를 못 박는다면, 이벤트 계약은
+# "토픽·페이로드 스키마"를 못 박는다. 소비자(order-query·inventory)는 이 모양을 믿고 코딩한다.
+#
+# ⚠️ 이벤트 계약이 동기 API 계약보다 더 중요한 이유:
+#    동기 호출은 깨지면 '지금' 500 이 나서 즉시 안다. 이벤트는 깨져도 발행자는 멀쩡하고
+#    소비자만 조용히 실패한다(Phase 14의 DLT 로 흘러간다). 배포 후에야 알게 된다는 뜻이다.
+#
+# ⚠️ matcher 는 `predefined:` 대신 `value:`(명시 정규식)로 쓴다 —
+#    predefined 로 쓰면 프로듀서 테스트에 단언이 생성되지 않아 계약이 헐거워지는 것을 실측했다.
+description: "주문이 접수되면 order-events 로 OrderPlaced 를 발행한다"
+name: order_placed
+label: order_placed        # 소비자가 stubFinder.trigger(label) 로 재현할 때 쓰는 이름
+input:
+  triggeredBy: orderPlacedTriggered()
+outputMessage:
+  sentTo: order-events
+  body:
+    orderId: "0f3a2f6c-0000-4000-8000-000000000001"
+    customerId: "cccc1111-1111-1111-1111-111111111111"
+    totalAmount: 20.00
+    occurredAt: "2026-07-29T00:00:00Z"
+    items:
+      - productId: "22222222-2222-2222-2222-222222222222"
+        quantity: 2
+        unitPrice: 10.00
+  matchers:
+    body:
+      # 값이 아니라 '모양'을 계약한다. id 는 매 실행 달라지므로 정규식으로.
+      - path: $.orderId
+        type: by_regex
+        value: "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+      - path: $.customerId
+        type: by_regex
+        value: "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+      # ★ 금액은 '숫자'여야 한다 — 문자열로 바뀌면 소비자의 BigDecimal 파싱이 깨진다.
+      - path: $.totalAmount
+        type: by_regex
+        value: "-?(\\d*\\.\\d+|\\d+)"
+      # ★ 시각은 ISO-8601(UTC) 문자열. Jackson 설정이 바뀌어 epoch 숫자로 나가면 여기서 잡힌다.
+      - path: $.occurredAt
+        type: by_regex
+        value: "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z"
+      - path: $.items[0].productId
+        type: by_regex
+        value: "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+      - path: $.items[0].quantity
+        type: by_regex
+        value: "-?(\\d+)"
+      - path: $.items[0].unitPrice
+        type: by_regex
+        value: "-?(\\d*\\.\\d+|\\d+)"

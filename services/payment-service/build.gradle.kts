@@ -38,6 +38,9 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     // Phase 6: Config 클라이언트 — spring.config.import 로 config-service(:8888)에서 설정을 가져온다.
     implementation("org.springframework.cloud:spring-cloud-starter-config")
+    // Phase 15: Spring Cloud Bus(Kafka 백엔드) — 한 인스턴스에 POST /actuator/busrefresh 하면
+    //           springCloudBus 토픽으로 RefreshRemoteApplicationEvent 가 퍼져 전 인스턴스가 설정을 다시 읽는다.
+    implementation("org.springframework.cloud:spring-cloud-starter-bus-kafka")
     // Phase 5: 서블릿 OAuth2 리소스 서버(JWT 검증).
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation(libs.springdoc.openapi.ui)

@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 15 · 강화(계약·Bus) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li class="active"><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-15--플랫폼-강화-설정-방송--계약-테스트--스키마-진화">Phase 15 — 플랫폼 강화 (설정 방송 · 계약 테스트 · 스키마 진화)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> 지금까지는 &quot;코드가 맞게 동작하는가&quot;를 봤다. 이번엔 <strong>서비스들 사이의 약속</strong>을 다룬다.
+설정을 재시작 없이 전 인스턴스에 방송하고(<strong>Bus</strong>), 서비스 간 인터페이스를 파일로 못 박아
+<strong>깨지면 배포 전에 빌드가 실패하게</strong> 만들고(<strong>계약 테스트</strong>), 이벤트 스키마를 어떻게 바꿔도 되는지 규칙을 코드로 남긴다.</p>
+</blockquote>
+<p>초심자(Java/Spring은 알지만 서비스 간 계약 관리는 처음) 기준으로 <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>Spring Cloud Bus (Kafka)</strong> — 한 인스턴스에 <code>POST /actuator/busrefresh</code> → <code>springCloudBus</code> 토픽으로 방송 → <strong>전 서비스가 설정을 다시 읽는다</strong>.</li>
+<li><strong><code>@Value</code> → <code>@ConfigurationProperties</code></strong> — 리프레시로 값이 실제로 바뀌게 하는 전제 조건.</li>
+<li><strong>계약 테스트(동기 API)</strong> — inventory가 계약을 발행 → 생성 테스트로 자기 검증 + <strong>stub jar</strong> 발행 → order가 그 stub 으로 검증.</li>
+<li><strong>계약 테스트(이벤트)</strong> — <code>OrderPlaced</code> 페이로드 계약. SCC에 Kafka 통합이 없어 <strong><code>MessageVerifier</code> 를 직접 구현</strong>(발신함 = outbox).</li>
+<li><strong>스키마 진화 규칙을 테스트로</strong> — 필드 추가는 허용, 제거·개명·타입변경은 금지임을 6개 테스트로 못 박음.</li>
+<li><strong>★ 계약 테스트가 실제 결함을 잡아냈다</strong> — 소비자가 누락된 필드를 <code>int</code> 기본값 <code>0</code>(&quot;재고 0&quot;)으로 삼키고 있었다.</li>
+</ul>
+<hr>
+<h2 id="1-왜--지금까지-쌓인-문제">1. 왜 — 지금까지 쌓인 문제</h2>
+<p><strong>① 설정을 바꾸려면 재시작해야 한다.</strong>
+Phase 6에서 Config Server를 세웠지만, 값을 바꾸면 각 서비스를 <b>일일이</b> 재시작해야 반영됐다.
+인스턴스가 10개면 10번이다. 게다가 재시작은 그 자체로 장애 리스크(커넥션 끊김·워밍업)를 만든다.</p>
+<p><strong>② 서비스 간 약속이 아무 데도 없다.</strong>
+Phase 14에서 order-service가 inventory-service의 <code>GET /inventory/{id}</code> 를 호출하기 시작했다.
+그 응답이 <code>availableQuantity</code> 라는 걸 order 팀은 어떻게 알까? <strong>inventory 코드를 읽어서</strong> 알았다.
+inventory 팀이 그 필드를 개명하면? order 팀은 <strong>프로덕션에서</strong> 알게 된다.</p>
+<p><strong>③ 이벤트는 더 위험하다.</strong>
+동기 호출은 깨지면 지금 500이 나서 즉시 안다. 이벤트는 발행자가 멀쩡한 채로 <strong>소비자만 조용히 실패</strong>한다
+(Phase 14의 DLT로 흘러간다). 게다가 Phase 11의 <strong>리플레이</strong>는 과거 스키마를 되살린다 —
+즉 어느 순간에도 <strong>여러 버전이 동시에 흐른다</strong>.</p>
+<blockquote>
+<p>💡 이 셋의 공통점: <strong>혼자 테스트해서는 절대 못 잡는다.</strong> 통합 환경에서, 대개 배포 후에 드러난다.
+Phase 15는 그것들을 <strong>빌드 시점으로 당겨오는</strong> 작업이다.</p>
+</blockquote>
+<hr>
+<h2 id="2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+<th>없으면</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Spring Cloud Bus</strong></td>
+<td>설정 변경 같은 이벤트를 메시지 브로커로 <strong>전 인스턴스에 방송</strong>하는 장치</td>
+<td>인스턴스마다 따로 <code>/actuator/refresh</code> 를 쳐야 한다</td>
+</tr>
+<tr>
+<td><strong><code>@RefreshScope</code> / <code>@ConfigurationProperties</code></strong></td>
+<td>리프레시 때 다시 만들어지는 빈 / 다시 <strong>바인딩</strong>되는 설정 객체</td>
+<td><code>@Value</code> 필드는 리프레시해도 그대로다</td>
+</tr>
+<tr>
+<td><strong>CDC (Consumer-Driven Contract)</strong></td>
+<td>소비자가 필요한 형태를 계약으로 못 박고, 프로듀서가 그 계약을 지키는지 자동 검증</td>
+<td>&quot;코드를 읽어서&quot; 알아내고, 바뀌면 프로덕션에서 안다</td>
+</tr>
+<tr>
+<td><strong>Stub (WireMock)</strong></td>
+<td>계약에서 생성된 <strong>가짜 프로듀서</strong> — 소비자 테스트가 상대 서비스 없이 돈다</td>
+<td>통합 환경을 띄워야만 검증 가능</td>
+</tr>
+<tr>
+<td><strong>Tolerant reader</strong></td>
+<td>모르는 필드는 무시하고 아는 필드만 읽는 소비자</td>
+<td>프로듀서가 필드 하나 추가할 때마다 전 소비자가 깨진다</td>
+</tr>
+<tr>
+<td><strong>스키마 진화</strong></td>
+<td>여러 버전이 동시에 흐르는 상황에서 안전하게 스키마를 바꾸는 규칙</td>
+<td>배포 순서에 따라 랜덤하게 깨진다</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>계약 테스트의 한 문장 정의:</strong> &quot;<strong>통합 환경 없이</strong> 통합 버그를 잡는 방법.&quot;</p>
+</blockquote>
+<hr>
+<h2 id="3-구성-그림">3. 구성 (그림)</h2>
+<pre><code>[① 설정 방송]
+  config-repo/*.yml 수정
+        │
+        ▼  (한 곳에만!)
+  POST inventory:8082/actuator/busrefresh
+        │
+        ▼  springCloudBus 토픽
+   ┌────┴────┬──────────┬──────────────┐
+   ▼         ▼          ▼              ▼
+ order   inventory   payment     order-query      ← 전부 Config Server 에서 다시 읽는다
+   └─ @ConfigurationProperties 재바인딩 → 즉시 동작 변경(재시작 없음)
+
+[② 계약 테스트 — 동기 API]
+  inventory(프로듀서)                      order(소비자)
+   contracts/rest/*.yml                     
+     ├─▶ 생성된 RestTest ── 자기 검증        
+     └─▶ verifierStubsJar ──▶ ~/.m2 ──▶ StubRunner(WireMock :8100)
+                                              └─▶ InventoryStockClient 를 그 위에서 실행
+
+[② 계약 테스트 — 이벤트]
+  order(프로듀서)  contracts/messaging/order_placed.yml
+     └─▶ 생성된 MessagingTest → orderPlacedTriggered() → outbox row → 커스텀 MessageVerifier → 계약 대조
+
+[③ 스키마 진화]
+  order-query(소비자)  EventSchemaEvolutionTest — 추가/누락/개명/타입변경 4가지를 코드로 고정
+</code></pre><hr>
+<h2 id="4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</h2>
+<h3 id="41-bus-를-켜기-전에--value-로는-아무것도-안-바뀐다">4.1 Bus 를 켜기 전에 — <code>@Value</code> 로는 아무것도 안 바뀐다</h3>
+<pre><code class="hljs language-java"><span class="hljs-comment">// Phase 14 (리프레시 불가)                     // Phase 15 (리프레시 가능)</span>
+<span class="hljs-meta">@Value(&quot;${order.stock-precheck...}&quot;)</span>            <span class="hljs-meta">@ConfigurationProperties(&quot;order.stock-precheck&quot;)</span>
+<span class="hljs-keyword">private</span> <span class="hljs-type">boolean</span> rejectOnInsufficient;           <span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">StockPrecheckProperties</span> { ... }
+</code></pre><p><code>@Value</code> 로 주입한 값은 <strong>빈이 만들어질 때 한 번</strong> 박히고 끝이다. 반면 <code>@ConfigurationProperties</code> 빈은
+Boot 의 <code>ConfigurationPropertiesRebinder</code> 가 리프레시 때 <strong>자동으로 다시 바인딩</strong>한다.</p>
+<blockquote>
+<p>⚠️ <strong>바뀌지 않는 것도 있다.</strong> <code>@ConditionalOnProperty</code> 로 거는 값(빈의 <strong>존재 여부</strong>)은 리프레시로 안 바뀐다 —
+조건 평가는 컨텍스트 기동 시 한 번뿐이다. 그건 재시작이 필요하다.
+게이트웨이 라우트도 마찬가지(기동 시 로드) — 그래서 이 프로젝트는 게이트웨이에 Bus 를 넣지 않았다.</p>
+</blockquote>
+<h3 id="42-bus-설정---여기서-가장-오래-헤맸다">4.2 Bus 설정 — ★ 여기서 가장 오래 헤맸다</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">cloud:</span>
+    <span class="hljs-attr">stream:</span>
+      <span class="hljs-attr">kafka:</span>
+        <span class="hljs-attr">binder:</span>
+          <span class="hljs-attr">brokers:</span> <span class="hljs-string">${spring.kafka.bootstrap-servers}</span>   <span class="hljs-comment"># 바인더 기본값은 localhost:9092 (별개 설정!)</span>
+          <span class="hljs-attr">configuration:</span>
+            <span class="hljs-attr">key.serializer:</span>   <span class="hljs-string">org.apache.kafka.common.serialization.ByteArraySerializer</span>
+            <span class="hljs-attr">value.serializer:</span> <span class="hljs-string">org.apache.kafka.common.serialization.ByteArraySerializer</span>
+            <span class="hljs-attr">key.deserializer:</span>   <span class="hljs-string">org.apache.kafka.common.serialization.ByteArrayDeserializer</span>
+            <span class="hljs-attr">value.deserializer:</span> <span class="hljs-string">org.apache.kafka.common.serialization.ByteArrayDeserializer</span>
+    <span class="hljs-attr">bus:</span>
+      <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span>
+      <span class="hljs-attr">destination:</span> <span class="hljs-string">springCloudBus</span>
+</code></pre><p><strong>무슨 일이 있었나(실측):</strong> Bus 는 spring-cloud-stream 의 Kafka 바인더 위에서 돈다.
+그런데 그 바인더는 <strong>우리가 Phase 9~14에서 깔아 둔 <code>spring.kafka.{producer,consumer}</code> 설정을 물려받는다.</strong>
+그 설정은 도메인 이벤트용(<code>JsonSerializer</code> + <code>ErrorHandlingDeserializer</code>)이라,
+<strong>byte[] 인 Bus 메시지가 base64 문자열로 이중 인코딩</strong>됐다.</p>
+<pre><code>$ kafka-console-consumer --topic springCloudBus
+&quot;eyJ0eXBlIjoiUmVmcmVzaFJlbW90ZUFwcGxpY2F0aW9uRXZlbnQiLCJ0aW1lc3RhbXAiOjE3ODUyNTU2MTgwODAs…&quot;
+   └─ JSON 문자열로 따옴표까지 씌워진 base64 = JsonSerializer 가 byte[] 를 직렬화한 흔적
+</code></pre><p>증상이 지독하다: <strong>토픽에는 메시지가 정상적으로 쌓이고, 아무 에러도 안 나고, 그냥 아무도 리프레시되지 않는다.</strong>
+&quot;성공한 것처럼 보이는 실패&quot;라 원인을 찾는 데 가장 오래 걸렸다.
+→ 바인더 전용 <code>configuration</code> 으로 byte[] 직렬화를 되돌려 해결.</p>
+<h3 id="43-동기-api-계약--파일-하나가-양쪽을-묶는다">4.3 동기 API 계약 — 파일 하나가 양쪽을 묶는다</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># services/inventory-service/src/contractTest/resources/contracts/rest/stock_found.yml</span>
+<span class="hljs-attr">request:</span>  { <span class="hljs-attr">method:</span> <span class="hljs-string">GET</span>, <span class="hljs-attr">urlPath:</span> <span class="hljs-string">/inventory/22222222-2222-2222-2222-222222222222</span> }
+<span class="hljs-attr">response:</span>
+  <span class="hljs-attr">status:</span> <span class="hljs-number">200</span>
+  <span class="hljs-attr">body:</span> { <span class="hljs-attr">productId:</span> <span class="hljs-string">&quot;2222…&quot;</span>, <span class="hljs-attr">availableQuantity:</span> <span class="hljs-number">100</span> }
+  <span class="hljs-attr">matchers:</span>
+    <span class="hljs-attr">body:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">path:</span> <span class="hljs-string">$.availableQuantity</span>
+        <span class="hljs-attr">type:</span> <span class="hljs-string">by_regex</span>
+        <span class="hljs-attr">predefined:</span> <span class="hljs-string">number</span>      <span class="hljs-comment"># ← 값 100이 아니라 &#x27;숫자 타입&#x27;을 계약한다</span>
+</code></pre><p>이 파일 하나가 <strong>두 개</strong>를 만든다.</p>
+<table>
+<thead>
+<tr>
+<th>산출물</th>
+<th>누가 쓰나</th>
+<th>무엇을 보장하나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>생성된 <code>RestTest</code></td>
+<td>프로듀서(inventory)</td>
+<td>&quot;우리가 정말 이렇게 응답하는가&quot;</td>
+</tr>
+<tr>
+<td><code>verifierStubsJar</code></td>
+<td>소비자(order)</td>
+<td>&quot;상대가 이렇게 응답한다 치고 우리 파싱이 맞는가&quot;</td>
+</tr>
+</tbody></table>
+<p><strong>실패 경로도 계약이다.</strong> <code>stock_not_found.yml</code>(404)을 함께 둔 이유: 성공만 계약하면
+소비자는 실패 응답 형태를 <strong>상상해서</strong> 코딩한다 — 그게 통합 버그의 단골 출처다.</p>
+<p>베이스 클래스는 <strong>애플리케이션 전체를 띄우지 않는다</strong>:</p>
+<pre><code class="hljs language-java">RestAssuredMockMvc.mockMvc(MockMvcBuilders
+        .standaloneSetup(<span class="hljs-keyword">new</span> <span class="hljs-title class_">InventoryController</span>(mockedQuery, noChaos))
+        .setControllerAdvice(<span class="hljs-keyword">new</span> <span class="hljs-title class_">ApiExceptionHandler</span>()).build());
+</code></pre><p>계약이 말하는 것은 <strong>HTTP 표면</strong>뿐이다. DB·Kafka·Eureka 는 계약과 무관하므로 끌어오지 않는다.
+여기서 통합까지 검증하려 들면 계약 테스트가 통합 테스트가 되고, <strong>깨졌을 때 원인을 알 수 없게</strong> 된다.</p>
+<h3 id="44-소비자-쪽--spring-없이-stub-위에서-프로덕션-코드를-돌린다">4.4 소비자 쪽 — Spring 없이 stub 위에서 프로덕션 코드를 돌린다</h3>
+<pre><code class="hljs language-java"><span class="hljs-meta">@RegisterExtension</span>
+<span class="hljs-keyword">static</span> <span class="hljs-type">StubRunnerExtension</span> <span class="hljs-variable">stubRunner</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">StubRunnerExtension</span>()
+        .downloadStub(<span class="hljs-string">&quot;com.shopsaga&quot;</span>, <span class="hljs-string">&quot;inventory-service&quot;</span>, <span class="hljs-string">&quot;0.0.1-SNAPSHOT&quot;</span>, <span class="hljs-string">&quot;stubs&quot;</span>)
+        .withPort(<span class="hljs-number">8100</span>)
+        .stubsMode(StubRunnerProperties.StubsMode.LOCAL);   <span class="hljs-comment">// 로컬 Maven 저장소에서 가져온다</span>
+</code></pre><pre><code class="hljs language-kotlin"><span class="hljs-comment">// order-service/build.gradle.kts — 이 의존이 계약 테스트의 의미를 만든다</span>
+tasks.named&lt;Test&gt;(<span class="hljs-string">&quot;test&quot;</span>) {
+    dependsOn(<span class="hljs-string">&quot;:services:inventory-service:publishStubsPublicationToMavenLocal&quot;</span>)
+}
+</code></pre><p>이 <code>dependsOn</code> 이 없으면 소비자는 <strong>옛날 stub 으로 계속 통과</strong>해 버려 계약이 무의미해진다.</p>
+<h3 id="45-이벤트-계약--기성품이-없어서-검증기를-직접-끼웠다">4.5 이벤트 계약 — 기성품이 없어서 검증기를 직접 끼웠다</h3>
+<p>SCC 4.3의 메시징 통합은 <strong>Camel · Spring Integration · Spring Cloud Stream · JMS</strong> 뿐이다.
+<strong>Apache Kafka 전용 통합은 없다.</strong> 우리는 <code>KafkaTemplate</code> 을 직접 쓰므로 맞는 기성품이 없다.</p>
+<p>그래서 <code>MessageVerifierReceiver</code> 를 직접 구현했다. 핵심 발상:</p>
+<blockquote>
+<p>이 플랫폼에서 이벤트의 <strong>발신함은 Kafka 가 아니라 outbox 테이블</strong>이다(Phase 10~12).
+&quot;이 이벤트를 보내겠다&quot;고 결정한 지점이 outbox row 이고, 그 payload 는 <strong>실제 발행에 쓰이는 바로 그 JSON</strong> 이다.
+→ outbox 를 읽으면 브로커 없이 진짜 직렬화 결과를 계약과 대조할 수 있다.</p>
+</blockquote>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Bean</span>
+MessageVerifierReceiver&lt;Message&lt;?&gt;&gt; contractMessageReceiver(List&lt;OutboxMessage&gt; sentBox, ObjectMapper om) {
+    <span class="hljs-keyword">return</span> (destination, timeout, unit, contract) -&gt; sentBox.stream()
+            .filter(m -&gt; destination.equals(m.getTopic()))
+            .findFirst().map(m -&gt; toMessage(m, om)).orElse(<span class="hljs-literal">null</span>);
+}
+</code></pre><blockquote>
+<p>⚠️ 제네릭이 <code>Message&lt;?&gt;</code>(스프링 메시징)인 이유: Phase 15에서 Bus 를 넣으며 spring-cloud-stream 이
+클래스패스에 들어왔고, 그러면 SCC의 스트림용 자동설정이 활성화되어 <code>MessageVerifierSender&lt;Message&lt;?&gt;&gt;</code> 를 요구한다.
+타입이 어긋나면 <code>NoSuchBeanDefinitionException</code> 으로 컨텍스트가 뜨지 않는다(실제로 겪었다).</p>
+</blockquote>
+<p><strong>이 선택의 한계(정직하게):</strong> 브로커까지의 왕복(파티션 키·헤더·릴레이 동작)은 검증하지 않는다.
+그건 Phase 12~14의 compose 실증이 담당한다. 계약 테스트는 <strong>스키마</strong>에만 집중한다.</p>
+<h3 id="46-스키마-진화--규칙을-문서가-아니라-테스트로">4.6 스키마 진화 — 규칙을 문서가 아니라 테스트로</h3>
+<pre><code class="hljs language-java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">ObjectMapper</span> <span class="hljs-variable">consumerMapper</span> <span class="hljs-operator">=</span> JacksonUtils.enhancedObjectMapper();  <span class="hljs-comment">// 런타임과 &#x27;같은&#x27; 매퍼</span>
+</code></pre><blockquote>
+<p>⚠️ <code>new ObjectMapper()</code> 로 테스트하면 런타임과 <strong>다른 것</strong>을 검증하게 된다.
+spring-kafka 의 <code>JsonDeserializer</code> 가 실제로 쓰는 것은 <code>JacksonUtils.enhancedObjectMapper()</code> 다.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>변경</th>
+<th>결과</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>필드 <strong>추가</strong>(<code>couponCode</code>)</td>
+<td>옛 소비자가 <strong>무시</strong>하고 계속 읽음</td>
+<td>✅ 안전</td>
+</tr>
+<tr>
+<td>필드 <strong>누락</strong>(옛 이벤트 리플레이)</td>
+<td>역직렬화는 성공, 값은 <strong>null</strong></td>
+<td>⚠️ 조건부 — 소비자가 null 을 견뎌야</td>
+</tr>
+<tr>
+<td>필드 <strong>개명</strong>(<code>totalAmount</code>→<code>total</code>)</td>
+<td>예외 없음, 값만 <strong>null</strong></td>
+<td>❌ <strong>조용한 데이터 유실</strong></td>
+</tr>
+<tr>
+<td><strong>타입 변경</strong>(<code>quantity: &quot;two&quot;</code>)</td>
+<td><code>InvalidFormatException</code></td>
+<td>❌ 실패(하지만 시끄러워서 그나마 낫다)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-요청-하나가-흐르는-순서-설정-변경">5. 요청 하나가 흐르는 순서 (설정 변경)</h2>
+<pre><code>1. 개발자가 config-repo/order-service.yml 의 reject-on-insufficient 를 true 로 수정
+2. inventory-service &#39;한 곳&#39;에 POST /actuator/busrefresh
+3. inventory 가 springCloudBus 토픽에 RefreshRemoteApplicationEvent 발행
+     {&quot;type&quot;:&quot;RefreshRemoteApplicationEvent&quot;,&quot;originService&quot;:&quot;inventory-service:docker:8082:…&quot;,
+      &quot;destinationService&quot;:&quot;**&quot;}          ← &quot;**&quot; = 전원
+4. order·payment·order-query 가 각자 그 메시지를 받는다(익명 컨슈머 그룹 = 전원 수신)
+5. 각자 Config Server 에서 자기 설정을 다시 가져온다
+6. 바뀐 키가 있으면 @ConfigurationProperties 빈을 다시 바인딩 → [&quot;order.stock-precheck.reject-on-insufficient&quot;]
+7. 다음 요청부터 order-service 가 409 를 돌려준다 — 재시작 없음
+</code></pre><hr>
+<h2 id="6-원리--트레이드오프">6. 원리 / 트레이드오프</h2>
+<h3 id="61-bus-는-설정-배포지-설정-관리가-아니다">6.1 Bus 는 &quot;설정 배포&quot;지 &quot;설정 관리&quot;가 아니다</h3>
+<p>Bus 는 변경을 <strong>전파</strong>할 뿐, 누가 언제 무엇을 바꿨는지는 모른다. 그래서 실무에선 config-repo 를
+<strong>Git 백엔드</strong>로 두고 PR·리뷰·롤백을 붙인다. 이 프로젝트는 학습용이라 native(파일) 백엔드다.</p>
+<h3 id="62-계약-테스트-vs-통합-테스트--섞지-말-것">6.2 계약 테스트 vs 통합 테스트 — 섞지 말 것</h3>
+<p>계약 테스트는 &quot;인터페이스가 맞나&quot;만 본다. DB·브로커·디스커버리를 끌어들이면
+<strong>깨졌을 때 원인이 계약인지 인프라인지 알 수 없게</strong> 되고, 느려서 아무도 안 돌리게 된다.
+통합은 Phase 12~14의 compose 실증이 담당한다 — <strong>층을 나눠야 각 층이 쓸모 있다.</strong></p>
+<h3 id="63-계약은-값이-아니라-모양을-못-박아야-한다">6.3 계약은 &#39;값&#39;이 아니라 &#39;모양&#39;을 못 박아야 한다</h3>
+<p><code>availableQuantity: 100</code> 을 그대로 계약하면 프로듀서가 테스트 시드를 바꿀 때마다 계약이 깨진다.
+<code>type: by_regex, predefined: number</code> 처럼 <strong>타입/형식</strong>만 계약해야 오래 간다.</p>
+<blockquote>
+<p>⚠️ 실측: <code>predefined:</code> 로 쓰면 프로듀서 테스트에 단언이 <strong>생성되지 않는 경우</strong>가 있었다.
+이벤트 계약에서는 명시 정규식(<code>value:</code>)으로 바꾸고 나서야 단언 7개가 제대로 생성됐다.
+<strong>생성된 코드를 한 번은 반드시 열어 볼 것</strong>(<code>build/generated-test-sources</code>).</p>
+</blockquote>
+<h3 id="64-스키마-진화에서-가장-무서운-것은-예외가-아니라-침묵">6.4 스키마 진화에서 가장 무서운 것은 예외가 아니라 침묵</h3>
+<p>타입 변경은 예외를 던져 소비를 멈추고 DLT에 증거를 남긴다 — <strong>시끄러워서 낫다.</strong>
+개명은 아무 에러 없이 값만 사라진다. 시스템은 정상 동작하는데 금액 없는 주문이 쌓인다.
+<strong>개명 = 제거 + 추가</strong>임을 몸으로 이해해야 한다. 안전한 개명은 &quot;새 필드 추가 → 소비자 전환 → 옛 필드 제거&quot;의 3단계다.</p>
+<h3 id="65-이번-설계가-포기한-것">6.5 이번 설계가 포기한 것</h3>
+<ul>
+<li><strong>스키마 레지스트리 없음</strong>(Apicurio 등) — 규칙을 테스트로만 강제한다. 다른 팀이 규칙을 어기면 런타임에 안다.</li>
+<li><strong>API 버저닝(<code>/api/v1/...</code>) 미적용</strong> — 경로가 그대로다. 지금은 소비자를 우리가 다 통제하므로 유예했다.</li>
+<li><strong>소비자 쪽 이벤트 stub 재생(<code>stubFinder.trigger</code>) 없음</strong> — Kafka 통합 부재 때문. 대신 스키마 진화 테스트가 그 자리를 메운다.</li>
+</ul>
+<hr>
+<h2 id="7-검증-실증">7. 검증 (실증)</h2>
+<h3 id="71-bus--한-곳에-리프레시하면-전부-바뀐다">7.1 Bus — 한 곳에 리프레시하면 전부 바뀐다</h3>
+<pre><code>① reject-on-insufficient=false        → POST /orders(99999개) = 201
+② config-repo 수정(true), 리프레시 전  → 201            ← 파일만 바꿔서는 아무 일도 안 일어난다
+③ inventory-service &#39;에만&#39; busrefresh  → [rc=0]
+④ order-service 동작                   → 409  ✅
+   {&quot;status&quot;:409,&quot;detail&quot;:&quot;재고 사전 확인 실패(참고값 기준): … 요청=99999 가용=69&quot;}
+⑥ 원복 후                              → 201
+</code></pre><p><strong>order-service 는 한 번도 직접 호출되지 않았다.</strong> 토픽 <code>springCloudBus</code> 는 바인더가 자동 생성했다.</p>
+<h3 id="72--계약을-깨면-어디서-잡히는가-로드맵의-핵심-주장">7.2 ★ 계약을 깨면 어디서 잡히는가 (로드맵의 핵심 주장)</h3>
+<pre><code>① 정상                                   프로듀서 contractTest EXIT=0 / 소비자 계약테스트 EXIT=0
+② 프로듀서가 &#39;구현만&#39; 변경               프로듀서 contractTest EXIT=1  ← 자기 팀에서 즉시 잡힘
+   (availableQuantity → available)
+③ 프로듀서가 &#39;계약도 같이&#39; 변경           프로듀서 contractTest EXIT=0  ← 프로듀서 입장에선 문제 없음
+④ 새 stub 발행 후 소비자 빌드            소비자 계약테스트   EXIT=1  ← ★ 배포 전에 잡힌다
+⑤ 원복                                   양쪽 EXIT=0, 작업 트리 깨끗
+</code></pre><p>②와 ④가 <strong>다른 팀에서 다른 시점에</strong> 잡힌다는 것이 계약 테스트의 요점이다.</p>
+<blockquote>
+<p>⚠️ <strong>함정:</strong> ④를 처음 돌렸을 때 <strong>통과해 버렸다.</strong> 두 가지 이유였다.</p>
+<ol>
+<li><code>~/.m2</code> 의 stub jar 는 Gradle 입력이 아니라 <code>test</code> 가 <strong>UP-TO-DATE 로 건너뛴다</strong> → <code>--rerun-tasks</code> 필요.</li>
+<li>그리고 아래 §7.3의 진짜 결함.</li>
+</ol>
+</blockquote>
+<h3 id="73--계약-테스트가-잡아낸-실제-결함--조용한-0">7.3 ★ 계약 테스트가 잡아낸 실제 결함 — 조용한 0</h3>
+<p><code>--rerun-tasks</code> 로 강제 실행해도 소비자 테스트가 <strong>여전히 통과</strong>했다. 원인:</p>
+<pre><code class="hljs language-java"><span class="hljs-keyword">record</span> <span class="hljs-title class_">StockResponse</span><span class="hljs-params">(UUID productId, <span class="hljs-type">int</span> availableQuantity)</span> {}   <span class="hljs-comment">// ← int</span>
+</code></pre><p>필드가 사라지면 Jackson 은 <code>int</code> 를 <strong>0으로 채운다</strong>. 즉 소비자는
+&quot;재고 0&quot;이라는 <strong>그럴듯한 거짓말</strong>을 조용히 받아들이고 있었다 — Phase 14의 사전 확인이
+&quot;INSUFFICIENT&quot;라고 잘못 판정하게 만드는 결함이다.</p>
+<pre><code class="hljs language-java"><span class="hljs-keyword">record</span> <span class="hljs-title class_">StockResponse</span><span class="hljs-params">(UUID productId, Integer availableQuantity)</span> {}   <span class="hljs-comment">// 수정</span>
+<span class="hljs-keyword">if</span> (body == <span class="hljs-literal">null</span> || body.availableQuantity() == <span class="hljs-literal">null</span>) {
+    <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">IllegalStateException</span>(<span class="hljs-string">&quot;재고 응답에 availableQuantity 가 없다: &quot;</span> + productId);
+}
+</code></pre><blockquote>
+<p><strong>tolerant reader = &quot;모르는 필드를 무시한다&quot;이지 &quot;필요한 필드가 없어도 괜찮다&quot;가 아니다.</strong>
+이 구분을 놓치면 관대함이 데이터 유실로 바뀐다.</p>
+</blockquote>
+<h3 id="74-스키마-진화--4가지-변경의-결과">7.4 스키마 진화 — 4가지 변경의 결과</h3>
+<table>
+<thead>
+<tr>
+<th>테스트</th>
+<th>결과</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>unknownField_isIgnored</code></td>
+<td>새 필드 <code>couponCode</code> 추가 → 예외 없음 ✅</td>
+</tr>
+<tr>
+<td><code>missingField_readsAsNull…</code></td>
+<td>옛 이벤트(리플레이) → <code>totalAmount == null</code>, <code>occurredAt == null</code> ⚠️</td>
+</tr>
+<tr>
+<td><code>renamedField_isSilentDataLoss</code></td>
+<td><code>totalAmount</code>→<code>total</code> → <strong>예외 없이 null</strong> ❌</td>
+</tr>
+<tr>
+<td><code>typeChange_breaksDeserialization</code></td>
+<td><code>quantity:&quot;two&quot;</code> → <code>InvalidFormatException</code> ❌</td>
+</tr>
+<tr>
+<td><code>consumerMapperIsConfiguredTolerant</code></td>
+<td><code>FAIL_ON_UNKNOWN_PROPERTIES == false</code> 확인</td>
+</tr>
+</tbody></table>
+<h3 id="75-자동-테스트-총-87개-통과">7.5 자동 테스트 (총 87개 통과)</h3>
+<table>
+<thead>
+<tr>
+<th>테스트</th>
+<th>지키는 것</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RestTest</code>(생성)</td>
+<td>inventory 가 계약대로 응답하는가(200 스키마 + 404)</td>
+</tr>
+<tr>
+<td><code>MessagingTest</code>(생성, 단언 7개)</td>
+<td><code>OrderPlaced</code> 페이로드가 계약대로 직렬화되는가</td>
+</tr>
+<tr>
+<td><code>InventoryContractConsumerTest</code></td>
+<td>우리 파싱 코드가 프로듀서 계약과 맞는가(+404 처리)</td>
+</tr>
+<tr>
+<td><code>EventSchemaEvolutionTest</code></td>
+<td>스키마 진화 4규칙</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>한계</th>
+<th>왜 지금은 이대로</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>스키마 레지스트리 없음</strong> — 규칙을 테스트로만 강제</td>
+<td>Apicurio 컨테이너 추가는 Phase 16(RAM 최대 고비) 직전 부담</td>
+<td>Phase 18(캡스톤) 또는 별도</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>API 버저닝(<code>/api/v1</code>) 미적용</strong></td>
+<td>소비자를 전부 우리가 통제 중</td>
+<td>Phase 18 / 외부 소비자 생길 때</td>
+</tr>
+<tr>
+<td>3</td>
+<td>이벤트 계약이 <strong>브로커 왕복을 검증하지 않음</strong>(outbox 까지만)</td>
+<td>SCC에 Kafka 통합이 없음</td>
+<td>통합은 compose 실증이 담당 / 필요시 Testcontainers 기반 검증기</td>
+</tr>
+<tr>
+<td>4</td>
+<td>소비자 계약 테스트가 <strong>UP-TO-DATE 로 건너뛸 수 있음</strong>(stub jar 가 Gradle 입력이 아님)</td>
+<td>로컬 편의</td>
+<td>CI는 clean 빌드라 무해 · 개선하려면 stub jar 를 입력으로 선언</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Bus 가 <strong>게이트웨이에는 없음</strong> — 라우트는 여전히 재시작 필요</td>
+<td>라우트는 기동 시 로드(리프레시 불가)</td>
+<td>Phase 16 k8s 롤링 재시작</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>busrefresh</code> 가 <strong>인증만 통과하면 누구나</strong> 호출 가능</td>
+<td>학습용</td>
+<td>운영: actuator 별도 포트 + 네트워크 격리</td>
+</tr>
+<tr>
+<td>7</td>
+<td>config-repo 가 <strong>native(파일) 백엔드</strong> — 변경 이력·리뷰 없음</td>
+<td>학습 단순화</td>
+<td>Git 백엔드 전환(운영 표준)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>계약이 <strong>inventory GET + OrderPlaced 둘뿐</strong></td>
+<td>패턴 학습이 목적</td>
+<td>나머지 API·이벤트로 확장</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어사전">9. 용어사전</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>한 줄 정의</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Spring Cloud Bus</strong></td>
+<td>브로커를 통해 설정 변경 등을 전 인스턴스에 방송하는 장치</td>
+</tr>
+<tr>
+<td><strong><code>busrefresh</code></strong></td>
+<td>한 인스턴스에 호출하면 전원이 설정을 다시 읽게 하는 actuator 엔드포인트</td>
+</tr>
+<tr>
+<td><strong><code>@ConfigurationProperties</code> 재바인딩</strong></td>
+<td>리프레시 때 빈을 새로 만들지 않고 필드만 갈아 끼우는 것</td>
+</tr>
+<tr>
+<td><strong>CDC(소비자 주도 계약)</strong></td>
+<td>소비자가 필요한 형태를 계약으로 정하고 프로듀서가 지키는지 검증하는 방식</td>
+</tr>
+<tr>
+<td><strong>Stub jar</strong></td>
+<td>계약에서 생성된 가짜 프로듀서(WireMock 정의 + 계약 원문)를 담은 jar</td>
+</tr>
+<tr>
+<td><strong>Stub Runner</strong></td>
+<td>stub jar 를 내려받아 가짜 서버로 띄워 주는 도구</td>
+</tr>
+<tr>
+<td><strong><code>MessageVerifier</code></strong></td>
+<td>메시징 계약 검증 시 &quot;메시지를 받아 오는&quot; 역할의 SCC 확장점</td>
+</tr>
+<tr>
+<td><strong>Tolerant reader</strong></td>
+<td>모르는 필드를 무시하고 진행하는 소비자(스키마 진화의 전제)</td>
+</tr>
+<tr>
+<td><strong>조용한 데이터 유실</strong></td>
+<td>예외 없이 값만 사라지는 실패 — 스키마 사고 중 가장 위험</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
+<ul>
+<li>직전 단계: <a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a> — 이번에 계약을 건 사전 확인 호출이 거기서 생겼다.</li>
+<li>설정 기반: <a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a> — Bus 는 그 위에 얹은 방송 장치다.</li>
+<li>이벤트 기반: <a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox</a> — 이벤트 계약의 &quot;발신함&quot;이 여기 있다.</li>
+<li>리플레이: <a href="PHASE-11-CQRS.html">Phase 11 · CQRS</a> — 옛 스키마가 되살아나는 경로.</li>
+<li>커밋 지도: <a href="PHASE-COMMIT-MAP.html">PHASE-COMMIT-MAP.md</a> · 로드맵: <code>MSA-LEARNING-PLAN.md</code></li>
+<li>공식 문서: <a href="https://docs.spring.io/spring-cloud-contract/reference/">Spring Cloud Contract</a> ·
+<a href="https://docs.spring.io/spring-cloud-bus/reference/">Spring Cloud Bus</a></li>
+</ul>
+<hr>
+<p><strong>다음 단계 → Phase 16 (로컬 Kubernetes, kind):</strong> 같은 이미지를 k8s로 <strong>이전</strong>한다.
+16a는 서비스 하나 + probe, 16b는 <strong>Eureka 삭제 → k8s Service DNS</strong>(디스커버리가 앱에서 플랫폼으로 이동).
+⚠️ RAM 최대 고비 — kind 를 띄우기 전에 <strong>compose 인프라를 먼저 내려야 한다.</strong></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--지금까지-쌓인-문제">1. 왜 — 지금까지 쌓인 문제</a></li>
+<li class="toc-h2"><a href="#2-핵심-개념-용어부터">2. 핵심 개념 (용어부터)</a></li>
+<li class="toc-h2"><a href="#3-구성-그림">3. 구성 (그림)</a></li>
+<li class="toc-h2"><a href="#4-코드설정-한-부분씩">4. 코드·설정 한 부분씩</a></li>
+<li class="toc-h3"><a href="#41-bus-를-켜기-전에--value-로는-아무것도-안-바뀐다">4.1 Bus 를 켜기 전에 — @Value 로는 아무것도 안 바뀐다</a></li>
+<li class="toc-h3"><a href="#42-bus-설정---여기서-가장-오래-헤맸다">4.2 Bus 설정 — ★ 여기서 가장 오래 헤맸다</a></li>
+<li class="toc-h3"><a href="#43-동기-api-계약--파일-하나가-양쪽을-묶는다">4.3 동기 API 계약 — 파일 하나가 양쪽을 묶는다</a></li>
+<li class="toc-h3"><a href="#44-소비자-쪽--spring-없이-stub-위에서-프로덕션-코드를-돌린다">4.4 소비자 쪽 — Spring 없이 stub 위에서 프로덕션 코드를 돌린다</a></li>
+<li class="toc-h3"><a href="#45-이벤트-계약--기성품이-없어서-검증기를-직접-끼웠다">4.5 이벤트 계약 — 기성품이 없어서 검증기를 직접 끼웠다</a></li>
+<li class="toc-h3"><a href="#46-스키마-진화--규칙을-문서가-아니라-테스트로">4.6 스키마 진화 — 규칙을 문서가 아니라 테스트로</a></li>
+<li class="toc-h2"><a href="#5-요청-하나가-흐르는-순서-설정-변경">5. 요청 하나가 흐르는 순서 (설정 변경)</a></li>
+<li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>
+<li class="toc-h3"><a href="#61-bus-는-설정-배포지-설정-관리가-아니다">6.1 Bus 는 &quot;설정 배포&quot;지 &quot;설정 관리&quot;가 아니다</a></li>
+<li class="toc-h3"><a href="#62-계약-테스트-vs-통합-테스트--섞지-말-것">6.2 계약 테스트 vs 통합 테스트 — 섞지 말 것</a></li>
+<li class="toc-h3"><a href="#63-계약은-값이-아니라-모양을-못-박아야-한다">6.3 계약은 &#39;값&#39;이 아니라 &#39;모양&#39;을 못 박아야 한다</a></li>
+<li class="toc-h3"><a href="#64-스키마-진화에서-가장-무서운-것은-예외가-아니라-침묵">6.4 스키마 진화에서 가장 무서운 것은 예외가 아니라 침묵</a></li>
+<li class="toc-h3"><a href="#65-이번-설계가-포기한-것">6.5 이번 설계가 포기한 것</a></li>
+<li class="toc-h2"><a href="#7-검증-실증">7. 검증 (실증)</a></li>
+<li class="toc-h3"><a href="#71-bus--한-곳에-리프레시하면-전부-바뀐다">7.1 Bus — 한 곳에 리프레시하면 전부 바뀐다</a></li>
+<li class="toc-h3"><a href="#72--계약을-깨면-어디서-잡히는가-로드맵의-핵심-주장">7.2 ★ 계약을 깨면 어디서 잡히는가 (로드맵의 핵심 주장)</a></li>
+<li class="toc-h3"><a href="#73--계약-테스트가-잡아낸-실제-결함--조용한-0">7.3 ★ 계약 테스트가 잡아낸 실제 결함 — 조용한 0</a></li>
+<li class="toc-h3"><a href="#74-스키마-진화--4가지-변경의-결과">7.4 스키마 진화 — 4가지 변경의 결과</a></li>
+<li class="toc-h3"><a href="#75-자동-테스트-총-87개-통과">7.5 자동 테스트 (총 87개 통과)</a></li>
+<li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
+<li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
+</body>
+</html>

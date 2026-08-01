@@ -1,10 +1,12 @@
 package com.shopsaga.order;
 
 import com.shopsaga.messaging.KafkaErrorHandlingConfiguration;
+import com.shopsaga.order.application.service.StockPrecheckProperties;
 import com.shopsaga.outbox.OutboxConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -15,6 +17,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * {@code @EnableScheduling} 은 {@link OutboxConfiguration} 이 제공한다(릴레이 폴링).
  */
 @SpringBootApplication
+@EnableConfigurationProperties(StockPrecheckProperties.class)   // Phase 15: 리프레시로 다시 바인딩되는 설정
 @EntityScan({"com.shopsaga.order", "com.shopsaga.outbox"})
 @EnableJpaRepositories({"com.shopsaga.order", "com.shopsaga.outbox"})
 @Import({OutboxConfiguration.class, KafkaErrorHandlingConfiguration.class})   // Phase 14: 소비 실패 → DLQ

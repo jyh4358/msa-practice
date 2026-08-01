@@ -1,0 +1,11 @@
+# Phase 15 — 실패 경로도 계약이다.
+#
+# 소비자(order-service)의 사전 확인은 "없는 상품"을 만났을 때의 동작도 알아야 한다.
+# 성공 경로만 계약하면, 소비자는 실패 응답 형태를 상상해서 코딩하게 된다 — 그게 통합 버그의 출처다.
+description: "등록되지 않은 상품을 조회하면 404"
+name: stock_not_found
+request:
+  method: GET
+  urlPath: /inventory/99999999-9999-9999-9999-999999999999
+response:
+  status: 404

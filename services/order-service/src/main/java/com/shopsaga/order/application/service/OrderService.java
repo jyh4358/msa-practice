@@ -17,7 +17,6 @@ import com.shopsaga.order.domain.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -48,11 +47,11 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
     private final ObjectProvider<StockAvailabilityPort> stockAvailabilityPort;
 
     /**
-     * 사전 확인이 "부족"이라고 해도 <b>기본은 그대로 접수</b>한다(참고용). true 로 켜면 409 로 빠르게 거절한다.
+     * Phase 15: {@code @Value} 가 아니라 {@code @ConfigurationProperties} 빈으로 받는다 —
+     * 그래야 Spring Cloud Bus 의 {@code busrefresh} 로 <b>재시작 없이</b> 값이 바뀐다.
      * 끄고 켜 보면 "빠른 실패 UX"와 "Saga 단일 판정" 사이의 트레이드오프가 눈에 보인다.
      */
-    @Value("${order.stock-precheck.reject-on-insufficient:false}")
-    private boolean rejectOnInsufficient;
+    private final StockPrecheckProperties stockPrecheckProperties;
 
     @Override
     @Transactional
@@ -60,7 +59,8 @@ class OrderService implements PlaceOrderUseCase, GetOrderQuery {
         // ⚠️ 사전 확인은 트랜잭션 안에서 원격 호출을 한다는 점에서 이상적이진 않다(커넥션 점유).
         //    TimeLimiter 로 상한이 걸려 있어 허용한 것이며, 상한이 없다면 트랜잭션 밖으로 빼야 한다.
         StockPrecheck precheck = precheck(command);
-        if (rejectOnInsufficient && precheck.status() == StockPrecheck.Status.INSUFFICIENT) {
+        if (stockPrecheckProperties.isRejectOnInsufficient()
+                && precheck.status() == StockPrecheck.Status.INSUFFICIENT) {
             throw new StockPrecheckRejectedException(precheck.detail());
         }
 

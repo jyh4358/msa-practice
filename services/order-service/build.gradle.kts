@@ -2,6 +2,9 @@ plugins {
     java
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
+    // Phase 15: 이 서비스는 OrderPlaced 이벤트의 <프로듀서>다(메시징 계약).
+    alias(libs.plugins.spring.cloud.contract)
+    `maven-publish`
 }
 
 group = "com.shopsaga"
@@ -53,6 +56,9 @@ dependencies {
     // Phase 6: Config 클라이언트 — spring.config.import 로 config-service(:8888)에서 설정을 가져온다.
     //          (bootstrap.yml/starter-bootstrap 쓰지 않음 — 2025.0.x 표준 import 모델.)
     implementation("org.springframework.cloud:spring-cloud-starter-config")
+    // Phase 15: Spring Cloud Bus(Kafka 백엔드) — 한 인스턴스에 POST /actuator/busrefresh 하면
+    //           springCloudBus 토픽으로 RefreshRemoteApplicationEvent 가 퍼져 전 인스턴스가 설정을 다시 읽는다.
+    implementation("org.springframework.cloud:spring-cloud-starter-bus-kafka")
     // Phase 5: 서블릿 OAuth2 리소스 서버(JWT 검증) + method security(@PreAuthorize).
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     // OpenAPI/Swagger UI — 인바운드 웹 어댑터 문서화(도메인·애플리케이션은 의존하지 않음).
@@ -75,6 +81,36 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Phase 15: 이 서비스는 재고 조회 API의 <소비자>다.
+    //  inventory-service 가 발행한 stub(WireMock) 을 띄우고, 우리 클라이언트를 그 위에서 돌린다.
+    testImplementation("org.springframework.cloud:spring-cloud-starter-contract-stub-runner")
+
+    // Phase 15: 이벤트 계약 검증(생성된 테스트 + 직접 끼운 MessageVerifier).
+    contractTestImplementation("org.springframework.cloud:spring-cloud-starter-contract-verifier")
+    contractTestImplementation("org.springframework.boot:spring-boot-starter-test")
+    contractTestImplementation(project(":shared:outbox"))
+    contractTestImplementation(project(":shared:events"))
+}
+
+// ── Phase 15: 이벤트 계약 ──────────────────────────────────────────────────
+contracts {
+    testFramework = org.springframework.cloud.contract.verifier.config.TestFramework.JUNIT5
+    packageWithBaseClasses = "com.shopsaga.order.contract"
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("stubs") {
+            artifact(tasks.named("verifierStubsJar"))
+        }
+    }
+}
+
+// Phase 15: 소비자 테스트는 프로듀서의 최신 stub 이 로컬 Maven 저장소에 있어야 돈다.
+//  ⚠️ 이 의존이 있어야 "프로듀서가 계약을 깨면 소비자 빌드가 깨진다"가 성립한다.
+//     (없으면 소비자는 옛날 stub 으로 계속 통과해 버려 계약 테스트의 의미가 사라진다.)
+tasks.named<Test>("test") {
+    dependsOn(":services:inventory-service:publishStubsPublicationToMavenLocal")
 }
 
 tasks.named<Test>("test") {

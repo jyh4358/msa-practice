@@ -1,0 +1,27 @@
+# Phase 15 — 재고 조회 API의 계약(consumer-driven contract).
+#
+# 이 파일 하나가 두 가지를 만든다:
+#   ① 프로듀서(inventory-service) 검증 테스트  — "우리가 정말 이렇게 응답하는가"
+#   ② 소비자(order-service)용 WireMock stub    — "상대가 이렇게 응답한다고 치고 우리 코드를 돌려본다"
+#
+# 그래서 프로듀서가 응답 형태를 바꾸면 ①이 깨지고, 그걸 무시하고 배포해도
+# 소비자 빌드에서 ②가 최신 stub 으로 갱신되며 깨진다 — 배포 전에 알게 되는 것이 핵심이다.
+description: "등록된 상품을 조회하면 productId 와 가용 수량을 돌려준다"
+name: stock_found
+request:
+  method: GET
+  urlPath: /inventory/22222222-2222-2222-2222-222222222222
+response:
+  status: 200
+  headers:
+    Content-Type: "application/json"
+  body:
+    productId: "22222222-2222-2222-2222-222222222222"
+    availableQuantity: 100
+  matchers:
+    body:
+      # ⚠️ 수량은 '숫자 타입'만 계약한다. 값 100 자체는 예시일 뿐 계약이 아니다.
+      #    값까지 계약하면 프로듀서가 테스트용 시드를 바꿀 때마다 계약이 깨진다.
+      - path: $.availableQuantity
+        type: by_regex
+        predefined: number

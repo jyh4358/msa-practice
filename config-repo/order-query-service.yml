@@ -21,4 +21,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,refresh,busrefresh   # Phase 15: 설정 리프레시(단일) / 버스 방송(전체)
