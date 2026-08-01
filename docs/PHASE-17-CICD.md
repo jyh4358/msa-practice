@@ -373,9 +373,26 @@ Name:      ghcr.io/jyh4358/msa-practice/order-service:9a60530f0fdb84c4dae5fe45a9
   Platform:  linux/arm64
 ```
 
-**태그 하나가 두 다이제스트를 가리킨다**(§6-② 의 "매니페스트 리스트"). 확인된 서비스:
-`order-service` · `payment-service` · `inventory-service` · `order-query-service` ·
-`gateway-service` · `auth-service` — **6/6 전부 amd64+arm64**.
+**태그 하나가 두 다이제스트를 가리킨다**(§6-② 의 "매니페스트 리스트").
+
+CI 로그는 "만들 때" 찍힌 것이므로, **나중에 밖에서 레지스트리에 직접 물어** 다시 확인했다
+(`docker pull` 이 실제로 타는 경로 `GET /v2/<name>/manifests/<tag>`):
+
+```
+order-service          latest / 9a60530   HTTP 200  [amd64, arm64]
+payment-service        latest / 9a60530   HTTP 200  [amd64, arm64]
+inventory-service      latest / 9a60530   HTTP 200  [amd64, arm64]
+order-query-service    latest / 9a60530   HTTP 200  [amd64, arm64]
+gateway-service        latest / 9a60530   HTTP 200  [amd64, arm64]
+auth-service           latest / 9a60530   HTTP 200  [amd64, arm64]
+```
+
+**6개 서비스 × 2개 태그 = 12/12 전부 멀티아치.** 노트북(arm64)에서도 러너(amd64)에서도 같은 태그로 받아진다.
+
+> ⚠️ 곁다리로 알게 된 것: **Packages REST API(`/user/packages`)는 fine-grained PAT 를 지원하지 않는다.**
+> 권한을 추가해도 403 이다 — classic PAT + `read:packages` 가 필요하다.
+> 반면 **레지스트리 자체(`ghcr.io/v2/...`)는 fine-grained PAT 로 잘 된다.**
+> 즉 "이미지를 받는 것"과 "패키지를 관리하는 것"은 인증 경로가 다르다.
 
 ### ⑤ CI 안에서 전체 플랫폼이 실제로 떴는가
 

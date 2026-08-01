@@ -710,9 +710,22 @@ kind 스모크 배포      ubuntu-latest
   Platform:  linux/amd64
   Name:      …@sha256:922c84d9e373edd3615b7bcf1bacd8b4a2475000b2271c21b6f0da8ad68749f3
   Platform:  linux/arm64
-</code></pre><p><strong>태그 하나가 두 다이제스트를 가리킨다</strong>(§6-② 의 &quot;매니페스트 리스트&quot;). 확인된 서비스:
-<code>order-service</code> · <code>payment-service</code> · <code>inventory-service</code> · <code>order-query-service</code> ·
-<code>gateway-service</code> · <code>auth-service</code> — <strong>6/6 전부 amd64+arm64</strong>.</p>
+</code></pre><p><strong>태그 하나가 두 다이제스트를 가리킨다</strong>(§6-② 의 &quot;매니페스트 리스트&quot;).</p>
+<p>CI 로그는 &quot;만들 때&quot; 찍힌 것이므로, <strong>나중에 밖에서 레지스트리에 직접 물어</strong> 다시 확인했다
+(<code>docker pull</code> 이 실제로 타는 경로 <code>GET /v2/&lt;name&gt;/manifests/&lt;tag&gt;</code>):</p>
+<pre><code>order-service          latest / 9a60530   HTTP 200  [amd64, arm64]
+payment-service        latest / 9a60530   HTTP 200  [amd64, arm64]
+inventory-service      latest / 9a60530   HTTP 200  [amd64, arm64]
+order-query-service    latest / 9a60530   HTTP 200  [amd64, arm64]
+gateway-service        latest / 9a60530   HTTP 200  [amd64, arm64]
+auth-service           latest / 9a60530   HTTP 200  [amd64, arm64]
+</code></pre><p><strong>6개 서비스 × 2개 태그 = 12/12 전부 멀티아치.</strong> 노트북(arm64)에서도 러너(amd64)에서도 같은 태그로 받아진다.</p>
+<blockquote>
+<p>⚠️ 곁다리로 알게 된 것: <strong>Packages REST API(<code>/user/packages</code>)는 fine-grained PAT 를 지원하지 않는다.</strong>
+권한을 추가해도 403 이다 — classic PAT + <code>read:packages</code> 가 필요하다.
+반면 <strong>레지스트리 자체(<code>ghcr.io/v2/...</code>)는 fine-grained PAT 로 잘 된다.</strong>
+즉 &quot;이미지를 받는 것&quot;과 &quot;패키지를 관리하는 것&quot;은 인증 경로가 다르다.</p>
+</blockquote>
 <h3 id="-ci-안에서-전체-플랫폼이-실제로-떴는가">⑤ CI 안에서 전체 플랫폼이 실제로 떴는가</h3>
 <p>스모크 잡 <strong>3m32s</strong> 안에서 다음이 전부 일어났다. 파드 13개가 <strong>2m16s 만에 전부 <code>1/1 Running</code></strong> 이 됐다:</p>
 <pre><code>NAME                                   READY   STATUS    RESTARTS   AGE
