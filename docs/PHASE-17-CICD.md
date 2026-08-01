@@ -221,7 +221,7 @@ sed -i "s|image: shopsaga/${svc}:0.0.1|image: ${IMAGE_BASE}/${svc}:${GITHUB_SHA}
 `GITHUB_TOKEN` 은 실행이 끝나면 폐기되는 임시 토큰이다. 기본값은 읽기 전용이고,
 필요한 잡에만 `packages: write` 를 준다. 스모크 잡은 pull 만 하므로 `packages: read` 다.
 
-GHCR 패키지는 처음 만들어질 때 **private** 이다. 그래서 클러스터가 받아올 자격증명이 필요하다:
+클러스터가 이미지를 받아올 자격증명은 이렇게 넣는다:
 
 ```bash
 kubectl create secret docker-registry ghcr -n shopsaga \
@@ -232,6 +232,15 @@ kubectl patch serviceaccount default -n shopsaga \
 ```
 
 기본 서비스어카운트에 붙이면 그 네임스페이스의 **모든 파드가 자동으로** 쓴다(매니페스트를 안 고쳐도 된다).
+
+> ⚠️ **처음엔 "GHCR 패키지는 기본이 private" 이라고 알고 이 secret 을 넣었는데, 실제로는 아니었다.**
+> 이미지 이름을 `ghcr.io/<owner>/<repo>/<service>` 로 지으면 GitHub 이 그 패키지를 **저장소에 연결**하고,
+> **공개 저장소에서 Actions 로 push 한 패키지는 저장소의 공개 설정을 물려받는다.**
+> 나중에 익명으로(토큰 없이) 확인해 보니 6개 전부 `HTTP 200` 이었다 — §7-④ 참고.
+>
+> 그래도 이 secret 을 남겨 둔 이유: ① 저장소를 비공개로 바꾸거나 조직 계정으로 옮겨도 그대로 동작하고
+> ② "레지스트리 자격증명을 클러스터에 넣는 법"은 그 자체로 알아 둘 값어치가 있다.
+> **다만 지금 이 구성에서는 없어도 된다** — 있는 것과 없는 것의 차이를 알고 두는 것과, 모르고 두는 것은 다르다.
 
 ---
 
@@ -388,6 +397,22 @@ auth-service           latest / 9a60530   HTTP 200  [amd64, arm64]
 ```
 
 **6개 서비스 × 2개 태그 = 12/12 전부 멀티아치.** 노트북(arm64)에서도 러너(amd64)에서도 같은 태그로 받아진다.
+
+그리고 **토큰 없이(익명)** 도 받아진다 — GHCR 의 익명 토큰 흐름
+(`GET /token?scope=repository:<name>:pull` → 그 토큰으로 매니페스트 조회)으로 확인:
+
+```
+order-service · payment-service · inventory-service ·
+order-query-service · gateway-service · auth-service     익명 HTTP 200  [amd64, arm64]
+```
+
+즉 **패키지가 공개 상태**다. 이미지 이름에 저장소명이 들어가 있어(`…/msa-practice/…`)
+GitHub 이 패키지를 저장소에 연결했고, **공개 저장소의 Actions 가 push 한 패키지는 그 공개 설정을 물려받는다.**
+
+> ⚠️ 그래서 §4-⑤ 에서 넣은 `imagePullSecret` 은 **이 구성에서는 실제로 필요 없다.**
+> 처음에 "GHCR 는 기본이 private" 이라고 잘못 알고 넣은 것이다.
+> 이미지가 공개된다는 건 **이미지 안에 비밀값이 있으면 전 세계에 공개된다**는 뜻이기도 하다 —
+> 우리 이미지에는 jar 만 들어 있고 설정·비밀번호는 밖에서 주입하므로(Phase 16의 원칙) 문제가 없다.
 
 > ⚠️ 곁다리로 알게 된 것: **Packages REST API(`/user/packages`)는 fine-grained PAT 를 지원하지 않는다.**
 > 권한을 추가해도 403 이다 — classic PAT + `read:packages` 가 필요하다.
