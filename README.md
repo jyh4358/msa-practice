@@ -1,5 +1,7 @@
 # ShopSaga — MSA 핸즈온 학습 플랫폼
 
+[![CI](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml/badge.svg)](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml)
+
 Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만들며 트레이드오프를 배우는** 학습 프로젝트.
 전체 로드맵(18단계)은 **[`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md)**,
 설치·실행 상세(트러블슈팅 포함)는 **[`docs/SETUP.md`](./docs/SETUP.md)**,

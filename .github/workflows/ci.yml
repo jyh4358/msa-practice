@@ -1,0 +1,297 @@
+# Phase 17 — CI/CD.
+#
+# 지금까지 이미지는 사람이 만들었다: `./gradlew bootJar` → `docker build` → `kind load`.
+# 그래서 "지금 클러스터에 떠 있는 게 어느 커밋인지" 아무도 모른다(Phase 16 한계 #2).
+# 이 워크플로가 그 고리를 자동으로 잇는다:
+#
+#   push → 빌드·테스트 → 아키텍처별 이미지 → 매니페스트 병합 → GHCR → kind 에 실제 배포·스모크
+#
+# ★ 이 파이프라인의 핵심 설계 결정 두 가지
+#
+#  ① **jar 은 한 번만 빌드한다.** Java 바이트코드는 아키텍처와 무관하다.
+#     아키텍처마다 다른 건 '베이스 이미지(JRE)'뿐이므로, jar 을 artifact 로 넘기고
+#     이미지 단계에서는 포장만 한다. 테스트도 한 번만 돈다(87개).
+#
+#  ② **에뮬레이션 대신 네이티브 러너 두 개.**
+#     GitHub 기본 러너는 amd64 인데 우리 노트북 kind 는 arm64 다. 흔한 해법은
+#     buildx + QEMU 로 한 러너에서 두 아키텍처를 만드는 것인데, 에뮬레이션이라 느리다.
+#     공개 저장소는 `ubuntu-24.04-arm` 러너를 무료로 쓸 수 있으므로
+#     **각자 네이티브로 만들고 매니페스트로 묶는다**(실무에서 쓰는 방식).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:        # Actions 탭에서 수동 실행
+
+# 같은 브랜치에 연달아 push 하면 앞의 실행을 취소한다(러너 낭비 방지).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  # ghcr.io/jyh4358/msa-practice/<service> 형태 — 저장소에 자동으로 연결된다.
+  # ⚠️ GHCR 경로는 소문자만 허용한다(대문자가 섞인 조직/저장소명이면 변환이 필요).
+  IMAGE_BASE: ghcr.io/${{ github.repository }}
+  SERVICES: "order-service payment-service inventory-service order-query-service gateway-service auth-service"
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # 1) 빌드 + 테스트 (한 번만) — 산출물인 jar 을 다음 잡으로 넘긴다
+  # ────────────────────────────────────────────────────────────────────────
+  build:
+    name: 빌드·테스트
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Gradle 설정 (의존성·빌드 캐시)
+        uses: gradle/actions/setup-gradle@v4
+
+      # ⚠️ 우리 테스트에는 Testcontainers 통합 테스트가 들어 있다(Postgres 컨테이너를 실제로 띄운다).
+      #    러너에 Docker 데몬이 미리 설치돼 있어 그대로 동작한다 — 로컬에서 Colima 가 하던 역할이다.
+      #    Ryuk(정리 컨테이너)는 러너가 일회용이라 꺼도 되지만, 기본값 그대로 두어 로컬과 동일하게 검증한다.
+      - name: 빌드 + 테스트
+        run: ./gradlew build --no-daemon
+
+      - name: 테스트 리포트 업로드
+        if: always()          # 실패했을 때가 더 필요하다
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/test-results/**/*.xml'
+          retention-days: 7
+
+      # ★ jar 은 아키텍처 무관 — 여기서 만든 것을 두 아키텍처가 함께 쓴다.
+      - name: bootJar 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-jars
+          path: |
+            services/*/build/libs/*-0.0.1-SNAPSHOT.jar
+            !services/*/build/libs/*-plain.jar
+            !services/*/build/libs/*-stubs.jar
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 2) 아키텍처별 이미지 — 각 러너에서 네이티브로(에뮬레이션 없음)
+  # ────────────────────────────────────────────────────────────────────────
+  image:
+    name: 이미지 (${{ matrix.arch }})
+    needs: build
+    # PR 에서는 돌리지 않는다 — 포크 PR 의 GITHUB_TOKEN 은 packages:write 를 받지 못한다.
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write        # GHCR push 에 필요. 기본 GITHUB_TOKEN 은 read 만 갖는다.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest        # GitHub 기본 러너
+          - arch: arm64
+            runner: ubuntu-24.04-arm     # 공개 저장소 무료 arm64 러너 (우리 kind 와 같은 아키텍처)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bootJar 내려받기
+        uses: actions/download-artifact@v4
+        with:
+          name: boot-jars
+          path: services-jars
+
+      # download-artifact 는 업로드 시의 경로 구조를 그대로 복원한다.
+      # Dockerfile 의 JAR_FILE 인자가 그 경로를 그대로 가리키도록 원위치로 옮긴다.
+      # ⚠️ upload-artifact 는 매칭된 파일들의 '공통 조상' 기준으로 경로를 접는다 —
+      #    파일 수가 바뀌면 그 조상도 바뀔 수 있으므로 경로를 가정하지 않고 찾아서 옮긴다.
+      - name: jar 원위치
+        run: |
+          set -euo pipefail
+          for svc in $SERVICES; do
+            src=$(find services-jars -name "$svc-0.0.1-SNAPSHOT.jar" | head -1)
+            [ -n "$src" ] || { echo "jar 을 찾지 못했다: $svc"; find services-jars -name '*.jar'; exit 1; }
+            mkdir -p "services/$svc/build/libs"
+            cp "$src" "services/$svc/build/libs/"
+          done
+          ls -l services/*/build/libs/*.jar
+
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 아키텍처 접미사를 붙여 각각 push 한다(다음 잡에서 하나로 묶는다).
+      # push-by-digest 방식이 더 깔끔하지만, 학습용으로는 태그가 눈에 보이는 편이 낫다고 판단했다.
+      - name: 이미지 빌드 + push
+        run: |
+          set -euo pipefail
+          for svc in $SERVICES; do
+            ref="${IMAGE_BASE}/${svc}:${GITHUB_SHA}-${{ matrix.arch }}"
+            echo "▶ $ref"
+            docker build \
+              --build-arg "JAR_FILE=services/$svc/build/libs/$svc-0.0.1-SNAPSHOT.jar" \
+              -f deploy/docker/Dockerfile.service \
+              -t "$ref" .
+            docker push "$ref"
+          done
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 3) 매니페스트 병합 — 태그 하나가 두 아키텍처를 모두 가리키게
+  # ────────────────────────────────────────────────────────────────────────
+  manifest:
+    name: 멀티아치 매니페스트
+    needs: image
+    # PR 에서는 돌리지 않는다 — 포크 PR 의 GITHUB_TOKEN 은 packages:write 를 받지 못한다.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      packages: write
+    steps:
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # `imagetools create` 는 이미지를 다시 만들지 않는다 — 레지스트리 안에서
+      # "이 태그는 amd64면 A, arm64면 B" 라는 목록(manifest list)만 새로 쓴다. 그래서 빠르다.
+      # docker pull 하는 쪽은 자기 아키텍처에 맞는 것을 알아서 받아 간다.
+      - name: 매니페스트 생성
+        run: |
+          set -euo pipefail
+          for svc in $SERVICES; do
+            docker buildx imagetools create \
+              -t "${IMAGE_BASE}/${svc}:${GITHUB_SHA}" \
+              -t "${IMAGE_BASE}/${svc}:latest" \
+              "${IMAGE_BASE}/${svc}:${GITHUB_SHA}-amd64" \
+              "${IMAGE_BASE}/${svc}:${GITHUB_SHA}-arm64"
+            echo "── ${svc} ──"
+            docker buildx imagetools inspect "${IMAGE_BASE}/${svc}:${GITHUB_SHA}" \
+              | grep -E "Name|Platform"
+          done
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 4) 스모크 배포 — CI 안에 kind 를 띄우고 Phase 16 매니페스트를 그대로 적용
+  #    "매니페스트가 깨지면 빨간불"을 만든다.
+  # ────────────────────────────────────────────────────────────────────────
+  smoke:
+    name: kind 스모크 배포
+    needs: manifest
+    # PR 에서는 돌리지 않는다 — 포크 PR 의 GITHUB_TOKEN 은 packages:write 를 받지 못한다.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest        # 러너는 amd64 → 방금 만든 멀티아치 태그에서 amd64 쪽을 받아 간다
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # 로컬과 **같은 클러스터 정의**를 쓴다(포트 매핑 30080·8000 포함).
+      - name: kind 클러스터
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: shopsaga
+          config: deploy/k8s/kind-cluster.yaml
+
+      # 매니페스트는 로컬 이미지(`shopsaga/<svc>:0.0.1`)를 가리킨다.
+      # CI 에서는 방금 GHCR 에 올린 것을 쓰도록 참조만 바꾼다.
+      # (Kustomize 의 `images:` 오버레이가 정석이다 — Phase 18 의 과제.)
+      - name: 이미지 참조를 GHCR 로 교체
+        run: |
+          set -euo pipefail
+          for svc in $SERVICES; do
+            sed -i "s|image: shopsaga/${svc}:0.0.1|image: ${IMAGE_BASE}/${svc}:${GITHUB_SHA}|g" deploy/k8s/*.yaml
+          done
+          grep -h "image: ghcr" deploy/k8s/*.yaml
+
+      # GHCR 패키지는 기본이 private 이다 → 클러스터가 받아올 자격증명이 필요하다.
+      # 기본 서비스어카운트에 붙여 두면 모든 파드가 자동으로 쓴다.
+      - name: GHCR pull secret
+        run: |
+          kubectl create namespace shopsaga --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret docker-registry ghcr \
+            --namespace shopsaga \
+            --docker-server=${{ env.REGISTRY }} \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }}
+          kubectl patch serviceaccount default -n shopsaga \
+            -p '{"imagePullSecrets":[{"name":"ghcr"}]}'
+
+      - name: 배포
+        run: ./deploy/k8s/apply.sh
+
+      - name: 준비 대기
+        run: |
+          set -euo pipefail
+          # 인프라가 먼저 서야 앱의 initContainer 가 풀린다.
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/order-db deployment/payment-db deployment/inventory-db \
+            deployment/order-query-mongo deployment/kafka -n shopsaga
+          kubectl wait --for=condition=available --timeout=600s \
+            deployment/auth-service deployment/order-service deployment/payment-service \
+            deployment/inventory-service deployment/order-query-service deployment/gateway-service \
+            -n shopsaga
+          kubectl get pods -n shopsaga -o wide
+
+      - name: 스모크 (Ingress → 로그인 → 주문 → Saga 완주)
+        run: |
+          set -euo pipefail
+          echo "① Ingress 헬스"
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 localhost:8000/actuator/health || true)
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          [ "$code" = "200" ] || { echo "Ingress 응답 없음"; exit 1; }
+
+          echo "② 로그인"
+          TOKEN=$(curl -sf -X POST localhost:8000/auth/login -H 'Content-Type: application/json' \
+            -d '{"username":"alice","password":"secret"}' | jq -r .token)
+          [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "토큰 발급 실패"; exit 1; }
+
+          echo "③ 주문 접수"
+          OID=$(curl -sf -X POST localhost:8000/orders -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"customerId":"cccc1111-1111-1111-1111-111111111111",
+                 "items":[{"productId":"22222222-2222-2222-2222-222222222222","quantity":1,"unitPrice":10.00}]}' \
+            | jq -r .id)
+          echo "   order=$OID"
+
+          echo "④ Saga 완주 대기 (결과적 일관성 — 폴링으로 확인)"
+          for i in $(seq 1 20); do
+            ST=$(curl -sf localhost:8000/orders/$OID -H "Authorization: Bearer $TOKEN" | jq -r .status)
+            echo "   [$((i*3))s] $ST"
+            [ "$ST" = "CONFIRMED" ] && exit 0
+            [ "$ST" = "CANCELLED" ] && { echo "주문이 취소됐다 — Saga 경로 확인 필요"; exit 1; }
+            sleep 3
+          done
+          echo "시간 안에 CONFIRMED 에 도달하지 못했다"
+          exit 1
+
+      # 실패했을 때 원인을 찾을 수 있게 — CI 는 재현이 어려우므로 로그를 남긴다.
+      - name: 실패 시 진단
+        if: failure()
+        run: |
+          kubectl get pods -n shopsaga -o wide || true
+          kubectl get events -n shopsaga --sort-by=.lastTimestamp | tail -40 || true
+          for d in order-service gateway-service inventory-service payment-service; do
+            echo "───── $d ─────"
+            kubectl logs -n shopsaga deploy/$d --tail=60 --all-containers || true
+          done
