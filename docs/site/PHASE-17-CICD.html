@@ -787,7 +787,92 @@ order-db / payment-db / inventory-db / order-query-mongo / kafka / otel-lgtm   �
 <p><code>빌드·테스트</code> 잡 5m41s 중 Gradle 자체는 <strong>4m41s</strong>(<code>BUILD SUCCESSFUL in 4m 41s</code>, 65 tasks)였고 테스트 87개가 전부 통과했다. <code>DOCKER_HOST</code> 를 따로 주지 않았는데도
 Testcontainers 통합 테스트(Postgres 실기동)가 동작했다 — 러너에 Docker 데몬이 미리 있기 때문이다(§6-③).</p>
 <p>첫 실행이라 <strong>Gradle 캐시가 비어 있었다.</strong> 다음 실행부터는 의존성 다운로드가 빠지므로 더 짧아진다.</p>
-<h3 id="-겪은-문제--워크플로-파일은-그냥-푸시되지-않는다">⑦ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다</h3>
+<h3 id="--2차-실행이-깨졌다--ci-가-빨라지자-드러난-경쟁-상태">⑦ ★ 2차 실행이 깨졌다 — CI 가 <strong>빨라지자</strong> 드러난 경쟁 상태</h3>
+<p>문서만 고친 커밋을 푸시했더니 <strong>스모크 잡이 실패</strong>했다. 1차는 통과했는데 2차는 깨졌다.</p>
+<table>
+<thead>
+<tr>
+<th>잡</th>
+<th>1차</th>
+<th>2차</th>
+<th>변화</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>빌드·테스트</td>
+<td>5m41s</td>
+<td><strong>1m12s</strong></td>
+<td>−79% (Gradle 캐시)</td>
+</tr>
+<tr>
+<td>이미지 (amd64)</td>
+<td>2m40s</td>
+<td>1m10s</td>
+<td>−56%</td>
+</tr>
+<tr>
+<td>이미지 (arm64)</td>
+<td>3m41s</td>
+<td>1m33s</td>
+<td>−58%</td>
+</tr>
+<tr>
+<td>매니페스트</td>
+<td>0m30s</td>
+<td>0m16s</td>
+<td>−47%</td>
+</tr>
+<tr>
+<td>kind 스모크</td>
+<td>3m32s</td>
+<td><strong>1m12s ❌</strong></td>
+<td>실패</td>
+</tr>
+<tr>
+<td><strong>전체</strong></td>
+<td>13m43s</td>
+<td><strong>4m26s</strong></td>
+<td><strong>−68%</strong></td>
+</tr>
+</tbody></table>
+<p>로그:</p>
+<pre><code>14:55:08.37  pod/ingress-nginx-controller-… condition met        ← 파드는 Ready
+14:55:09.29  Error from server (InternalError): … failed calling webhook
+             &quot;validate.nginx.ingress.kubernetes.io&quot;: … dial tcp 10.96.36.82:443:
+             connect: connection refused
+</code></pre><p><strong>1초 차이다.</strong> ingress-nginx 는 Ingress 를 만들 때 검증용 admission webhook(:443)을 호출하는데,
+컨트롤러 파드가 Ready 가 돼도 그 <strong>Service 의 EndpointSlice 에 주소가 실리기까지 한 박자 더</strong> 걸린다.</p>
+<p><strong>왜 1차는 통과했나.</strong> 1차는 이미지 pull·의존성 다운로드가 느려서, 컨트롤러가 Ready 가 된 뒤
+Ingress 를 적용하기까지 시간이 충분히 벌어졌다. <strong>2차는 캐시로 빨라지면서 그 창에 정확히 들어갔다.</strong></p>
+<blockquote>
+<p>이게 이 Phase 에서 가장 배울 만한 사건이다.</p>
+<ul>
+<li><strong>성능 개선이 잠재 결함을 드러냈다.</strong> 느려서 우연히 가려져 있던 경쟁이 빨라지자 터졌다.</li>
+<li><strong>로컬에서는 절대 안 걸린다.</strong> 사람이 명령을 하나씩 치는 동안 시간이 흐르기 때문이다.</li>
+<li>Phase 16 §6-③ 에서 배운 성질(&quot;파드 Ready&quot; ≠ &quot;Service 로 트래픽이 간다&quot;)이
+이번엔 <strong>우리 배포 스크립트를 물었다.</strong> Kafka 부트스트랩 교착과 같은 뿌리다.</li>
+</ul>
+</blockquote>
+<p><strong>수정</strong>(<code>deploy/k8s/apply.sh</code>): 두 겹으로 막았다.</p>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># ① webhook Service 의 EndpointSlice 에 주소가 실릴 때까지 기다린다</span>
+<span class="hljs-keyword">for</span> _ <span class="hljs-keyword">in</span> $(<span class="hljs-built_in">seq</span> 1 60); <span class="hljs-keyword">do</span>
+  addrs=$(kubectl get endpointslices -n ingress-nginx \
+    -l kubernetes.io/service-name=ingress-nginx-controller-admission \
+    -o jsonpath=<span class="hljs-string">&#x27;{.items[*].endpoints[*].addresses[0]}&#x27;</span> 2&gt;/dev/null || <span class="hljs-literal">true</span>)
+  [ -n <span class="hljs-string">&quot;<span class="hljs-variable">$addrs</span>&quot;</span> ] &amp;&amp; <span class="hljs-built_in">break</span>
+  <span class="hljs-built_in">sleep</span> 2
+<span class="hljs-keyword">done</span>
+
+<span class="hljs-comment"># ② 그래도 완전히 결정적이지 않으므로 짧게 재시도한다 — 단 다 쓰면 반드시 실패시킨다</span>
+ingress_ok=<span class="hljs-literal">false</span>
+<span class="hljs-keyword">for</span> attempt <span class="hljs-keyword">in</span> 1 2 3 4 5; <span class="hljs-keyword">do</span>
+  <span class="hljs-keyword">if</span> kubectl apply -f <span class="hljs-string">&quot;<span class="hljs-variable">$K8S</span>/50-ingress.yaml&quot;</span>; <span class="hljs-keyword">then</span> ingress_ok=<span class="hljs-literal">true</span>; <span class="hljs-built_in">break</span>; <span class="hljs-keyword">fi</span>
+  <span class="hljs-built_in">sleep</span> 5
+<span class="hljs-keyword">done</span>
+[ <span class="hljs-string">&quot;<span class="hljs-variable">$ingress_ok</span>&quot;</span> = <span class="hljs-literal">true</span> ] || { kubectl get pods,endpointslices -n ingress-nginx; <span class="hljs-built_in">exit</span> 1; }
+</code></pre><p>②의 마지막 줄이 중요하다. 재시도만 넣고 실패 처리를 빠뜨리면 <strong>Ingress 없는 클러스터가
+&#39;배포 성공&#39;으로 보고되고</strong>, 그 뒤 스모크가 엉뚱한 이유(연결 거부)로 깨져 원인 추적이 어려워진다.</p>
+<h3 id="-겪은-문제--워크플로-파일은-그냥-푸시되지-않는다">⑧ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다</h3>
 <p>파이프라인 자체는 한 번에 통과했지만, <strong>푸시가 먼저 막혔다.</strong></p>
 <pre><code>! [remote rejected] main -&gt; main (refusing to allow a Personal Access Token to create or
   update workflow `.github/workflows/ci.yml` without `workflow` scope)
@@ -926,7 +1011,8 @@ CI 진행 상황을 자주 확인하다 한도를 소진했다. <code>gh auth lo
 <li class="toc-h3"><a href="#-ghcr-에-멀티아치-매니페스트가-실제로-만들어졌는가">④ GHCR 에 멀티아치 매니페스트가 실제로 만들어졌는가</a></li>
 <li class="toc-h3"><a href="#-ci-안에서-전체-플랫폼이-실제로-떴는가">⑤ CI 안에서 전체 플랫폼이 실제로 떴는가</a></li>
 <li class="toc-h3"><a href="#-testcontainers-가-러너에서-그대로-돌았는가">⑥ Testcontainers 가 러너에서 그대로 돌았는가</a></li>
-<li class="toc-h3"><a href="#-겪은-문제--워크플로-파일은-그냥-푸시되지-않는다">⑦ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다</a></li>
+<li class="toc-h3"><a href="#--2차-실행이-깨졌다--ci-가-빨라지자-드러난-경쟁-상태">⑦ ★ 2차 실행이 깨졌다 — CI 가 빨라지자 드러난 경쟁 상태</a></li>
+<li class="toc-h3"><a href="#-겪은-문제--워크플로-파일은-그냥-푸시되지-않는다">⑧ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다</a></li>
 <li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
 <li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
 <li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>

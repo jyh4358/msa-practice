@@ -73,6 +73,22 @@ if ! kubectl get ns ingress-nginx >/dev/null 2>&1; then
   echo "▶ ingress-nginx 준비 대기"
   kubectl wait --namespace ingress-nginx --for=condition=ready pod \
     --selector=app.kubernetes.io/component=controller --timeout=180s
+
+  # ⚠️⚠️ 파드가 Ready 라고 admission webhook 을 부를 수 있는 건 아니다.
+  #  ingress-nginx 는 Ingress 를 만들 때 검증용 webhook(:443)을 호출하는데,
+  #  그 Service 의 EndpointSlice 에 주소가 실리기까지 한 박자가 더 걸린다. 그 사이에 apply 하면:
+  #    failed calling webhook "validate.nginx.ingress.kubernetes.io":
+  #    dial tcp 10.96.x.x:443: connect: connection refused
+  #  ★ 이건 CI 가 **빨라지자** 드러났다(1차 실행은 이미지 pull 이 느려 우연히 피해 갔다).
+  #    "파드 Ready" 와 "Service 로 트래픽이 간다" 는 다른 사건이다 — Phase 16 §6-③ 의 그 성질이다.
+  echo "▶ admission webhook 엔드포인트 대기"
+  for _ in $(seq 1 60); do
+    addrs=$(kubectl get endpointslices -n ingress-nginx \
+      -l kubernetes.io/service-name=ingress-nginx-controller-admission \
+      -o jsonpath='{.items[*].endpoints[*].addresses[0]}' 2>/dev/null || true)
+    [ -n "$addrs" ] && break
+    sleep 2
+  done
 fi
 
 # ── ④ 인프라 → 앱 → Ingress 순으로 적용 ───────────────────────────────────────
@@ -88,8 +104,23 @@ kubectl apply -f "$K8S/30-auth-service.yaml" -f "$K8S/31-order-service.yaml" \
               -f "$K8S/32-payment-service.yaml" -f "$K8S/33-inventory-service.yaml" \
               -f "$K8S/34-order-query-service.yaml" -f "$K8S/35-gateway-service.yaml"
 
+# webhook 이 뜨는 타이밍은 위에서 기다려도 완전히 결정적이지 않다(재기동·리더 선출 등).
+# 실패해도 되는 일회성 경쟁이므로 짧게 재시도한다 — 여기서 죽으면 배포 전체가 죽는다.
 echo "▶ Ingress 적용"
-kubectl apply -f "$K8S/50-ingress.yaml"
+ingress_ok=false
+for attempt in 1 2 3 4 5; do
+  if kubectl apply -f "$K8S/50-ingress.yaml"; then ingress_ok=true; break; fi
+  echo "   webhook 이 아직 준비되지 않았다 — 재시도 $attempt/5"
+  sleep 5
+done
+# ⚠️ 재시도를 다 쓰고도 실패했다면 **반드시 실패로 끝내야 한다**.
+#    조용히 넘어가면 Ingress 없는 클러스터가 '배포 성공'으로 보고되고, 그 뒤 스모크가
+#    엉뚱한 이유(연결 거부)로 깨져 원인 추적이 어려워진다.
+if [ "$ingress_ok" != true ]; then
+  echo "✗ Ingress 적용 실패 — admission webhook 상태를 확인할 것:"
+  kubectl get pods,endpointslices -n ingress-nginx || true
+  exit 1
+fi
 
 echo ""
 echo "✔ 적용 완료. 준비 상태 보기:"

@@ -476,7 +476,65 @@ Testcontainers 통합 테스트(Postgres 실기동)가 동작했다 — 러너�
 
 첫 실행이라 **Gradle 캐시가 비어 있었다.** 다음 실행부터는 의존성 다운로드가 빠지므로 더 짧아진다.
 
-### ⑦ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다
+### ⑦ ★ 2차 실행이 깨졌다 — CI 가 **빨라지자** 드러난 경쟁 상태
+
+문서만 고친 커밋을 푸시했더니 **스모크 잡이 실패**했다. 1차는 통과했는데 2차는 깨졌다.
+
+| 잡 | 1차 | 2차 | 변화 |
+|---|---|---|---|
+| 빌드·테스트 | 5m41s | **1m12s** | −79% (Gradle 캐시) |
+| 이미지 (amd64) | 2m40s | 1m10s | −56% |
+| 이미지 (arm64) | 3m41s | 1m33s | −58% |
+| 매니페스트 | 0m30s | 0m16s | −47% |
+| kind 스모크 | 3m32s | **1m12s ❌** | 실패 |
+| **전체** | 13m43s | **4m26s** | **−68%** |
+
+로그:
+
+```
+14:55:08.37  pod/ingress-nginx-controller-… condition met        ← 파드는 Ready
+14:55:09.29  Error from server (InternalError): … failed calling webhook
+             "validate.nginx.ingress.kubernetes.io": … dial tcp 10.96.36.82:443:
+             connect: connection refused
+```
+
+**1초 차이다.** ingress-nginx 는 Ingress 를 만들 때 검증용 admission webhook(:443)을 호출하는데,
+컨트롤러 파드가 Ready 가 돼도 그 **Service 의 EndpointSlice 에 주소가 실리기까지 한 박자 더** 걸린다.
+
+**왜 1차는 통과했나.** 1차는 이미지 pull·의존성 다운로드가 느려서, 컨트롤러가 Ready 가 된 뒤
+Ingress 를 적용하기까지 시간이 충분히 벌어졌다. **2차는 캐시로 빨라지면서 그 창에 정확히 들어갔다.**
+
+> 이게 이 Phase 에서 가장 배울 만한 사건이다.
+> - **성능 개선이 잠재 결함을 드러냈다.** 느려서 우연히 가려져 있던 경쟁이 빨라지자 터졌다.
+> - **로컬에서는 절대 안 걸린다.** 사람이 명령을 하나씩 치는 동안 시간이 흐르기 때문이다.
+> - Phase 16 §6-③ 에서 배운 성질("파드 Ready" ≠ "Service 로 트래픽이 간다")이
+>   이번엔 **우리 배포 스크립트를 물었다.** Kafka 부트스트랩 교착과 같은 뿌리다.
+
+**수정**(`deploy/k8s/apply.sh`): 두 겹으로 막았다.
+
+```bash
+# ① webhook Service 의 EndpointSlice 에 주소가 실릴 때까지 기다린다
+for _ in $(seq 1 60); do
+  addrs=$(kubectl get endpointslices -n ingress-nginx \
+    -l kubernetes.io/service-name=ingress-nginx-controller-admission \
+    -o jsonpath='{.items[*].endpoints[*].addresses[0]}' 2>/dev/null || true)
+  [ -n "$addrs" ] && break
+  sleep 2
+done
+
+# ② 그래도 완전히 결정적이지 않으므로 짧게 재시도한다 — 단 다 쓰면 반드시 실패시킨다
+ingress_ok=false
+for attempt in 1 2 3 4 5; do
+  if kubectl apply -f "$K8S/50-ingress.yaml"; then ingress_ok=true; break; fi
+  sleep 5
+done
+[ "$ingress_ok" = true ] || { kubectl get pods,endpointslices -n ingress-nginx; exit 1; }
+```
+
+②의 마지막 줄이 중요하다. 재시도만 넣고 실패 처리를 빠뜨리면 **Ingress 없는 클러스터가
+'배포 성공'으로 보고되고**, 그 뒤 스모크가 엉뚱한 이유(연결 거부)로 깨져 원인 추적이 어려워진다.
+
+### ⑧ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다
 
 파이프라인 자체는 한 번에 통과했지만, **푸시가 먼저 막혔다.**
 

@@ -193,6 +193,9 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - **[k8s] ConfigMap 만 바꾸면 아무 일도 안 일어난다** → `kubectl rollout restart`. (파드가 자동으로 뜬다면 podTemplate 이 같이 바뀐 것이다.)
 - **[k8s] Service 분산은 라운드로빈이 아니라 무작위**(iptables `statistic mode random`). 표본이 작으면 편중돼 보인다(실측 30회에 13/11/6).
 - **[k8s] `depends_on` 이 없다** — 앱이 DB 보다 먼저 떠서 CrashLoopBackOff 2~3회 후 자력 회복하는 게 정상 동작이다.
+- **[k8s/CI] ingress-nginx admission webhook 경쟁** — 컨트롤러 파드가 Ready 여도 webhook Service 엔드포인트는
+  아직일 수 있다 → `failed calling webhook … connection refused`. **CI 가 빨라지자(캐시) 드러났다**(1차는 우연히 통과).
+  EndpointSlice 대기 + apply 재시도로 해결. 재시도만 넣고 **실패 처리를 빼면 안 된다**(Ingress 없는 채 '성공' 보고).
 - **[CI] `.github/workflows/` 푸시는 `workflow` 스코프 토큰이 필요**하다 — 없으면 `remote rejected`.
   우회: 워크플로 파일이 없는 커밋만 먼저 푸시(`git push origin <sha>:main`).
 - **[CI] GitHub API 무인증 폴링은 시간당 60회** — CI 진행 확인을 자주 하면 금방 소진된다. `gh auth login` 하면 5,000회.
