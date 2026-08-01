@@ -373,10 +373,21 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li class="active"><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li class="active"><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="서비스-디스커버리-service-discovery--eureka">서비스 디스커버리 (Service Discovery) — Eureka</h1>
+<blockquote>
+<h2 id="️-이-문서는-역사-기록입니다--eureka-는-phase-16b-에서-삭제됐습니다">⚠️ 이 문서는 <strong>역사 기록</strong>입니다 — Eureka 는 Phase 16b 에서 삭제됐습니다</h2>
+<p><code>services/discovery-service</code> 모듈과 각 서비스의 <code>eureka-client</code> 의존성은 <strong>더 이상 존재하지 않습니다.</strong>
+그 일을 이제 <strong>플랫폼이</strong> 합니다 — compose 네트워크의 DNS, k8s 의 Service + kube-proxy.
+호출도 <code>lb://order-service</code> 가 아니라 평범한 URL(<code>http://order-service:8080</code>)입니다.</p>
+<p><strong>그래도 이 문서를 남기는 이유</strong>: &quot;왜 Phase 4 에는 이게 필요했나&quot;를 알아야
+Phase 16 의 &quot;디스커버리가 앱에서 플랫폼으로 넘어갔다&quot;가 무슨 뜻인지 이해할 수 있기 때문입니다.
+무엇을 잃고 무엇을 얻었는지(요청 단위 vs 커넥션 단위 부하분산 등)는
+<a href="PHASE-16-KUBERNETES.html#12-eureka-%EB%A5%BC-%EC%A7%80%EC%9A%B4%EB%8B%A4%EB%8A%94-%EA%B2%83">Phase 16 §12</a> 의 비교표를 보세요.</p>
+<p>⚠️ 아래의 실행 명령(<code>:services:discovery-service:bootRun</code>, <code>localhost:8761</code> 등)은 <strong>지금은 동작하지 않습니다.</strong></p>
+</blockquote>
 <blockquote>
 <p><strong>이 문서는 Phase 4 작업을 설명합니다.</strong> 처음 보는 사람이 &quot;왜 이게 필요하고, 무엇이, 어떻게
 동작하는지&quot;를 끝까지 이해하도록 개념 → 그림 → 이 프로젝트의 실제 코드/설정 → 동작 원리 →
@@ -861,7 +872,8 @@ curl -X POST http://localhost:8000/orders -H <span class="hljs-string">&#x27;Con
     <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
   </footer>
 </main>
-<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#️-이-문서는-역사-기록입니다--eureka-는-phase-16b-에서-삭제됐습니다">⚠️ 이 문서는 역사 기록입니다 — Eureka 는 Phase 16b 에서 삭제됐습니다</a></li>
+<li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
 <li class="toc-h2"><a href="#1-왜-필요한가-phase-3까지의-문제">1. 왜 필요한가? (Phase 3까지의 문제)</a></li>
 <li class="toc-h2"><a href="#2-핵심-개념">2. 핵심 개념</a></li>
 <li class="toc-h3"><a href="#21-서비스-레지스트리service-registry">2.1 서비스 레지스트리(Service Registry)</a></li>

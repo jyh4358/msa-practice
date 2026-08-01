@@ -1,5 +1,10 @@
 # 로컬 오케스트레이션 — Docker Compose
 
+> ⚠️ **Phase 16b 이후 구성이 바뀌었습니다.** compose 는 15 → **13 컨테이너**입니다 —
+> `config-service`(Config Server)와 `discovery-service`(Eureka)가 삭제됐고, 설정은
+> `deploy/config/` 를 바인드마운트합니다(k8s ConfigMap 과 **같은 파일**). `ENCRYPT_KEY`·`.env` 도 불필요합니다.
+> 아래 설명은 Phase 7 시점 기준이며, 현재 파일은 [Phase 16 §11](PHASE-16-KUBERNETES.md#11-설정을-어디에-둘-것인가--config-server-를-지운-자리) 을 보세요.
+
 > **이 문서는 Phase 7 작업을 설명합니다.** 처음 보는 사람도 끝까지 이해하도록 개념 → 그림 →
 > 실제 코드/설정 → 동작 원리 → 검증 → 한계 순으로 정리했습니다.
 >

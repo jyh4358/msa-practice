@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 16 완료 시점)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 17 완료 시점)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -11,18 +11,19 @@
 - 아키텍처: **헥사고날**(domain / application(port.in·out) / adapter(in.web·in.event·out.persistence·out.messaging)). 상세 `docs/HEXAGONAL.md`.
 - 컨테이너 런타임: **Colima**(arm64). `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`.
 
-## 지금까지 완료 (Phase 0~16)
+## 지금까지 완료 (Phase 0~17)
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
 5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED·트레이스↔로그) ·
 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · 12 Saga 코레오그래피+보상 · 13 Saga 오케스트레이션 ·
 14 복원력(Resilience4j 5종·회로차단기+fallback·DLQ/poison·outbox 격리·고아 결제 보상) ·
 15 플랫폼 강화(Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·스키마 진화 tolerant reader) ·
 **16a 로컬 k8s(kind)**(클러스터+order-service 이전·ConfigMap/Secret·liveness≠readiness probe·NodePort·자가치유·스케일) ·
-**16b 전체 플랫폼 on k8s**(**Eureka·Config Server 삭제** → 플랫폼 DNS+ConfigMap·Ingress·compose 동반 이전(15→13)·무중단 롤링·auth 복제본 2).
+**16b 전체 플랫폼 on k8s**(**Eureka·Config Server 삭제** → 플랫폼 DNS+ConfigMap·Ingress·compose 동반 이전(15→13)·무중단 롤링·auth 복제본 2) ·
+**17 CI/CD**(GitHub Actions 5잡: 빌드·테스트 → 네이티브 러너 2개 멀티아치 이미지 → GHCR `:커밋SHA` → **CI 안 kind 스모크 배포**).
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
-- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(24p, 더블클릭). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
+- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(25p, 더블클릭). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
 
 ## 서비스 (13 컨테이너 / 13 파드 — Phase 16b 에서 discovery·config 삭제)
 | 서비스 | 포트 | 프로파일 | 역할 |
@@ -57,22 +58,23 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- HEAD = `d413b1c`(Phase 16a). P14=`6f0ba71` · P15=`19a4435`.
-- ⚠️ **Phase 16b 작업분이 아직 미커밋** — 삭제(`services/discovery-service`·`services/config-service`·`config-repo/`·`deploy/compose/.env.example`·gateway 테스트 사본) + 신규(`deploy/config/**`·`deploy/k8s/{21~25,32~35,50,apply.sh}`·`shared/messaging/.../shopsaga-messaging-defaults.yml`) + 6개 서비스 `application.yml` 재작성 + `compose.yml` 재작성.
-- **미푸시 = `19a4435`(P15) · `d413b1c`(P16a)**. origin/main 은 `6f0ba71`(Phase 14)까지. 확인: `git log origin/main..HEAD`.
+- HEAD = `9a60530`(Phase 17). P15=`19a4435` · P16a=`d413b1c` · P16b=`787ab76`.
+- ✅ **origin/main 까지 전부 푸시 완료** — 미푸시 커밋 없음. CI 실행 #1 **전부 초록불**.
+- ⚠️ **Phase 17 문서·인덱스 갱신분이 미커밋**: `docs/PHASE-17-CICD.md` 신규 · **README 대폭 갱신**(Phase 13 시점에 멈춰 있던 '현재 상태'·'실행' 섹션을 Phase 17 기준으로 재작성) · 커밋맵 · build-docs · HTML 25p · handoff.
 - **커밋·푸시 모두 사용자가 명시 요청할 때만.**
-- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 16a 행은 `d413b1c` 로 채움 완료. 16b 행이 placeholder** → **다음 커밋 때 그 해시 기입.**
+- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 17행은 `9a60530` 으로 채움 완료.** 다음 Phase 커밋 때 새 행을 추가할 것.
+- ⚠️ **`.github/workflows/` 를 건드리는 커밋은 `workflow` 스코프 토큰이 필요**하다(없으면 push 거부). 현재 토큰엔 추가돼 있다.
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
-## 지금 이 순간의 상태 (2026-08-01, Phase 16b 종료 시점)
-- **kind 클러스터 `shopsaga` 가 떠 있다** — ns `shopsaga` 에 **파드 13개 전부 Running(restarts=0)**, `ingress-nginx` 1개.
-  `curl localhost:8000/actuator/health` → 200. **compose 는 내려져 있다.**
-- **Colima 12GB·6CPU**(Phase 16a 에서 8GB·4CPU 에서 증설). k8s 13파드 기준 사용량 4.4Gi/11Gi.
-- 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` v4.2.3 · `k9s`. 클러스터 k8s **v1.36.1** arm64.
-- 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
-- ⚠️ **compose 와 kind 는 RAM 뿐 아니라 포트(8000)도 충돌**한다. compose 를 쓰려면
-  `docker stop shopsaga-control-plane` 으로 kind 를 재우고, 끝나면 `docker start` 로 되살린다(파드는 자동 재생성).
-  ⚠️ 포트 충돌 상태에서 만들어진 컨테이너는 `up -d` 로 살려도 **포트 매핑이 없다** → `--force-recreate` 필요.
+## 지금 이 순간의 상태 (2026-08-01, Phase 17 종료 시점)
+- **kind 클러스터 `shopsaga` 는 정지 상태**(`docker stop shopsaga-control-plane` + `colima stop`).
+  클러스터 정의·PVC·이미지는 **전부 보존**됨 — 재개는 `colima start && docker start shopsaga-control-plane`.
+- **Colima 12GB·6CPU**(Phase 16a 에서 증설). compose 와 kind 는 RAM·포트(8000) 모두 충돌하므로 **동시 금지**.
+- 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` v4.2.3 · `k9s` · **`gh` v2.97.0**(단 `gh auth login` 은 아직 안 함).
+- 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**. CI 에서도 동일하게 통과.
+- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 실행 #1 전부 초록불(13m43s).
+  이미지: `ghcr.io/jyh4358/msa-practice/<service>:<커밋SHA>`(멀티아치) · `:latest`.
+  ⚠️ GHCR 패키지는 **private** 이라 pull 에 인증이 필요하다(CI 는 imagePullSecret 으로 처리).
 
 ### 빠른 조작
 ```bash
@@ -126,21 +128,18 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 17 (CI/CD)
-로드맵 `MSA-LEARNING-PLAN.md` §Phase 17.
-- **GitHub Actions**: push 시 `./gradlew build`(모노레포 한 방) → 이미지 빌드 → GHCR push.
-- ⚠️ **러너는 amd64, 노트북 kind 는 arm64** → buildx/QEMU 멀티아치(`linux/amd64,linux/arm64`) 또는 학습용이면 arm64 단독.
-- ⚠️ Testcontainers 통합테스트는 러너의 Docker 데몬에 의존한다(현재 87개 중 다수).
-- (선택) `helm/kind-action` 으로 CI 안에서 스모크 배포.
-- 이후 18 캡스톤(선택): Helm/Kustomize · metrics-server+HPA · NetworkPolicy · runAsNonRoot · Debezium CDC 등.
+## 다음 단계 — Phase 18 (캡스톤 · 선택)
+로드맵 `MSA-LEARNING-PLAN.md` §Phase 18. **필수가 아니라 고르는 단계**다. 후보:
+- **Helm/Kustomize** 리팩터 — `apply.sh` 의 명령형 부분(ConfigMap 생성·이미지 sed)을 선언적으로. Phase 16·17 한계 #1
+- **GitOps**(Argo CD/Flux) — CI 는 "배포 가능함"만 증명한다. 실제 반영은 아직 수동. Phase 17 한계 #2
+- metrics-server + **HPA** · NetworkPolicy · `runAsNonRoot`/`readOnlyRootFilesystem` (보안 기본값)
+- **Boot 4.1 + Spring Cloud 2025.1(Oakwood) 이전** — Jackson 3 · Jakarta EE 11 · Spring Framework 7
+- shipping·catalog 서비스 추가(Saga 참여자 확장) · Debezium CDC 로 outbox 릴레이 대체 · gRPC 엣지
+- 이미지 취약점 스캔(Trivy) · cosign 서명/SBOM · outbox 격리분 재처리 도구
 
-### Phase 16 이 남긴 것 (문서 §17 에 전체 13항목 표)
-- `kubectl apply` + 셸 스크립트 배포(환경별 차이 표현 불가) → Phase 18 Helm/Kustomize
-- 이미지 배포 수동(`kind load`) → **Phase 17**
-- Secret 은 base64 일 뿐 · 컨테이너 root 실행 · NetworkPolicy 없음 → Phase 18
-- DB·Kafka 가 Deployment(StatefulSet 아님) · PVC 가 local-path · 단일 노드 → 학습 범위 밖
-- metrics-server 없음(HPA 불가) → Phase 18 · ConfigMap 반영 최대 ~70초(구조적)
-- **격리된 outbox 8건**(16b 사고의 실제 유실분) — 재처리 도구 없음
+### Phase 17 이 남긴 것 (문서 §8 에 전체 9항목)
+- 이미지 교체를 `sed` 로(Kustomize 부재) · **CD 없음**(배포는 여전히 수동) · 중간 태그 누적
+- 취약점 스캔·서명·SBOM 없음 · 스모크가 행복 경로 하나 · 도커 레이어 캐시 없음 · 버전 고정(`0.0.1-SNAPSHOT`)
 
 ## 매 Phase 작업 흐름 (사용자 선호 — 지켜야 함)
 1. 리서치(버전 특이점) → 2. 설계(큰 결정은 AskUserQuestion) → 3. 구현 →
@@ -194,6 +193,11 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - **[k8s] ConfigMap 만 바꾸면 아무 일도 안 일어난다** → `kubectl rollout restart`. (파드가 자동으로 뜬다면 podTemplate 이 같이 바뀐 것이다.)
 - **[k8s] Service 분산은 라운드로빈이 아니라 무작위**(iptables `statistic mode random`). 표본이 작으면 편중돼 보인다(실측 30회에 13/11/6).
 - **[k8s] `depends_on` 이 없다** — 앱이 DB 보다 먼저 떠서 CrashLoopBackOff 2~3회 후 자력 회복하는 게 정상 동작이다.
+- **[CI] `.github/workflows/` 푸시는 `workflow` 스코프 토큰이 필요**하다 — 없으면 `remote rejected`.
+  우회: 워크플로 파일이 없는 커밋만 먼저 푸시(`git push origin <sha>:main`).
+- **[CI] GitHub API 무인증 폴링은 시간당 60회** — CI 진행 확인을 자주 하면 금방 소진된다. `gh auth login` 하면 5,000회.
+- **[CI] `upload-artifact` 는 매칭 파일들의 '공통 조상' 기준으로 경로를 접는다** → 다운로드 쪽에서 경로를 가정하지 말고 `find` 로 찾을 것.
+- **[CI] 잡이 다르면 파일이 공유되지 않는다**(각자 새 VM) → artifact 로 넘겨야 한다.
 - **[k8s] Service 는 Ready 인 파드에게만 트래픽을 보낸다 → 자기참조 부트스트랩이 교착한다.**
   Kafka KRaft `controller.quorum.voters` 를 `1@kafka:29093`(Service 이름)로 두면 브로커가 자기 등록을 못 해 영원히 안 뜬다.
   단일 노드면 `1@localhost:29093`. 다중이면 StatefulSet + headless + `publishNotReadyAddresses: true`.

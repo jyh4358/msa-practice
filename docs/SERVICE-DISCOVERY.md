@@ -1,5 +1,18 @@
 # 서비스 디스커버리 (Service Discovery) — Eureka
 
+> ## ⚠️ 이 문서는 **역사 기록**입니다 — Eureka 는 Phase 16b 에서 삭제됐습니다
+>
+> `services/discovery-service` 모듈과 각 서비스의 `eureka-client` 의존성은 **더 이상 존재하지 않습니다.**
+> 그 일을 이제 **플랫폼이** 합니다 — compose 네트워크의 DNS, k8s 의 Service + kube-proxy.
+> 호출도 `lb://order-service` 가 아니라 평범한 URL(`http://order-service:8080`)입니다.
+>
+> **그래도 이 문서를 남기는 이유**: "왜 Phase 4 에는 이게 필요했나"를 알아야
+> Phase 16 의 "디스커버리가 앱에서 플랫폼으로 넘어갔다"가 무슨 뜻인지 이해할 수 있기 때문입니다.
+> 무엇을 잃고 무엇을 얻었는지(요청 단위 vs 커넥션 단위 부하분산 등)는
+> [Phase 16 §12](PHASE-16-KUBERNETES.md#12-eureka-를-지운다는-것) 의 비교표를 보세요.
+>
+> ⚠️ 아래의 실행 명령(`:services:discovery-service:bootRun`, `localhost:8761` 등)은 **지금은 동작하지 않습니다.**
+
 > **이 문서는 Phase 4 작업을 설명합니다.** 처음 보는 사람이 "왜 이게 필요하고, 무엇이, 어떻게
 > 동작하는지"를 끝까지 이해하도록 개념 → 그림 → 이 프로젝트의 실제 코드/설정 → 동작 원리 →
 > 검증 → 한계 순으로 정리했습니다.

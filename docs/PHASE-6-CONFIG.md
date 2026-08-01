@@ -1,5 +1,20 @@
 # 중앙 설정 (Central Config) — Spring Cloud Config
 
+> ## ⚠️ 이 문서는 **역사 기록**입니다 — Config Server 는 Phase 16b 에서 삭제됐습니다
+>
+> `services/config-service` 모듈과 `config-repo/` 디렉터리는 **더 이상 존재하지 않습니다.**
+> 설정은 이제 세 층으로 나뉩니다:
+> ① jar 안 `application.yml`(로컬 기본값) → ② `shared/messaging` 라이브러리의 공통 설정
+> → ③ `deploy/config/`(k8s ConfigMap · compose 바인드마운트).
+> 비밀값은 `{cipher}` 암호문이 아니라 **k8s Secret** 으로 주입합니다 —
+> 그래서 **`ENCRYPT_KEY` 도 더 이상 필요 없습니다.**
+>
+> **그래도 이 문서를 남기는 이유**: Config Server 가 풀려던 문제(설정을 코드 밖으로, 비밀은 암호화)는
+> 여전히 유효하고, Phase 16b 는 그 *해법*만 바꿨습니다. 왜 바꿨는지(기동 의존성 제거)는
+> [Phase 16 §11](PHASE-16-KUBERNETES.md#11-설정을-어디에-둘-것인가--config-server-를-지운-자리) 참고.
+>
+> ⚠️ 아래의 실행 명령과 `ENCRYPT_KEY` 값은 **지금은 쓰이지 않습니다**(그 dev 키 문자열은 공개된 값으로 취급하세요).
+
 > **이 문서는 Phase 6 작업을 설명합니다.** 처음 보는 사람도 끝까지 이해하도록 개념 → 그림 →
 > 실제 코드/설정 → 동작 원리 → 검증 → 한계 순으로 정리했습니다.
 >

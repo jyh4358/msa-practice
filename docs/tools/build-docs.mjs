@@ -74,6 +74,8 @@ const DOCS = [
     desc: 'Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·이벤트 스키마 진화' },
   { key: 'PHASE-16-KUBERNETES', out: 'PHASE-16-KUBERNETES.html', title: 'Phase 16 · 로컬 k8s(kind)', group: 'Phase 단계별', file: 'docs/PHASE-16-KUBERNETES.md',
     desc: '16a 클러스터+서비스 이전(probe·ConfigMap/Secret) / 16b Eureka·Config Server 삭제·Ingress·전체 플랫폼' },
+  { key: 'PHASE-17-CICD', out: 'PHASE-17-CICD.html', title: 'Phase 17 · CI/CD', group: 'Phase 단계별', file: 'docs/PHASE-17-CICD.md',
+    desc: 'GitHub Actions·jar 1회 빌드·네이티브 러너 2개 멀티아치·GHCR·CI 안 kind 스모크 배포' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

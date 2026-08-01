@@ -373,10 +373,23 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li class="active"><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li class="active"><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="중앙-설정-central-config--spring-cloud-config">중앙 설정 (Central Config) — Spring Cloud Config</h1>
+<blockquote>
+<h2 id="️-이-문서는-역사-기록입니다--config-server-는-phase-16b-에서-삭제됐습니다">⚠️ 이 문서는 <strong>역사 기록</strong>입니다 — Config Server 는 Phase 16b 에서 삭제됐습니다</h2>
+<p><code>services/config-service</code> 모듈과 <code>config-repo/</code> 디렉터리는 <strong>더 이상 존재하지 않습니다.</strong>
+설정은 이제 세 층으로 나뉩니다:
+① jar 안 <code>application.yml</code>(로컬 기본값) → ② <code>shared/messaging</code> 라이브러리의 공통 설정
+→ ③ <code>deploy/config/</code>(k8s ConfigMap · compose 바인드마운트).
+비밀값은 <code>{cipher}</code> 암호문이 아니라 <strong>k8s Secret</strong> 으로 주입합니다 —
+그래서 <strong><code>ENCRYPT_KEY</code> 도 더 이상 필요 없습니다.</strong></p>
+<p><strong>그래도 이 문서를 남기는 이유</strong>: Config Server 가 풀려던 문제(설정을 코드 밖으로, 비밀은 암호화)는
+여전히 유효하고, Phase 16b 는 그 <em>해법</em>만 바꿨습니다. 왜 바꿨는지(기동 의존성 제거)는
+<a href="PHASE-16-KUBERNETES.html#11-%EC%84%A4%EC%A0%95%EC%9D%84-%EC%96%B4%EB%94%94%EC%97%90-%EB%91%98-%EA%B2%83%EC%9D%B8%EA%B0%80--config-server-%EB%A5%BC-%EC%A7%80%EC%9A%B4-%EC%9E%90%EB%A6%AC">Phase 16 §11</a> 참고.</p>
+<p>⚠️ 아래의 실행 명령과 <code>ENCRYPT_KEY</code> 값은 <strong>지금은 쓰이지 않습니다</strong>(그 dev 키 문자열은 공개된 값으로 취급하세요).</p>
+</blockquote>
 <blockquote>
 <p><strong>이 문서는 Phase 6 작업을 설명합니다.</strong> 처음 보는 사람도 끝까지 이해하도록 개념 → 그림 →
 실제 코드/설정 → 동작 원리 → 검증 → 한계 순으로 정리했습니다.</p>
@@ -635,7 +648,8 @@ order 동시성 테스트는 JPA/Flyway 프로퍼티 명시로 config-service �
     <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
   </footer>
 </main>
-<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#️-이-문서는-역사-기록입니다--config-server-는-phase-16b-에서-삭제됐습니다">⚠️ 이 문서는 역사 기록입니다 — Config Server 는 Phase 16b 에서 삭제됐습니다</a></li>
+<li class="toc-h2"><a href="#0-한-줄-요약">0. 한 줄 요약</a></li>
 <li class="toc-h2"><a href="#1-왜-필요한가-phase-5까지의-문제">1. 왜 필요한가? (Phase 5까지의 문제)</a></li>
 <li class="toc-h2"><a href="#2-핵심-개념">2. 핵심 개념</a></li>
 <li class="toc-h3"><a href="#21-config-server--config-client">2.1 Config Server / Config Client</a></li>
