@@ -1,0 +1,36 @@
+# Phase 16 — kind(Kubernetes IN Docker) 클러스터 정의.
+#
+#   kind create cluster --config deploy/k8s/kind-cluster.yaml
+#   kind delete cluster --name shopsaga
+#
+# kind 는 "쿠버네티스 노드를 도커 컨테이너로" 띄운다. 즉 우리 Colima VM 안에
+# `shopsaga-control-plane` 이라는 컨테이너 하나가 생기고, 그 안에서 kubelet·containerd 가 돌며
+# 우리 파드들은 다시 그 안의 컨테이너가 된다(컨테이너 속 컨테이너).
+#
+# ⚠️ 그래서 여기서 말하는 hostPort 는 **macOS 가 아니라 Colima VM 의 포트**다.
+#    Colima 가 VM 의 공개 포트를 macOS 로 다시 포워딩해 주기 때문에 결과적으로 맥에서도 닿는다.
+#
+# ⚠️ RAM: 컨트롤플레인(etcd·apiserver·scheduler·controller-manager·CoreDNS·kindnet)만으로
+#    ~1.2GB 를 먹는다. compose 스택과 동시에 띄우지 말 것(Phase 16 시작 전 `compose down`).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: shopsaga
+
+nodes:
+  # 학습용이라 단일 노드(컨트롤플레인이 워커도 겸한다).
+  # 멀티노드로 바꾸면 `kind load docker-image` 가 모든 노드에 이미지를 복사해야 해서 느려지고,
+  # 이 Phase 의 교훈(디스커버리·설정·자가치유)은 노드 수와 무관하다.
+  - role: control-plane
+    extraPortMappings:
+      # ── 16a: order-service 를 NodePort 로 직접 노출 ──
+      # NodePort 는 "모든 노드의 같은 포트"를 연다. 노드가 컨테이너이므로 그 포트를 밖으로 빼줘야 한다.
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+
+      # ── 16b: ingress-nginx 를 :8000 으로 ──
+      # compose 시절 게이트웨이가 쓰던 포트를 그대로 재사용한다 → 기존 스모크 명령이 그대로 동작한다.
+      # (compose 를 내려두지 않으면 여기서 포트 충돌이 난다.)
+      - containerPort: 80
+        hostPort: 8000
+        protocol: TCP

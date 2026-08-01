@@ -11,7 +11,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * 서블릿 OAuth2 리소스 서버 — /actuator/health 외 모든 요청에 유효한 JWT 필요.
+ * 서블릿 OAuth2 리소스 서버 — /actuator/health(+probe 하위경로) 외 모든 요청에 유효한 JWT 필요.
  * POST /payments 는 order-service 가 전파한 Bearer 토큰으로 인증된다.
  */
 @Configuration
@@ -25,7 +25,10 @@ class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
+                        // Phase 16: k8s kubelet 은 probe 요청에 토큰을 붙이지 않는다.
+                        //   "/actuator/health" 만 열면 /actuator/health/{liveness,readiness} 가 401 →
+                        //   probe 실패 → readiness 미달로 트래픽 차단, liveness 실패로 무한 재시작.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));

@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 15 완료 시점)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 16a 완료 시점)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -11,16 +11,17 @@
 - 아키텍처: **헥사고날**(domain / application(port.in·out) / adapter(in.web·in.event·out.persistence·out.messaging)). 상세 `docs/HEXAGONAL.md`.
 - 컨테이너 런타임: **Colima**(arm64). `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`.
 
-## 지금까지 완료 (Phase 0~13)
+## 지금까지 완료 (Phase 0~16a)
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
 5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED·트레이스↔로그) ·
 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · 12 Saga 코레오그래피+보상 · 13 Saga 오케스트레이션 ·
 14 복원력(Resilience4j 5종·회로차단기+fallback·DLQ/poison·outbox 격리·고아 결제 보상) ·
-**15 플랫폼 강화**(Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·스키마 진화 tolerant reader).
+15 플랫폼 강화(Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·스키마 진화 tolerant reader) ·
+**16a 로컬 k8s(kind)**(클러스터+order-service 이전·ConfigMap/Secret·liveness≠readiness probe·NodePort·자가치유·스케일).
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
-- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(21p, 더블클릭). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
+- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(24p, 더블클릭). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
 
 ## 서비스 (15 컨테이너, `--profile async` 기준)
 | 서비스 | 포트 | 프로파일 | 역할 |
@@ -57,10 +58,31 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- Phase 13 = `93d9a26`(미푸시). Phase 14는 **아직 커밋 전**(작업 트리에 있음) — 사용자가 요청할 때 커밋한다.
-- **푸시는 사용자가 명시 요청할 때만.** 커밋도 사용자 요청 시(단계별 의미 커밋, `/commit` 스킬 사용).
-- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 13행은 `93d9a26` 으로 채움 완료. 14행이 placeholder** → **Phase 15 커밋 때 Phase 14 해시 기입.**
+- HEAD = `19a4435`(Phase 15). P13=`93d9a26` · P14=`6f0ba71`.
+- ⚠️ **Phase 16a 작업분이 아직 미커밋**(`deploy/k8s/**` 신규 · 6개 `SecurityConfig` · `docs/PHASE-16-KUBERNETES.md` · README/커밋맵/build-docs/handoff).
+- **미푸시 = `19a4435`(Phase 15)**. origin/main 은 `6f0ba71`(Phase 14)까지. 확인: `git log origin/main..HEAD`.
+- **커밋·푸시 모두 사용자가 명시 요청할 때만.**
+- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 15행은 `19a4435` 로 채움 완료. 16a 행이 placeholder** → **다음 커밋 때 그 해시 기입.**
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
+
+## 지금 이 순간의 상태 (2026-08-01, Phase 16a 종료 시점)
+- **compose 컨테이너 0개**(볼륨 유지). 대신 **kind 클러스터 `shopsaga` 가 떠 있다**(노드 컨테이너 `shopsaga-control-plane`).
+  네임스페이스 `shopsaga` 에 파드 3개(order-service 1 · order-db 1 · auth-service 1) Running.
+- **Colima 8GB·4CPU → 12GB·6CPU 로 증설**(`colima start --memory 12 --cpu 6`, 디스크·이미지·볼륨 보존됨). VM 사용량 2.4Gi/11Gi.
+- k8s 도구 설치 완료: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` v4.2.3 · `k9s`. 클러스터 k8s **v1.36.1** arm64.
+- 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
+- ⚠️ **compose 와 kind 를 동시에 띄우지 말 것**(RAM). 16b 로 넘어가기 전에 compose 가 내려져 있는지 확인.
+- 프로젝트 메모리는 정리 완료(단계별 서술 제거 → 문서 참조). 중복 서술을 다시 넣지 말 것.
+
+### kind 빠른 조작
+```bash
+export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+kubectl get pods -n shopsaga                       # 상태
+./deploy/k8s/build-and-load.sh [서비스…|all]        # 이미지 재빌드 + kind load
+kubectl rollout restart deployment/<x> -n shopsaga  # ConfigMap 바꾼 뒤
+kind delete cluster --name shopsaga                # 통째로 정리
+```
+자세한 실행·스모크·함정표: `deploy/k8s/README.md`. 심화: `docs/PHASE-16-KUBERNETES.md`.
 
 ## 실행 / 검증 (재현)
 ```bash
@@ -92,14 +114,27 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 16 (로컬 Kubernetes, kind)
-로드맵 `MSA-LEARNING-PLAN.md` §337~. **이전(migration)이지 재작성이 아니다 — 같은 이미지를 k8s로.**
-- ⚠️ **RAM 최대 고비**: kind 를 띄우기 전에 **compose 인프라를 먼저 내릴 것**(`colima stop` 또는 `compose down`). 둘 다 동시 금지.
-- **16a**: `kind create cluster` → `kind load docker-image`(레지스트리 없이; 안 하면 `ImagePullBackOff`).
-  order-service 의 Deployment/Service/ConfigMap/Secret + **liveness/readiness probe**(`management.endpoint.health.probes.enabled` 필요). NodePort 도달.
-- **16b**: **Eureka 삭제** → k8s Service DNS(`http://order-service:8080`). 디스커버리가 앱→플랫폼으로 이동 = 이 Phase의 핵심 교훈.
-  Config Server → ConfigMap/Secret. 게이트웨이는 유지 + 앞에 Ingress(ingress-nginx). `replicas` 스케일 + `kubectl delete pod` 자가치유 시연.
-- 이후 17 CI/CD → 18 캡스톤.
+## 다음 단계 — Phase 16b (전체 플랫폼 on k8s)
+로드맵 `MSA-LEARNING-PLAN.md` §337~. 16a 는 완료(위 참조). 16b 에서 할 일:
+- **Eureka 삭제** → k8s Service DNS(`http://payment-service:8081`). 디스커버리가 앱→플랫폼으로 이동 = 이 Phase 의 핵심 교훈.
+  `spring-cloud-starter-netflix-eureka-client` 의존성 제거 · `discovery-service` 모듈 삭제 · `@LoadBalanced` RestClient 재검토.
+- **Config Server 삭제** → ConfigMap/Secret 로 완전 이전(사용자와 합의한 방향). `config-service` 모듈·`config-repo/` 정리.
+  ⚠️ 16a 에서 서비스마다 ConfigMap 을 통째로 복제했다 → **공통 ConfigMap 분리**(여러 파일을 같은 디렉터리에 마운트)로 완화할 것.
+- **인프라 in-cluster**: payment-db·inventory-db·order-query-mongo(PVC), Kafka(KRaft 단일), otel-lgtm.
+- **게이트웨이 유지 + Ingress**(ingress-nginx). kind 는 `hostPort 8000 → 노드 :80` 이 이미 뚫려 있다.
+  노드 라벨 필요: `kubectl label node shopsaga-control-plane ingress-ready=true`.
+- **auth-service RS256 키를 Secret 으로** → replicas 2 이상 가능(16a 한계 #4).
+- 실증: Saga end-to-end · `kubectl delete pod` 중 Phase 14 회로차단기가 커버 · 롤링 업데이트 무중단.
+
+### 16b 시작 전 체크
+① compose 가 내려져 있는지 ② `kind get clusters` 로 `shopsaga` 존재 확인(없으면 `kind create cluster --config deploy/k8s/kind-cluster.yaml`)
+③ 새 서비스 이미지는 `./deploy/k8s/build-and-load.sh all` ④ RAM 여유 `colima ssh -- free -h`
+
+### Phase 16a가 남긴 것(문서 §8에 전체 12항목 표)
+- Eureka·Config Server 가 **코드엔 아직 남아 있다**(`enabled: false` 로 끄기만) → 16b 에서 삭제
+- 서비스 3개뿐 — Kafka 없어 주문이 `PENDING` 에서 멈춘다(outbox 미발행 2건이 그 증거) → 16b
+- auth-service 복제 불가(기동 시 메모리 키 생성) → 16b · `kubectl apply -f` 수동 7회 → Phase 18(Helm)
+- 이미지 배포 수동(`kind load`) → Phase 17 CI/CD · Secret 은 base64 일 뿐 암호화 아님 → 학습 범위 밖
 
 ### Phase 15가 남긴 것(문서 §8에 전체 표)
 - **스키마 레지스트리 없음**(규칙을 테스트로만 강제) · **API 버저닝(`/api/v1`) 미적용** — 둘 다 사용자와 합의해 유예
@@ -148,3 +183,14 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - SCC 계약에서 `testMode = EXPLICIT` 를 주면 **메시징 테스트가 생성되지 않는다**(기본값 유지할 것).
   matcher 는 `predefined:` 대신 **명시 정규식(`value:`)** — predefined 는 단언이 생성되지 않는 경우가 있다(생성 코드를 꼭 열어 볼 것).
 - 소비자 계약 테스트는 `~/.m2` stub 이 Gradle 입력이 아니라 **UP-TO-DATE 로 건너뛴다** → `--rerun-tasks`.
+- **[k8s] `imagePullPolicy` 기본값은 태그로 결정된다**: `:latest` → `Always`(레지스트리로 나감 → `ImagePullBackOff`), 그 외 → `IfNotPresent`.
+  버전 태그를 쓰고 **`kind load docker-image` 를 반드시** 실행할 것(kind 노드는 자기만의 containerd 저장소를 갖는다).
+- **[k8s] Spring Security 가 probe 를 막는다**: `/actuator/health` 만 permitAll 하면 `/actuator/health/{liveness,readiness}` 가 401 →
+  readiness 실패로 트래픽 차단 + liveness 실패로 무한 재시작. `/actuator/health/**` 도 열 것(Phase 16a 에서 6개 서비스 전부 수정함).
+- **[k8s] liveness 에 DB 같은 외부 의존성을 넣지 말 것** — 전 파드 동시 재시작 루프 + 복구 시 커넥션 폭풍. readiness 에만 넣는다.
+  `probe.timeoutSeconds` 기본값은 **1초**라 DB 조회하는 readiness 엔 빡빡하다(flapping) → 3초.
+- **[k8s] RWO PVC + 기본 `RollingUpdate` = 교착**(새 파드가 볼륨을 못 잡아 Pending, 헌 파드는 안 죽음) → DB 는 `strategy: Recreate`.
+- **[k8s] ConfigMap 만 바꾸면 아무 일도 안 일어난다** → `kubectl rollout restart`. (파드가 자동으로 뜬다면 podTemplate 이 같이 바뀐 것이다.)
+- **[k8s] Service 분산은 라운드로빈이 아니라 무작위**(iptables `statistic mode random`). 표본이 작으면 편중돼 보인다(실측 30회에 13/11/6).
+- **[k8s] `depends_on` 이 없다** — 앱이 DB 보다 먼저 떠서 CrashLoopBackOff 2~3회 후 자력 회복하는 게 정상 동작이다.
+- **[zsh] `NS="-n shopsaga"; kubectl get pods $NS` 는 동작하지 않는다** — zsh 는 변수를 단어 분할하지 않아 통째로 한 인자가 된다(`namespaces " shopsaga" not found`).

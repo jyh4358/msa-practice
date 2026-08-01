@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 16a · 로컬 k8s(kind) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li class="active"><a href="PHASE-16-KUBERNETES.html">Phase 16a · 로컬 k8s(kind)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-16a--로컬-kubernetes-로-이전-kind">Phase 16a — 로컬 Kubernetes 로 이전 (kind)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> compose 로 잘 돌던 서비스를 <strong>코드는 거의 그대로 둔 채</strong> 쿠버네티스로 옮긴다.
+이 단계에서 배우는 건 &quot;k8s 문법&quot;이 아니라 <strong>역할의 이동</strong> —
+지금까지 우리가 코드·설정으로 하던 일(기동 순서 보장, 재시작, 설정 배포, 인스턴스 찾기)을
+<strong>플랫폼이 대신하기 시작한다.</strong></p>
+</blockquote>
+<p>초심자(Java/Spring 은 알지만 쿠버네티스는 처음) 기준으로 <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.
+Phase 16 은 둘로 나뉩니다. 이 문서는 <strong>16a — 클러스터를 세우고 order-service 하나를 이전</strong>하는 단계입니다.
+(16b 에서 Eureka·Config Server 를 삭제하고 전체 플랫폼을 올립니다.)</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>kind 클러스터</strong> 를 Colima VM 안에 세웠다(단일 노드, k8s v1.36.1, arm64).</li>
+<li><strong>order-service + order-db + auth-service</strong> 를 파드로 올렸다. <strong>애플리케이션 코드 변경은 단 한 줄</strong> —
+probe 하위 경로(<code>/actuator/health/**</code>)를 보안에서 열어준 것뿐.</li>
+<li>compose 의 구성 요소를 k8s 개념으로 1:1 이전했다:
+<code>environment/Config Server → ConfigMap</code> · <code>{cipher} 비밀번호 → Secret</code> ·
+<code>depends_on → readinessProbe</code> · <code>restart → livenessProbe</code> · <code>ports → Service(NodePort)</code> · <code>volumes → PVC</code>.</li>
+<li><strong>liveness 와 readiness 를 다르게 구성</strong>했다(readiness 만 DB 포함). DB 를 죽여 <strong>재시작 0회로 트래픽만 차단</strong>되는 것을 실측했다.</li>
+<li>자가치유(<code>kubectl delete pod</code>)·스케일 아웃(1→3)·PVC 영속성·<code>ImagePullBackOff</code> 함정을 전부 재현했다.</li>
+<li><strong>Kafka 가 없는데도 <code>POST /orders</code> 가 201 을 돌려줬다</strong> — Phase 10 outbox 의 성질이 k8s 에서도 그대로 증명됐다.</li>
+</ul>
+<hr>
+<h2 id="1-왜--compose-로는-안-되는-것">1. 왜 — compose 로는 안 되는 것</h2>
+<p>Phase 7 의 Docker Compose 는 훌륭했다. 한 줄로 15개 컨테이너가 뜬다. 그런데 다음 것들을 못 한다.</p>
+<p><strong>① 죽으면 살아나지만, &quot;고장난 채로 살아있는&quot; 건 모른다.</strong>
+compose 의 <code>restart: unless-stopped</code> 는 <strong>프로세스가 종료됐을 때만</strong> 다시 띄운다.
+JVM 이 살아 있는데 DB 커넥션 풀이 고갈됐거나 데드락에 빠졌다면? 컨테이너는 <code>running</code> 이고,
+compose 는 아무것도 하지 않으며, 게이트웨이는 계속 그리로 요청을 보낸다.
+<strong>필요한 건 &quot;살아있나&quot;가 아니라 &quot;제대로 동작하나&quot;를 묻는 장치다.</strong></p>
+<p><strong>② 기동 순서를 <code>depends_on: condition: service_healthy</code> 로 붙잡아야 한다.</strong>
+Phase 7 에서 우리는 DB → config → discovery → 앱 순서를 compose 에 명시했다.
+그런데 이 순서는 <strong>기동 시점에만</strong> 유효하다. 운영 중 DB 가 잠깐 끊기면? 아무 일도 일어나지 않는다.
+게다가 순서를 명시할수록 전체 기동이 직렬화되어 느려진다.</p>
+<p><strong>③ 인스턴스를 늘리는 수단이 없다(실질적으로).</strong>
+<code>docker compose up --scale order-service=3</code> 은 되지만, 그러면 호스트 포트가 충돌한다.
+포트 매핑을 빼면 이번엔 밖에서 못 닿는다. <strong>여러 인스턴스 앞에 서는 안정적인 주소</strong>가 없다.
+그래서 Phase 4 에서 <strong>Eureka</strong> 를 세웠다 — 애플리케이션이 애플리케이션을 찾는 방식으로.</p>
+<p><strong>④ 설정을 바꾸려면 Config Server 라는 또 하나의 서비스가 살아 있어야 한다.</strong>
+Phase 6 의 Config Server 는 모든 서비스의 <strong>기동 의존성</strong>이다. 그게 죽으면 아무도 못 뜬다.
+설정을 위해 서비스를 하나 더 운영하고, 그 서비스의 가용성을 또 걱정한다.</p>
+<blockquote>
+<p><strong>쿠버네티스의 대답은 일관된다: 그건 애플리케이션이 할 일이 아니다.</strong>
+헬스 판단·재시작·주소 해석·설정 주입·부하 분산을 <strong>플랫폼이 제공</strong>하면,
+애플리케이션은 자기 비즈니스만 하면 된다. 그게 Phase 16 의 전부다.</p>
+</blockquote>
+<hr>
+<h2 id="2-개념--쿠버네티스-최소-용어">2. 개념 — 쿠버네티스 최소 용어</h2>
+<p>처음 보는 사람을 위해, <strong>compose 의 무엇에 대응하는가</strong>로 설명한다.</p>
+<table>
+<thead>
+<tr>
+<th>k8s</th>
+<th>한 줄 정의</th>
+<th>compose 대응</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Pod</strong></td>
+<td>함께 배치되는 컨테이너 묶음. <strong>스케줄링·재시작의 최소 단위</strong></td>
+<td>컨테이너 1개 (대충)</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>&quot;이 파드를 N개 유지해라&quot;는 선언. 파드가 죽으면 새로 만든다</td>
+<td><code>restart</code> + <code>--scale</code></td>
+</tr>
+<tr>
+<td><strong>ReplicaSet</strong></td>
+<td>Deployment 가 내부적으로 만드는 &quot;N개 유지&quot; 실행자. 롤아웃마다 새로 생긴다</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td>파드 묶음 앞의 <strong>고정 이름 + 고정 IP</strong>. 파드 IP 가 바뀌어도 이름은 그대로</td>
+<td>compose 네트워크의 서비스명</td>
+</tr>
+<tr>
+<td><strong>ConfigMap</strong></td>
+<td>설정을 담는 키-값. 환경변수나 파일로 파드에 주입</td>
+<td><code>environment</code> / Config Server</td>
+</tr>
+<tr>
+<td><strong>Secret</strong></td>
+<td>비밀값용 ConfigMap. <strong>암호화는 아니다</strong>(§8 참고)</td>
+<td><code>{cipher}</code> + ENCRYPT_KEY</td>
+</tr>
+<tr>
+<td><strong>PersistentVolumeClaim(PVC)</strong></td>
+<td>&quot;이만한 디스크를 주세요&quot;라는 요청. 파드가 죽어도 남는다</td>
+<td>named volume</td>
+</tr>
+<tr>
+<td><strong>Namespace</strong></td>
+<td>이름의 방. DNS·RBAC·쿼터의 경계</td>
+<td>compose 의 <code>name:</code> (프로젝트)</td>
+</tr>
+<tr>
+<td><strong>probe</strong></td>
+<td>kubelet 이 주기적으로 컨테이너에 던지는 질문</td>
+<td><code>healthcheck</code></td>
+</tr>
+</tbody></table>
+<h3 id="세-가지-probe--이게-이-phase-의-핵심이다">세 가지 probe — 이게 이 Phase 의 핵심이다</h3>
+<table>
+<thead>
+<tr>
+<th>probe</th>
+<th>묻는 것</th>
+<th>실패하면</th>
+<th>여기에 넣으면 안 되는 것</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>startup</strong></td>
+<td>&quot;아직 기동 중인가?&quot;</td>
+<td>다른 probe 를 <strong>보류</strong>한다. 상한 초과 시 컨테이너 재시작</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>liveness</strong></td>
+<td>&quot;이 프로세스를 죽였다 살리면 나아지는가?&quot;</td>
+<td><strong>컨테이너를 죽이고 재시작</strong></td>
+<td>⚠️ <strong>외부 의존성</strong>(DB·Kafka·다른 서비스)</td>
+</tr>
+<tr>
+<td><strong>readiness</strong></td>
+<td>&quot;지금 트래픽을 받아도 되는가?&quot;</td>
+<td><strong>Service Endpoints 에서 제외</strong>(죽이지 않음)</td>
+<td>— (의존성을 넣는 게 맞다)</td>
+</tr>
+</tbody></table>
+<p><strong>왜 liveness 에 DB 를 넣으면 안 되나.</strong>
+DB 가 5분 끊겼다고 하자. liveness 에 db 가 들어 있으면 <strong>모든 파드가 동시에</strong> 재시작 루프에 빠진다.
+재시작해도 DB 는 안 고쳐지므로 무한 반복이다. 그리고 DB 가 살아난 순간
+방금 재시작한 파드 수십 개가 <strong>동시에 커넥션 풀을 채우려 들어</strong> DB 를 다시 눕힌다.
+반대로 readiness 만 실패시키면 파드는 살아 있고(캐시·JIT 워밍업 유지), 트래픽만 끊기며,
+DB 가 돌아오면 <strong>재시작 없이</strong> 즉시 복귀한다. §7 에서 이걸 그대로 측정한다.</p>
+<h3 id="kind-는-무엇인가">kind 는 무엇인가</h3>
+<p><strong>k</strong>ubernetes <strong>in</strong> <strong>d</strong>ocker. 쿠버네티스 노드를 <strong>도커 컨테이너로</strong> 띄운다.</p>
+<pre><code>macOS (18GB)
+└─ Colima VM (12GB, arm64)
+   └─ docker 컨테이너: shopsaga-control-plane   ← 이게 &quot;노드&quot;다
+      └─ containerd
+         └─ 파드들: order-service, order-db, auth-service, (etcd·apiserver·CoreDNS…)
+</code></pre><p>컨테이너 안에 컨테이너다. 그래서 두 가지가 따라온다.</p>
+<ol>
+<li><strong>이미지가 자동으로 공유되지 않는다.</strong> Colima 의 도커 데몬에 빌드한 이미지를 노드 안 containerd 는 모른다
+→ <code>kind load docker-image</code> 로 밀어 넣어야 한다(§8 의 대표 함정).</li>
+<li><strong>포트를 두 번 뚫어야 한다.</strong> 파드 → 노드(NodePort) → 노드 컨테이너 밖(kind 의 <code>extraPortMappings</code>) → macOS(Colima 포트 포워딩).</li>
+</ol>
+<hr>
+<h2 id="3-구성--무엇을-어떻게-배치했나">3. 구성 — 무엇을 어떻게 배치했나</h2>
+<pre><code>                        macOS :30080
+                             │  (Colima 포트 포워딩)
+                             ▼
+  ┌──── kind 노드 컨테이너 (shopsaga-control-plane) ─────────────────────┐
+  │  :30080 (NodePort)                                                   │
+  │      │                                                               │
+  │      ▼                                                               │
+  │  Service order-service (ClusterIP 10.96.223.176, NodePort 30080)     │
+  │      │  selector: app=order-service                                  │
+  │      ├──────────────┬──────────────┐   ← 복제본만큼 분산(무작위)      │
+  │      ▼              ▼              ▼                                 │
+  │   Pod            Pod            Pod       image: shopsaga/order-service:0.0.1
+  │   10.244.0.9   10.244.0.10   10.244.0.11                             │
+  │      │                                                               │
+  │      │ ① 설정: ConfigMap → /application/config/application.yml       │
+  │      │ ② 비밀: Secret → SPRING_DATASOURCE_{USERNAME,PASSWORD}        │
+  │      │ ③ 신원: Downward API → POD_NAME, NODE_NAME                    │
+  │      │                                                               │
+  │      ├── jdbc:postgresql://order-db:5432 ──▶ Service order-db ──▶ Pod postgres:18
+  │      │                                                    └─ PVC 1Gi (local-path)
+  │      └── http://auth-service:9000/oauth2/jwks ─▶ Service auth-service ─▶ Pod
+  └──────────────────────────────────────────────────────────────────────┘
+</code></pre><p><strong>핵심:</strong> 화살표 어디에도 <strong>Eureka 도 Config Server 도 없다.</strong>
+<code>order-db</code>·<code>auth-service</code> 는 k8s <strong>Service 이름</strong>이고, CoreDNS 가 ClusterIP 로 풀어준다.
+Phase 4 에서 애플리케이션 라이브러리(Eureka client)가 하던 일을 이제 <strong>DNS 가</strong> 한다.</p>
+<h3 id="파일">파일</h3>
+<table>
+<thead>
+<tr>
+<th>파일</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>deploy/k8s/kind-cluster.yaml</code></td>
+<td>클러스터 정의(단일 노드 + 포트 매핑 30080·8000)</td>
+</tr>
+<tr>
+<td><code>deploy/k8s/build-and-load.sh</code></td>
+<td>bootJar → 도커 이미지 → <code>kind load</code></td>
+</tr>
+<tr>
+<td><code>deploy/k8s/00-namespace.yaml</code></td>
+<td>네임스페이스 <code>shopsaga</code></td>
+</tr>
+<tr>
+<td><code>deploy/k8s/10-secrets.yaml</code></td>
+<td>DB 자격증명</td>
+</tr>
+<tr>
+<td><code>deploy/k8s/20-order-db.yaml</code></td>
+<td>PVC + Deployment(Recreate) + Service</td>
+</tr>
+<tr>
+<td><code>deploy/k8s/30-auth-service.yaml</code></td>
+<td>ConfigMap + Deployment + Service</td>
+</tr>
+<tr>
+<td><code>deploy/k8s/40-order-service.yaml</code></td>
+<td>ConfigMap + Deployment(probe 3종·Secret·Downward API) + NodePort</td>
+</tr>
+</tbody></table>
+<h3 id="애플리케이션-코드-변경-전체">애플리케이션 코드 변경 (전체)</h3>
+<pre><code class="hljs language-java"><span class="hljs-comment">// services/*/…/SecurityConfig.java  — 6개 서비스 모두 동일하게</span>
+.requestMatchers(<span class="hljs-string">&quot;/actuator/health&quot;</span>, <span class="hljs-string">&quot;/actuator/health/**&quot;</span>).permitAll()
+</code></pre><p>이게 <strong>전부</strong>다. <code>&quot;/actuator/health&quot;</code> 만 열려 있으면 <code>/actuator/health/liveness</code> 와
+<code>/actuator/health/readiness</code> 가 <strong>401</strong> 을 돌려주고, kubelet 은 토큰을 붙이지 않으므로
+readiness 실패(트래픽 차단) → liveness 실패(무한 재시작)로 이어진다.
+<strong>보안 설정이 probe 를 막는 것</strong>은 Spring + k8s 조합에서 가장 흔한 첫 실패다.</p>
+<hr>
+<h2 id="4-코드--결정적인-부분만">4. 코드 — 결정적인 부분만</h2>
+<h3 id="-config-server-를-configmap-으로-코드-수정-없이">① Config Server 를 ConfigMap 으로 (코드 수정 없이)</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/40-order-service.yaml</span>
+<span class="hljs-attr">data:</span>
+  <span class="hljs-attr">application.yml:</span> <span class="hljs-string">|
+    spring:
+      datasource:
+        url: jdbc:postgresql://order-db:5432/orderdb     # ← Service DNS
+      security:
+        oauth2.resourceserver.jwt.jwk-set-uri: http://auth-service:9000/oauth2/jwks</span>
+</code></pre><pre><code class="hljs language-yaml">          <span class="hljs-attr">volumeMounts:</span>
+            <span class="hljs-bullet">-</span> { <span class="hljs-attr">name:</span> <span class="hljs-string">config</span>, <span class="hljs-attr">mountPath:</span> <span class="hljs-string">/application/config</span>, <span class="hljs-attr">readOnly:</span> <span class="hljs-literal">true</span> }
+</code></pre><p><strong>왜 <code>/application/config</code> 인가.</strong> Spring Boot 의 기본 설정 탐색 순서는</p>
+<pre><code>classpath:/  &lt;  classpath:/config/  &lt;  file:./  &lt;  file:./config/     (뒤쪽이 이긴다)
+</code></pre><p>이고, Dockerfile 의 <code>WORKDIR</code> 이 <code>/application</code> 이다. 즉 <code>/application/config/application.yml</code> 은
+<code>file:./config/application.yml</code> 이 되어 <strong>jar 안의 설정을 덮어쓴다</strong>.
+→ 이미지를 다시 만들 필요도, 코드를 고칠 필요도 없다.</p>
+<p>그리고 jar 안에 남아 있는 Config Server 의존은 환경변수로 무력화한다:</p>
+<pre><code class="hljs language-yaml">            <span class="hljs-bullet">-</span> { <span class="hljs-attr">name:</span> <span class="hljs-string">SPRING_CONFIG_IMPORT</span>, <span class="hljs-attr">value:</span> <span class="hljs-string">&quot;&quot;</span> }   <span class="hljs-comment"># optional:configserver:… 를 지운다</span>
+</code></pre><h3 id="-secret--환경변수-우선순위를-이용한다">② Secret → 환경변수 (우선순위를 이용한다)</h3>
+<pre><code class="hljs language-yaml">            <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">SPRING_DATASOURCE_PASSWORD</span>
+              <span class="hljs-attr">valueFrom:</span> { <span class="hljs-attr">secretKeyRef:</span> { <span class="hljs-attr">name:</span> <span class="hljs-string">order-db-credentials</span>, <span class="hljs-attr">key:</span> <span class="hljs-string">password</span> } }
+</code></pre><p>ConfigMap 파일에는 비밀번호를 <strong>아예 쓰지 않았다</strong>. Spring 의 프로퍼티 우선순위에서
+<strong>OS 환경변수 &gt; <code>file:./config/</code></strong> 이므로, 파일에 없는 값을 환경변수가 채운다.
+Phase 6 의 <code>{cipher}</code> + <code>ENCRYPT_KEY</code> 조합이 하던 일을 플랫폼이 대신한다
+(그리고 복호화 키를 애플리케이션이 들고 있을 필요가 없어졌다).</p>
+<h3 id="-liveness--readiness--이-phase-의-알맹이">③ liveness ≠ readiness — 이 Phase 의 알맹이</h3>
+<pre><code class="hljs language-yaml">    <span class="hljs-attr">management:</span>
+      <span class="hljs-attr">endpoint:</span>
+        <span class="hljs-attr">health:</span>
+          <span class="hljs-attr">probes:</span>
+            <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span>              <span class="hljs-comment"># ★ 이게 없으면 /actuator/health/{liveness,readiness} 자체가 없다</span>
+          <span class="hljs-attr">group:</span>
+            <span class="hljs-attr">readiness:</span>
+              <span class="hljs-attr">include:</span> <span class="hljs-string">readinessState,db</span>     <span class="hljs-comment"># 의존성 포함 → 트래픽만 끊는다</span>
+            <span class="hljs-attr">liveness:</span>
+              <span class="hljs-attr">include:</span> <span class="hljs-string">livenessState</span>         <span class="hljs-comment"># ⚠️ db 를 넣지 않는다 → 재시작 루프 방지</span>
+</code></pre><p>기본값은 <strong>둘 다 애플리케이션 상태만</strong> 본다(의존성 미포함).
+readiness 에 <code>db</code> 를 넣는 건 우리의 명시적 선택이고, liveness 에 넣지 않는 것도 명시적 선택이다.</p>
+<pre><code class="hljs language-yaml">          <span class="hljs-attr">startupProbe:</span>
+            <span class="hljs-attr">httpGet:</span> { <span class="hljs-attr">path:</span> <span class="hljs-string">/actuator/health/readiness</span>, <span class="hljs-attr">port:</span> <span class="hljs-number">8080</span> }
+            <span class="hljs-attr">periodSeconds:</span> <span class="hljs-number">5</span>
+            <span class="hljs-attr">timeoutSeconds:</span> <span class="hljs-number">3</span>
+            <span class="hljs-attr">failureThreshold:</span> <span class="hljs-number">36</span>       <span class="hljs-comment"># 5s × 36 = 최대 3분(Flyway 마이그레이션 포함)</span>
+</code></pre><p><strong>startupProbe 의 존재 이유:</strong> JVM 은 느리게 뜬다. startup 이 성공하기 전까지 liveness/readiness 는
+<strong>아예 평가되지 않으므로</strong>, liveness 를 짧고 민감하게(period 10s / failure 3) 유지하면서도
+기동 중 오탐 재시작을 막을 수 있다. startupProbe 가 없으면 <code>initialDelaySeconds</code> 를 크게 잡아야 하고,
+그러면 <strong>정상 파드도</strong> 그만큼 늦게 트래픽을 받는다.</p>
+<blockquote>
+<p>⚠️ <code>timeoutSeconds</code> 기본값은 <strong>1초</strong>다. readiness 가 DB 를 조회하는 이상 1초는 빡빡하다 —
+부하가 조금만 올라도 멀쩡한 파드가 Endpoints 에서 빠졌다 들어왔다 한다(flapping). 3초로 늘렸다.</p>
+</blockquote>
+<h3 id="-rwo-볼륨--rollingupdate--교착">④ RWO 볼륨 + RollingUpdate = 교착</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/20-order-db.yaml</span>
+<span class="hljs-attr">spec:</span>
+  <span class="hljs-attr">strategy:</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">Recreate</span>      <span class="hljs-comment"># 기본값 RollingUpdate 로 두면 안 된다</span>
+</code></pre><p>기본 전략인 RollingUpdate 는 <strong>새 파드를 먼저 띄우고 헌 파드를 지운다</strong>.
+그런데 PVC 의 accessMode 가 <code>ReadWriteOnce</code> 면 두 파드가 같은 볼륨을 동시에 잡을 수 없어
+새 파드가 영영 <code>Pending</code> 에 걸리고, 헌 파드는 안 죽으므로 롤아웃이 멈춘다.
+<code>Recreate</code> 는 <strong>헌 파드를 먼저 죽인다</strong>(그 대신 짧은 다운타임이 있다 — DB 니까 감수한다).</p>
+<h3 id="-downward-api--파드가-자기-이름을-안다">⑤ Downward API — 파드가 자기 이름을 안다</h3>
+<pre><code class="hljs language-yaml">            <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">POD_NAME</span>
+              <span class="hljs-attr">valueFrom:</span> { <span class="hljs-attr">fieldRef:</span> { <span class="hljs-attr">fieldPath:</span> <span class="hljs-string">metadata.name</span> } }
+</code></pre><pre><code class="hljs language-yaml">    <span class="hljs-attr">info:</span>
+      <span class="hljs-attr">pod:</span> <span class="hljs-string">${POD_NAME:unknown}</span>
+    <span class="hljs-attr">management:</span>
+      <span class="hljs-attr">info:</span>
+        <span class="hljs-attr">env:</span>
+          <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span>
+</code></pre><p>k8s API 를 호출하지 않고(=권한 없이) 파드가 자기 메타데이터를 환경변수로 받는다.
+<code>/actuator/info</code> 로 <strong>어느 파드가 응답했는지</strong> 볼 수 있게 되어, §7 의 스케일 실측이 가능해졌다.</p>
+<hr>
+<h2 id="5-흐름--요청-하나가-지나가는-길">5. 흐름 — 요청 하나가 지나가는 길</h2>
+<pre><code>curl localhost:30080/orders                       (macOS)
+   │
+   ├─ Colima 포트 포워딩 ────────────▶ VM :30080
+   ├─ docker 포트 매핑(extraPortMappings) ──▶ 노드 컨테이너 :30080
+   ├─ kube-proxy 의 iptables 규칙 ──▶ 준비된(ready) 파드 중 하나를 무작위 선택 + DNAT
+   │
+   ▼  Pod order-service:8080
+   ├─ Spring Security: Bearer 토큰 검증
+   │     └─ JWKS 공개키가 없으면 http://auth-service:9000/oauth2/jwks 조회
+   │            └─ CoreDNS: auth-service → 10.96.215.231 (ClusterIP)
+   │                   └─ iptables → Pod auth-service:9000
+   ├─ OrderService.place()
+   │     └─ 한 트랜잭션: orders INSERT + saga_instance INSERT + outbox INSERT ×2
+   │            └─ jdbc:postgresql://order-db:5432 → CoreDNS → ClusterIP → Pod postgres
+   ▼
+ 201 Created  { status: PENDING }
+</code></pre><p><strong>Kafka 는 이 경로에 없다.</strong> 16a 에는 브로커가 없지만 주문은 성공한다 —
+Phase 10 에서 &quot;DB 쓰기와 이벤트 발행을 한 트랜잭션으로&quot; 만들어 뒀기 때문이다.
+이벤트는 <code>outbox</code> 테이블에 남아 있고, 16b 에서 Kafka 가 올라오면 릴레이가 그때 내보낸다.
+(§7-④ 에서 실제로 미발행 2건을 확인한다.)</p>
+<hr>
+<h2 id="6-원리--왜-이렇게-동작하나">6. 원리 — 왜 이렇게 동작하나</h2>
+<h3 id="-k8s-에는-depends_on-이-없다--일부러-없다">① k8s 에는 <code>depends_on</code> 이 없다 — 일부러 없다</h3>
+<p>16a 첫 배포에서 order-service 는 <strong>3번 재시작한 뒤에</strong> 안정됐다.
+DB 보다 먼저 떠서 Flyway 가 연결에 실패해 죽고, <code>CrashLoopBackOff</code> 로 물러났다가 다시 시도한 것이다.</p>
+<pre><code>Caused by: java.net.ConnectException: Connection refused
+   at org.flywaydb.core.internal.jdbc.JdbcUtils.openConnection
+</code></pre><p>이건 <strong>버그가 아니라 설계</strong>다. compose 는 &quot;순서를 보장&quot;하려 했지만, 순서 보장은 기동 시점에만 유효하고
+운영 중 장애에는 무력하다. k8s 는 대신 <strong>&quot;실패하면 물러났다 다시 하라(exponential backoff)&quot;</strong> 를 택했다.
+같은 메커니즘이 기동 실패든 운영 중 장애든 똑같이 동작한다 — 특수한 경우가 없다.</p>
+<blockquote>
+<p>다만 &quot;재시작 3번&quot;이 정상이라는 뜻은 아니다. 운영에서는 앱이 DB 연결을 <strong>재시도</strong>하도록 만들거나
+(Hikari <code>initializationFailTimeout</code>, Flyway <code>connectRetries</code>) initContainer 로 대기시킨다.
+학습용으로는 k8s 의 기본 동작을 그대로 보는 편이 낫다고 판단해 두었다.</p>
+</blockquote>
+<h3 id="-service-는-프록시가-아니라-iptables-규칙이다">② Service 는 프록시가 아니라 <strong>iptables 규칙</strong>이다</h3>
+<p><code>kubectl logs service/order-service</code> 같은 건 없다. Service 는 프로세스가 아니기 때문이다.
+kube-proxy 가 각 노드의 iptables(이 클러스터는 <code>Using iptables Proxier</code>)에
+&quot;ClusterIP 로 가는 패킷을 파드 IP 중 하나로 DNAT 하라&quot;는 규칙을 심어 둔 것이 전부다.</p>
+<p>그래서 두 가지 성질이 따라온다.</p>
+<ul>
+<li><strong>분산은 무작위다, 라운드로빈이 아니다.</strong> iptables 의 <code>statistic mode random</code> 을 쓴다.
+§7-⑤ 의 실측이 13/11/6 으로 고르지 않은 이유다(표본이 커질수록 1/3 로 수렴한다).</li>
+<li><strong>커넥션 단위로 결정된다.</strong> HTTP keep-alive 로 연결을 오래 물고 있으면 그 커넥션은 계속 같은 파드로 간다.
+(Phase 2 의 <code>RestClient</code> 처럼 커넥션 풀을 쓰는 클라이언트는 스케일 아웃 효과가 늦게 나타난다.)</li>
+</ul>
+<h3 id="-readiness-실패는-파드를-죽이지-않고-명단에서-뺀다">③ readiness 실패는 파드를 죽이지 않고 <strong>명단에서 뺀다</strong></h3>
+<p>EndpointSlice 를 들여다보면 이렇게 되어 있다.</p>
+<pre><code>10.244.0.9   ready=false  serving=false
+10.244.0.10  ready=false  serving=false
+10.244.0.11  ready=false  serving=false
+</code></pre><p>주소는 <strong>그대로 남아 있고</strong> <code>conditions.ready</code> 만 false 로 바뀐다.
+kube-proxy 는 ready 인 엔드포인트로만 규칙을 만들므로, 결과적으로 트래픽이 끊긴다.
+DB 가 돌아오면 다음 probe 성공에 ready=true 로 돌아오고 — <strong>파드는 그동안 한 번도 죽지 않았다.</strong></p>
+<h3 id="-configmap-을-바꿔도-애플리케이션은-안-바뀐다">④ ConfigMap 을 바꿔도 애플리케이션은 안 바뀐다</h3>
+<p>ConfigMap 을 파일로 마운트하면 kubelet 이 파일 내용은 갱신해 준다(~1분 내).
+하지만 <strong>Spring 은 이미 읽은 프로퍼티를 다시 바인딩하지 않는다.</strong> 그래서 셋 중 하나를 해야 한다.</p>
+<ol>
+<li><code>kubectl rollout restart deployment/…</code> — 새 파드가 새 설정을 읽는다(우리가 쓴 방법).</li>
+<li>Phase 15 의 <code>POST /actuator/refresh</code> + <code>@ConfigurationProperties</code> — 재시작 없이 재바인딩.</li>
+<li>Deployment 의 podTemplate 에 ConfigMap 해시를 넣어 <strong>내용이 바뀌면 자동 롤아웃</strong>(Helm 의 흔한 패턴 — Phase 18).</li>
+</ol>
+<blockquote>
+<p>실측 중 하나 짚고 갈 것: 우리가 <code>kubectl apply</code> 했을 때 파드가 <strong>자동으로</strong> 새로 떴는데,
+그건 ConfigMap 때문이 아니라 같은 파일 안 <strong>Deployment 의 podTemplate(env 추가)이 바뀌었기 때문</strong>이다.
+ConfigMap 만 바꿨다면 아무 일도 일어나지 않는다.</p>
+</blockquote>
+<h3 id="-imagepullpolicy-기본값의-함정">⑤ <code>imagePullPolicy</code> 기본값의 함정</h3>
+<p>명시하지 않으면 k8s 는 <strong>태그를 보고 정한다</strong>: <code>:latest</code> 면 <code>Always</code>, 그 외 태그면 <code>IfNotPresent</code>.
+<code>kind load</code> 로 노드에 이미지를 넣어놨어도 태그가 <code>latest</code> 면 레지스트리로 나가서 실패한다.
+그래서 <code>0.0.1</code> 처럼 <strong>버전 태그를 붙이고 정책도 명시</strong>했다. §7-⑧ 에서 이 실패를 일부러 재현한다.</p>
+<hr>
+<h2 id="7-검증--실제로-측정한-것">7. 검증 — 실제로 측정한 것</h2>
+<blockquote>
+<p>환경: macOS 18GB / Colima <strong>12GB·6CPU</strong>(8GB→증설) / kind v0.32.0 / k8s <strong>v1.36.1</strong> arm64 /
+kubectl v1.36.3. <strong>compose 는 전부 내린 상태.</strong></p>
+</blockquote>
+<h3 id="-클러스터와-이미지-적재">① 클러스터와 이미지 적재</h3>
+<pre><code>$ kubectl get nodes -o wide
+NAME                     STATUS   ROLES           VERSION   OS-IMAGE                  CONTAINER-RUNTIME
+shopsaga-control-plane   Ready    control-plane   v1.36.1   Debian GNU/Linux 13       containerd://2.3.1
+
+$ docker exec shopsaga-control-plane crictl images | grep shopsaga
+docker.io/shopsaga/auth-service    0.0.1   83636db6d3c7a   124MB
+docker.io/shopsaga/order-service   0.0.1   09de2aa11bfe8   181MB
+</code></pre><h3 id="-기동--depends_on-없는-세계">② 기동 — <code>depends_on</code> 없는 세계</h3>
+<pre><code>NAME                             READY   STATUS             RESTARTS     AGE
+order-service-578886b9c9-kj88d   0/1     CrashLoopBackOff   2 (6s ago)   29s      ← DB 보다 먼저 떴다
+...
+order-service-578886b9c9-kj88d   1/1     Running            3 (72s ago)  95s      ← DB Ready 후 자력 회복
+</code></pre><p>로그: <code>Connection to order-db:5432 refused</code> → Flyway 실패 → 종료 → backoff → 재시도 → 성공.
+<strong>사람이 개입하지 않았다.</strong></p>
+<h3 id="-nodeport-도달--probe-분리">③ NodePort 도달 + probe 분리</h3>
+<pre><code>$ curl localhost:30080/actuator/health            → HTTP 200, status UP
+$ curl localhost:30080/actuator/health/liveness
+{&quot;status&quot;:&quot;UP&quot;,&quot;components&quot;:{&quot;livenessState&quot;:{&quot;status&quot;:&quot;UP&quot;}}}
+$ curl localhost:30080/actuator/health/readiness
+{&quot;status&quot;:&quot;UP&quot;,&quot;components&quot;:{&quot;db&quot;:{&quot;status&quot;:&quot;UP&quot;,&quot;details&quot;:{&quot;database&quot;:&quot;PostgreSQL&quot;,…}},
+                             &quot;readinessState&quot;:{&quot;status&quot;:&quot;UP&quot;}}}
+$ curl localhost:30080/orders                     → HTTP 401   (토큰 없음 — 보안은 그대로 산다)
+</code></pre><p>의도한 대로 <strong>liveness 에는 db 가 없고 readiness 에는 있다.</strong></p>
+<h3 id="-주문-흐름--kafka-없이도-접수된다">④ 주문 흐름 — Kafka 없이도 접수된다</h3>
+<pre><code>$ curl -X POST localhost:30080/orders -H &quot;Authorization: Bearer $TOKEN&quot; …
+HTTP 201
+{&quot;id&quot;:&quot;d276440e-…&quot;,&quot;status&quot;:&quot;PENDING&quot;,&quot;totalAmount&quot;:20.00}
+
+$ psql -c &quot;SELECT …&quot;
+orders=1 outbox_미발행=2 saga=1
+
+$ psql -c &quot;SELECT version||&#39; &#39;||description||&#39; &#39;||success FROM flyway_schema_history&quot;
+1 init true          5 outbox true
+2 inventory and payment true   6 processed messages true
+3 remove local payment true    7 saga instance true
+4 drop local stock true        8 processed commands true
+</code></pre><ul>
+<li>JWT 가 <strong>k8s Service DNS 로 찾은</strong> auth-service 의 JWKS 로 검증됐다.</li>
+<li>Flyway 8개 마이그레이션이 클러스터 안에서 실행됐다.</li>
+<li><strong>outbox 미발행 2건</strong> = Phase 10 의 성질이 그대로 살아있다는 증거. 브로커 없이도 주문은 받는다.</li>
+</ul>
+<h3 id="-스케일-아웃-1--3">⑤ 스케일 아웃 1 → 3</h3>
+<pre><code>$ kubectl scale deployment/order-service --replicas=3
+$ kubectl get endpointslices …
+10.244.0.9   10.244.0.11   10.244.0.10
+
+$ for i in $(seq 1 30); do curl -s …/actuator/info | jq -r .pod; done | sort | uniq -c
+  13 order-service-8c4bbcfdf-c57x2
+  11 order-service-8c4bbcfdf-txv9g
+   6 order-service-8c4bbcfdf-kb57n
+</code></pre><p>3개 파드 전부가 받았다. <strong>13/11/6 = 무작위 분배</strong>(iptables <code>statistic mode random</code>)이지 라운드로빈이 아니다.</p>
+<h3 id="--liveness--readiness--db-를-죽인다">⑥ ★ liveness ≠ readiness — DB 를 죽인다</h3>
+<pre><code>[전]  Endpoints ready=true ×3      재시작 횟수 0 0 0
+
+$ kubectl scale deployment/order-db --replicas=0        ← DB 장애 시뮬레이션
+   (55초 대기)
+
+[후]  order-service-…-c57x2   0/1  Running   0      ← READY 가 빠졌다
+      order-service-…-kb57n   0/1  Running   0
+      order-service-…-txv9g   0/1  Running   0
+      Endpoints:  10.244.0.9 ready=false serving=false   (×3)
+      재시작 횟수: 0 0 0                                  ← ★ 한 번도 안 죽었다
+
+      파드 안에서 직접:
+        liveness  → {&quot;status&quot;:&quot;UP&quot;,&quot;components&quot;:{&quot;livenessState&quot;:{&quot;status&quot;:&quot;UP&quot;}}}
+        readiness → HTTP/1.1 503
+      NodePort   → HTTP 000 (연결 실패 — Ready 파드가 하나도 없다)
+
+$ kubectl scale deployment/order-db --replicas=1        ← 복구
+[복구 후] 3개 파드 모두 1/1 Running,  ready=true ×3,  재시작 횟수 0 0 0,  NodePort → HTTP 200
+</code></pre><p><strong>이것이 이 Phase 에서 가장 중요한 실측이다.</strong>
+DB 장애 동안 파드는 <strong>한 번도 재시작되지 않았고</strong>(liveness UP), 트래픽만 정확히 차단됐으며(readiness 503),
+DB 가 돌아오자 <strong>사람 개입 없이</strong> 복귀했다. liveness 에 db 를 넣었다면 이 시나리오는
+&quot;3개 파드 전부 재시작 루프 → DB 복구 순간 커넥션 폭풍&quot;이 됐을 것이다.</p>
+<p>관련 이벤트도 두 단계로 찍혔다(증상이 시간에 따라 변한다 — 디버깅 시 헷갈리는 지점):</p>
+<pre><code>Readiness probe failed: HTTP probe failed with statuscode: 503          ← 초기(빠른 실패)
+Readiness probe failed: … context deadline exceeded                     ← 이후(Hikari 가 커넥션 타임아웃까지 블록)
+</code></pre><h3 id="-자가치유--pvc-영속성">⑦ 자가치유 + PVC 영속성</h3>
+<pre><code>$ kubectl delete pod order-service-8c4bbcfdf-c57x2
+   → 4초 뒤 order-service-8c4bbcfdf-mzlm5 (0/1 Running) 이 이미 생성됨
+   → 삭제된 파드 조회: Error from server (NotFound)
+   → 대체 파드 Ready 까지 무중단:  200 200 200 200 200   (복제본 3개 덕분)
+
+$ DB 파드를 통째로 교체한 뒤 (replicas 0 → 1, 새 파드 order-db-…-bsdnr)
+$ psql -c &quot;SELECT count(*) FROM orders&quot;  →  orders=1        ← PVC 가 데이터를 지켰다
+</code></pre><h3 id="-kind-load-를-잊으면-계획서-582-의-함정-재현">⑧ <code>kind load</code> 를 잊으면 (계획서 §582 의 함정 재현)</h3>
+<pre><code>$ kubectl run pull-trap --image=shopsaga/order-service:9.9.9
+pull-trap   0/1   ImagePullBackOff
+
+Failed to pull image &quot;shopsaga/order-service:9.9.9&quot;:
+  failed to resolve reference &quot;docker.io/shopsaga/order-service:9.9.9&quot;:
+  pull access denied, repository does not exist or may require authorization
+</code></pre><p>노드는 <strong>도커 허브에 물어보러 나간다</strong>. 로컬 이미지는 <code>kind load docker-image</code> 로 넣어야 보인다.</p>
+<h3 id="-자원">⑨ 자원</h3>
+<pre><code>$ colima ssh -- free -h
+               total   used   free   available
+Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파드 5개
+</code></pre><p>16b 에서 Kafka·Mongo·관측성·나머지 서비스를 올릴 여유가 충분하다.</p>
+<h3 id="-회귀-테스트">⑩ 회귀 테스트</h3>
+<p><code>./gradlew build</code> — 기존 테스트 전부 통과(보안 매처 변경이 아무것도 깨뜨리지 않았다).</p>
+<hr>
+<h2 id="8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>한계</th>
+<th>왜 문제인가</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Eureka·Config Server 가 아직 코드에 남아 있다</strong></td>
+<td>16a 는 <code>enabled: false</code> 로 끄기만 했다. 의존성·설정이 그대로라 &quot;플랫폼으로 이동&quot;이 절반이다</td>
+<td><strong>Phase 16b</strong> — 삭제</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>서비스 3개뿐</strong> — Kafka·Saga·CQRS·관측성이 없다</td>
+<td>주문이 <code>PENDING</code> 에서 멈춘다(outbox 미발행 2건)</td>
+<td><strong>Phase 16b</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Secret 은 암호화가 아니다</strong></td>
+<td><code>data:</code> 는 base64 일 뿐이고 etcd 에도 기본은 평문. RBAC 이 유일한 방어선</td>
+<td>Phase 18(External Secrets/SOPS) — 학습 범위 밖</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>auth-service 를 복제할 수 없다</strong></td>
+<td>RS256 키쌍을 기동 시 메모리에 생성 → 파드마다 키가 다르다. replicas 2 면 산발적 401</td>
+<td><strong>Phase 16b</strong>(키를 Secret 으로)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong><code>kubectl apply -f</code> 를 7번 친다</strong></td>
+<td>순서·중복·환경별 차이를 사람이 관리한다. 값 하나 바꾸려면 YAML 을 직접 고친다</td>
+<td>Phase 18(Helm/Kustomize)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>이미지 배포가 수동</strong>(<code>kind load</code>)</td>
+<td>사람이 빌드하고 사람이 밀어 넣는다. 어느 커밋이 떠 있는지 추적 불가</td>
+<td><strong>Phase 17</strong>(CI/CD + 레지스트리)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>컨테이너가 root 로 돈다</strong></td>
+<td><code>runAsNonRoot</code>·<code>readOnlyRootFilesystem</code>·NetworkPolicy 등 보안 기본값이 없다</td>
+<td>Phase 18</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>PVC 가 <code>local-path</code></strong></td>
+<td>노드의 로컬 디렉터리다. 노드가 죽으면 데이터도 죽고, 멀티노드에선 파드가 그 노드에 묶인다</td>
+<td>학습 범위 밖(운영은 CSI 스토리지)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>DB 가 Deployment</strong></td>
+<td>원래 StatefulSet 이 맞다(안정적 이름·순서·파드별 볼륨). <code>Recreate</code> 로 우회 중</td>
+<td>학습 범위 밖</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>기동 시 CrashLoopBackOff 3회</strong></td>
+<td>정상 동작이지만 운영에선 알람이 울린다. 앱이 DB 연결을 재시도하는 게 낫다</td>
+<td>Phase 18(Flyway <code>connectRetries</code>)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong><code>kubectl top</code> 이 안 된다</strong></td>
+<td>metrics-server 미설치 → HPA(자동 스케일)도 불가</td>
+<td><strong>Phase 16b</strong> 또는 Phase 18</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>auth-service 가 밖에서 안 보인다</strong></td>
+<td>ClusterIP 라 토큰 받으려면 <code>port-forward</code> 가 필요하다</td>
+<td><strong>Phase 16b</strong>(Ingress)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어">9. 용어</h2>
+<ul>
+<li><strong>kind</strong> — Kubernetes IN Docker. 노드를 도커 컨테이너로 띄우는 로컬 클러스터 도구.</li>
+<li><strong>컨트롤플레인</strong> — 클러스터의 두뇌. <code>apiserver</code>(모든 요청의 관문) · <code>etcd</code>(상태 저장소) ·
+<code>scheduler</code>(파드를 어느 노드에) · <code>controller-manager</code>(선언과 현실의 차이를 메운다).</li>
+<li><strong>kubelet</strong> — 각 노드의 대리인. 파드를 실제로 띄우고 <strong>probe 를 실행</strong>한다.</li>
+<li><strong>kube-proxy</strong> — Service 의 iptables/nftables 규칙을 노드에 심는 데몬.</li>
+<li><strong>CoreDNS</strong> — 클러스터 DNS. <code>order-db</code> → ClusterIP 해석.</li>
+<li><strong>ClusterIP / NodePort / LoadBalancer / Ingress</strong> — 노출 수단 4종.
+안에서만(ClusterIP) → 노드 포트로(NodePort) → 클라우드 LB(LoadBalancer) → HTTP 경로 라우팅(Ingress, 16b).</li>
+<li><strong>EndpointSlice</strong> — Service 뒤에 실제로 붙은 파드 주소 목록(+<code>conditions.ready</code>).</li>
+<li><strong>Downward API</strong> — 파드가 자기 메타데이터(이름·노드·라벨)를 환경변수/파일로 받는 방법.</li>
+<li><strong>CrashLoopBackOff</strong> — 컨테이너가 반복해서 죽어 k8s 가 재시작 간격을 늘려가며 물러난 상태(최대 5분).</li>
+<li><strong>ImagePullBackOff</strong> — 이미지를 받아오지 못해 물러난 상태.</li>
+<li><strong>requests / limits</strong> — 스케줄러가 예약해 주는 양 / 넘으면 안 되는 상한.
+메모리가 limits 를 넘으면 <strong>OOMKilled</strong>(경고 없이 즉사), CPU 는 스로틀링만 된다.</li>
+</ul>
+<hr>
+<h2 id="10-참고">10. 참고</h2>
+<ul>
+<li>코드: <code>deploy/k8s/</code> (매니페스트 · <code>build-and-load.sh</code> · <a href="README.html">README</a>)</li>
+<li>이전 단계: <a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a> · <a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a> ·
+<a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a> · <a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox</a></li>
+<li>로드맵: <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> §Phase 16</li>
+<li>공식 문서:<ul>
+<li><a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Kubernetes — Configure Liveness, Readiness and Startup Probes</a></li>
+<li><a href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.kubernetes-probes">Spring Boot — Kubernetes Probes</a></li>
+<li><a href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot — Externalized Configuration (우선순위)</a></li>
+<li><a href="https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster">kind — Loading an Image Into Your Cluster</a></li>
+</ul>
+</li>
+</ul>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--compose-로는-안-되는-것">1. 왜 — compose 로는 안 되는 것</a></li>
+<li class="toc-h2"><a href="#2-개념--쿠버네티스-최소-용어">2. 개념 — 쿠버네티스 최소 용어</a></li>
+<li class="toc-h3"><a href="#세-가지-probe--이게-이-phase-의-핵심이다">세 가지 probe — 이게 이 Phase 의 핵심이다</a></li>
+<li class="toc-h3"><a href="#kind-는-무엇인가">kind 는 무엇인가</a></li>
+<li class="toc-h2"><a href="#3-구성--무엇을-어떻게-배치했나">3. 구성 — 무엇을 어떻게 배치했나</a></li>
+<li class="toc-h3"><a href="#파일">파일</a></li>
+<li class="toc-h3"><a href="#애플리케이션-코드-변경-전체">애플리케이션 코드 변경 (전체)</a></li>
+<li class="toc-h2"><a href="#4-코드--결정적인-부분만">4. 코드 — 결정적인 부분만</a></li>
+<li class="toc-h3"><a href="#-config-server-를-configmap-으로-코드-수정-없이">① Config Server 를 ConfigMap 으로 (코드 수정 없이)</a></li>
+<li class="toc-h3"><a href="#-secret--환경변수-우선순위를-이용한다">② Secret → 환경변수 (우선순위를 이용한다)</a></li>
+<li class="toc-h3"><a href="#-liveness--readiness--이-phase-의-알맹이">③ liveness ≠ readiness — 이 Phase 의 알맹이</a></li>
+<li class="toc-h3"><a href="#-rwo-볼륨--rollingupdate--교착">④ RWO 볼륨 + RollingUpdate = 교착</a></li>
+<li class="toc-h3"><a href="#-downward-api--파드가-자기-이름을-안다">⑤ Downward API — 파드가 자기 이름을 안다</a></li>
+<li class="toc-h2"><a href="#5-흐름--요청-하나가-지나가는-길">5. 흐름 — 요청 하나가 지나가는 길</a></li>
+<li class="toc-h2"><a href="#6-원리--왜-이렇게-동작하나">6. 원리 — 왜 이렇게 동작하나</a></li>
+<li class="toc-h3"><a href="#-k8s-에는-depends_on-이-없다--일부러-없다">① k8s 에는 depends_on 이 없다 — 일부러 없다</a></li>
+<li class="toc-h3"><a href="#-service-는-프록시가-아니라-iptables-규칙이다">② Service 는 프록시가 아니라 iptables 규칙이다</a></li>
+<li class="toc-h3"><a href="#-readiness-실패는-파드를-죽이지-않고-명단에서-뺀다">③ readiness 실패는 파드를 죽이지 않고 명단에서 뺀다</a></li>
+<li class="toc-h3"><a href="#-configmap-을-바꿔도-애플리케이션은-안-바뀐다">④ ConfigMap 을 바꿔도 애플리케이션은 안 바뀐다</a></li>
+<li class="toc-h3"><a href="#-imagepullpolicy-기본값의-함정">⑤ imagePullPolicy 기본값의 함정</a></li>
+<li class="toc-h2"><a href="#7-검증--실제로-측정한-것">7. 검증 — 실제로 측정한 것</a></li>
+<li class="toc-h3"><a href="#-클러스터와-이미지-적재">① 클러스터와 이미지 적재</a></li>
+<li class="toc-h3"><a href="#-기동--depends_on-없는-세계">② 기동 — depends_on 없는 세계</a></li>
+<li class="toc-h3"><a href="#-nodeport-도달--probe-분리">③ NodePort 도달 + probe 분리</a></li>
+<li class="toc-h3"><a href="#-주문-흐름--kafka-없이도-접수된다">④ 주문 흐름 — Kafka 없이도 접수된다</a></li>
+<li class="toc-h3"><a href="#-스케일-아웃-1--3">⑤ 스케일 아웃 1 → 3</a></li>
+<li class="toc-h3"><a href="#--liveness--readiness--db-를-죽인다">⑥ ★ liveness ≠ readiness — DB 를 죽인다</a></li>
+<li class="toc-h3"><a href="#-자가치유--pvc-영속성">⑦ 자가치유 + PVC 영속성</a></li>
+<li class="toc-h3"><a href="#-kind-load-를-잊으면-계획서-582-의-함정-재현">⑧ kind load 를 잊으면 (계획서 §582 의 함정 재현)</a></li>
+<li class="toc-h3"><a href="#-자원">⑨ 자원</a></li>
+<li class="toc-h3"><a href="#-회귀-테스트">⑩ 회귀 테스트</a></li>
+<li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
+<li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>
+</body>
+</html>

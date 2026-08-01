@@ -1,0 +1,15 @@
+# Phase 16 — 네임스페이스.
+#
+# 네임스페이스는 "이름의 방"이다. 같은 클러스터 안에서 `order-service` 라는 Service 이름을
+# 여러 팀이 각자 쓸 수 있게 해주고, 리소스 쿼터·RBAC 의 경계가 된다.
+#
+# 여기서 중요한 건 **DNS 이름이 네임스페이스에 묶인다**는 점이다:
+#   같은 네임스페이스 안  → http://order-service:8080
+#   다른 네임스페이스에서 → http://order-service.shopsaga.svc.cluster.local:8080
+# Phase 16b 에서 Eureka 를 지우고 이 DNS 로 갈아탄다.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shopsaga
+  labels:
+    app.kubernetes.io/part-of: shopsaga

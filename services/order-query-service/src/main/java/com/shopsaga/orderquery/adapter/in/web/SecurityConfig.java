@@ -11,7 +11,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * 서블릿 OAuth2 리소스 서버 — /actuator/health 외 모든 요청에 유효한 JWT 필요.
+ * 서블릿 OAuth2 리소스 서버 — /actuator/health(+probe 하위경로) 외 모든 요청에 유효한 JWT 필요.
  * roles 클레임 → ROLE_ 권한 매핑(다른 서비스와 동일 컨벤션).
  *
  * <p>{@code @ConditionalOnWebApplication(SERVLET)}: 비-웹 컨텍스트(투영 테스트 등)에서는 로딩 안 됨.
@@ -27,7 +27,10 @@ class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
+                        // Phase 16: k8s kubelet 은 probe 요청에 토큰을 붙이지 않는다.
+                        //   "/actuator/health" 만 열면 /actuator/health/{liveness,readiness} 가 401 →
+                        //   probe 실패 → readiness 미달로 트래픽 차단, liveness 실패로 무한 재시작.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));

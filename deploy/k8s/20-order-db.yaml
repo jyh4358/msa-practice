@@ -1,0 +1,90 @@
+# Phase 16a — order-service 의 Postgres.
+#
+# compose 의 `order-db` 서비스를 그대로 옮긴 것이다. 바뀐 건 문법뿐, 개념은 1:1 대응한다:
+#   compose volumes:      → PersistentVolumeClaim (kind 의 local-path-provisioner 가 자동 생성)
+#   compose networks:     → Service (클러스터 DNS `order-db`)
+#   compose healthcheck:  → readinessProbe / livenessProbe
+#
+# ⚠️ 왜 Deployment 이고 StatefulSet 이 아닌가?
+#   DB 는 원래 StatefulSet 이 맞다(안정적 이름·순서 있는 기동·파드별 볼륨). 여기서 Deployment 를 쓰는 이유는
+#   ① 복제본이 1 이고 ② 이 Phase 의 학습 목표가 "워크로드 컨트롤러 비교"가 아니라 "이전"이기 때문이다.
+#   대신 `strategy: Recreate` 로 **새 파드가 뜨기 전에 헌 파드를 죽인다** — 기본값인 RollingUpdate 로 두면
+#   두 파드가 같은 PVC(ReadWriteOnce)를 동시에 잡으려다 새 파드가 영영 Pending 에 걸린다(실제로 잘 밟는 함정).
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: order-db-data
+  namespace: shopsaga
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+  # storageClassName 을 적지 않으면 기본 StorageClass 를 쓴다.
+  # kind 의 기본은 `standard`(rancher local-path-provisioner) — 노드의 로컬 디렉터리를 그대로 내준다.
+  # 즉 `kind delete cluster` 하면 데이터도 함께 사라진다(학습용으로는 오히려 편하다).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-db
+  namespace: shopsaga
+  labels: { app: order-db }
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # ★ 위 주석 참고 — RWO 볼륨 + RollingUpdate = 교착
+  selector:
+    matchLabels: { app: order-db }
+  template:
+    metadata:
+      labels: { app: order-db }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports:
+            - { name: postgres, containerPort: 5432 }
+          env:
+            - { name: POSTGRES_DB, value: orderdb }
+            # ★ Secret 참조 — 값이 매니페스트에 나타나지 않는다.
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: order-db-credentials, key: username } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: order-db-credentials, key: password } }
+          volumeMounts:
+            # PG18 공식 이미지는 /var/lib/postgresql 아래에 data 디렉터리를 만든다(compose 와 동일 지점).
+            - { name: data, mountPath: /var/lib/postgresql }
+          # ── probe: compose 의 healthcheck 대체 ──
+          # DB 에는 HTTP 엔드포인트가 없으므로 exec probe(컨테이너 안에서 명령 실행)를 쓴다.
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "order", "-d", "orderdb"] }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "order", "-d", "orderdb"] }
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 3
+          resources:
+            # requests = 스케줄러가 "이만큼은 확보해준다"(예약), limits = "이 이상은 못 쓴다"(상한).
+            # compose 의 `deploy.resources.limits.memory` 는 limits 에만 대응한다 — requests 개념이 compose 엔 없다.
+            requests: { memory: 128Mi, cpu: 50m }
+            limits:   { memory: 256Mi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: order-db-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-db
+  namespace: shopsaga
+spec:
+  # ClusterIP = 클러스터 안에서만 보이는 가상 IP + DNS 이름(`order-db`).
+  # 파드가 죽고 새 IP 로 살아나도 이 이름은 그대로다 → 이게 k8s 의 "디스커버리"다.
+  type: ClusterIP
+  selector: { app: order-db }
+  ports:
+    - { name: postgres, port: 5432, targetPort: 5432 }

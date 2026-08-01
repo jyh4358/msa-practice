@@ -72,6 +72,8 @@ const DOCS = [
     desc: 'Resilience4j 5종·게이트웨이 회로차단기·DLQ/poison·outbox 격리·고아 결제 보상' },
   { key: 'PHASE-15-CONTRACTS', out: 'PHASE-15-CONTRACTS.html', title: 'Phase 15 · 강화(계약·Bus)', group: 'Phase 단계별', file: 'docs/PHASE-15-CONTRACTS.md',
     desc: 'Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·이벤트 스키마 진화' },
+  { key: 'PHASE-16-KUBERNETES', out: 'PHASE-16-KUBERNETES.html', title: 'Phase 16a · 로컬 k8s(kind)', group: 'Phase 단계별', file: 'docs/PHASE-16-KUBERNETES.md',
+    desc: 'kind 클러스터·ConfigMap/Secret·liveness≠readiness probe·NodePort·자가치유·스케일 아웃' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

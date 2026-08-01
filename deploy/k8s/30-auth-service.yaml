@@ -1,0 +1,104 @@
+# Phase 16a — auth-service (보조 역할).
+#
+# 16a 의 주인공은 order-service 하나지만, order-service 의 모든 API 는 JWT 를 요구한다(Phase 5).
+# 토큰을 발급받을 곳이 없으면 "이전이 성공했다"를 HTTP 200 하나로도 증명할 수 없다.
+# 그래서 상태 없는(DB 없는) auth-service 를 함께 올린다 — 파드 하나, ~300MB.
+#
+# ★ 여기서 이미 16b 의 핵심 교훈이 예고된다:
+#   order-service 의 jwk-set-uri 가 `http://auth-service:9000/...` 이다.
+#   Eureka 도, Config Server 도 없이 **k8s Service DNS 만으로** 상대를 찾는다.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: shopsaga
+data:
+  # 이 파일은 파드의 /application/config/application.yml 로 마운트된다.
+  # Spring Boot 의 기본 설정 탐색 순서는
+  #   classpath:/  <  classpath:/config/  <  file:./  <  file:./config/
+  # 이고 뒤쪽이 이긴다. 컨테이너 WORKDIR 이 /application 이므로 `file:./config/application.yml` 이 되어
+  # jar 안의 application.yml 을 덮어쓴다. → **애플리케이션 코드/이미지를 하나도 안 고치고** 설정만 교체된다.
+  application.yml: |
+    # ── Phase 16: Config Server 를 대신하는 ConfigMap ──
+    eureka:
+      client:
+        enabled: false          # Phase 16b 에서 Eureka 자체를 삭제한다. 여기선 먼저 끄기만.
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info
+      endpoint:
+        health:
+          probes:
+            enabled: true       # /actuator/health/{liveness,readiness} 생성
+          show-details: always
+      tracing:
+        enabled: false          # 16a 엔 otel-lgtm 이 없다 → 익스포터 연결 실패 로그 방지
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: shopsaga
+  labels: { app: auth-service }
+spec:
+  replicas: 1     # ⚠️ 1 을 넘기면 안 된다 — 아래 한계 주석 참고
+  selector:
+    matchLabels: { app: auth-service }
+  template:
+    metadata:
+      labels: { app: auth-service }
+    spec:
+      containers:
+        - name: auth-service
+          image: shopsaga/auth-service:0.0.1
+          imagePullPolicy: IfNotPresent     # ★ kind load 로 넣은 로컬 이미지를 쓴다(레지스트리 조회 금지)
+          ports:
+            - { name: http, containerPort: 9000 }
+          env:
+            - { name: JAVA_OPTS, value: "-Xms128m -Xmx256m" }
+            # jar 안 application.yml 의 `optional:configserver:http://localhost:8888` 를 무력화한다.
+            # 빈 값 = import 없음. (Config Server 는 16b 에서 완전히 삭제된다.)
+            - { name: SPRING_CONFIG_IMPORT, value: "" }
+          volumeMounts:
+            - { name: config, mountPath: /application/config, readOnly: true }
+          startupProbe:
+            # JVM 기동은 느리다(10~30초). startupProbe 가 성공할 때까지 liveness/readiness 는 아예 평가되지 않는다.
+            # 이게 없으면 initialDelaySeconds 를 크게 잡아야 하고, 그러면 정상 파드도 그만큼 늦게 트래픽을 받는다.
+            httpGet: { path: /actuator/health/readiness, port: 9000 }
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30            # 5s × 30 = 최대 150초 기다려 준다
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 9000 }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 9000 }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: { memory: 320Mi, cpu: 100m }
+            limits:   { memory: 512Mi }
+      volumes:
+        - name: config
+          configMap: { name: auth-service-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: shopsaga
+spec:
+  type: ClusterIP
+  selector: { app: auth-service }
+  ports:
+    - { name: http, port: 9000, targetPort: 9000 }
+# ⚠️ 알려진 한계: auth-service 는 RS256 키쌍을 **기동 시 메모리에 생성**한다(Phase 5).
+#    복제본을 2 이상으로 올리면 파드마다 키가 달라져, A 가 발급한 토큰을 B 가 JWKS 로 검증하지 못한다
+#    (order-service 가 캐시한 JWKS 가 어느 파드 것이냐에 따라 401 이 산발적으로 난다).
+#    제대로 하려면 키를 Secret 으로 빼서 모든 파드가 공유해야 한다 → Phase 16b 에서 다룬다.

@@ -24,7 +24,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/oauth2/jwks", "/actuator/health").permitAll()
+                        .requestMatchers("/auth/login", "/oauth2/jwks",
+                                "/actuator/health", "/actuator/health/**").permitAll()   // Phase 16: probe 하위경로
                         .anyRequest().authenticated())
                 .build();
     }
