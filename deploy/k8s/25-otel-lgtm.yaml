@@ -1,0 +1,55 @@
+# Phase 16b — 관측성 백엔드(Phase 8). grafana/otel-lgtm 올인원: Tempo·Loki·Prometheus·Grafana + OTLP 수신.
+#
+# 개발/데모 전용 올인원이다(프로덕션 아님). 데이터는 파드와 함께 사라진다 —
+# PVC 를 붙이지 않은 것은 의도다: 트레이스/메트릭은 재현하면 다시 생기고, RAM·디스크가 더 아깝다.
+#
+# Grafana 는 Ingress 로 `/grafana` 에 붙인다(50-ingress.yaml). 서브패스로 서비스하려면
+# GF_SERVER_ROOT_URL + GF_SERVER_SERVE_FROM_SUB_PATH 가 필요하다.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-lgtm
+  namespace: shopsaga
+  labels: { app: otel-lgtm }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: otel-lgtm }
+  template:
+    metadata:
+      labels: { app: otel-lgtm }
+    spec:
+      containers:
+        - name: otel-lgtm
+          image: grafana/otel-lgtm:0.29.1     # 버전 고정(재현성)
+          ports:
+            - { name: grafana, containerPort: 3000 }
+            - { name: otlp-grpc, containerPort: 4317 }
+            - { name: otlp-http, containerPort: 4318 }
+          env:
+            - { name: GF_AUTH_ANONYMOUS_ENABLED, value: "true" }    # 익명 접근(개발 편의)
+            - { name: GF_AUTH_ANONYMOUS_ORG_ROLE, value: "Admin" }
+            - { name: GF_SERVER_ROOT_URL, value: "%(protocol)s://%(domain)s/grafana/" }
+            - { name: GF_SERVER_SERVE_FROM_SUB_PATH, value: "true" }
+          readinessProbe:
+            # otel-lgtm 은 HTTP 가 아니라 파일로 준비 신호를 준다(compose healthcheck 와 동일).
+            exec: { command: ["sh", "-c", "cat /tmp/ready"] }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 20
+          resources:
+            requests: { memory: 768Mi, cpu: 100m }
+            limits:   { memory: 2Gi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: otel-lgtm, namespace: shopsaga }
+spec:
+  type: ClusterIP
+  selector: { app: otel-lgtm }
+  ports:
+    - { name: grafana, port: 3000, targetPort: 3000 }
+    - { name: otlp-grpc, port: 4317, targetPort: 4317 }
+    - { name: otlp-http, port: 4318, targetPort: 4318 }

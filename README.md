@@ -75,6 +75,7 @@ DB 비밀번호 등 시크릿은 **암호화(`{cipher}`)** 되어 중앙 관리�
 | **14** | **복원력 패턴**(Resilience4j 5종·게이트웨이 회로차단기+fallback·엣지 과부하 차단·**DLQ/poison**·outbox 격리·**고아 결제 보상**) | [PHASE-14-RESILIENCE.md](./docs/PHASE-14-RESILIENCE.md) |
 | **15** | **플랫폼 강화**(Spring Cloud Bus 설정 방송·**계약 테스트**(동기 API+이벤트)·스키마 진화 tolerant reader) | [PHASE-15-CONTRACTS.md](./docs/PHASE-15-CONTRACTS.md) |
 | **16a** | **로컬 Kubernetes(kind)**(같은 이미지를 k8s로 이전·ConfigMap/Secret·**liveness≠readiness probe**·NodePort·자가치유·스케일 아웃) | [PHASE-16-KUBERNETES.md](./docs/PHASE-16-KUBERNETES.md) |
+| **16b** | **전체 플랫폼 on k8s**(**Eureka·Config Server 삭제** → 플랫폼 DNS+ConfigMap·Ingress·compose 동반 이전·무중단 롤링) | [PHASE-16-KUBERNETES.md](./docs/PHASE-16-KUBERNETES.md#part-16b) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 

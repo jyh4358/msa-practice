@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 16a 완료 시점)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 16 완료 시점)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -11,23 +11,22 @@
 - 아키텍처: **헥사고날**(domain / application(port.in·out) / adapter(in.web·in.event·out.persistence·out.messaging)). 상세 `docs/HEXAGONAL.md`.
 - 컨테이너 런타임: **Colima**(arm64). `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`.
 
-## 지금까지 완료 (Phase 0~16a)
+## 지금까지 완료 (Phase 0~16)
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
 5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED·트레이스↔로그) ·
 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · 12 Saga 코레오그래피+보상 · 13 Saga 오케스트레이션 ·
 14 복원력(Resilience4j 5종·회로차단기+fallback·DLQ/poison·outbox 격리·고아 결제 보상) ·
 15 플랫폼 강화(Spring Cloud Bus 설정 방송·계약 테스트(동기 API+이벤트)·스키마 진화 tolerant reader) ·
-**16a 로컬 k8s(kind)**(클러스터+order-service 이전·ConfigMap/Secret·liveness≠readiness probe·NodePort·자가치유·스케일).
+**16a 로컬 k8s(kind)**(클러스터+order-service 이전·ConfigMap/Secret·liveness≠readiness probe·NodePort·자가치유·스케일) ·
+**16b 전체 플랫폼 on k8s**(**Eureka·Config Server 삭제** → 플랫폼 DNS+ConfigMap·Ingress·compose 동반 이전(15→13)·무중단 롤링·auth 복제본 2).
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
 - 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(24p, 더블클릭). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
 
-## 서비스 (15 컨테이너, `--profile async` 기준)
+## 서비스 (13 컨테이너 / 13 파드 — Phase 16b 에서 discovery·config 삭제)
 | 서비스 | 포트 | 프로파일 | 역할 |
 |---|---|---|---|
-| config-service | 8888 | base | Config Server(native+`{cipher}`) |
-| discovery-service | 8761 | base | Eureka |
 | auth-service | 9000 | base | RS256 JWT 발급/JWKS |
 | gateway-service | 8000 | base | 단일 진입점(라우팅+엣지 JWT) |
 | **order-service** | 8080 | base | 주문 접수 + **Saga 조정자**(orchestration 모드) / 상태기계 |
@@ -58,42 +57,53 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- HEAD = `19a4435`(Phase 15). P13=`93d9a26` · P14=`6f0ba71`.
-- ⚠️ **Phase 16a 작업분이 아직 미커밋**(`deploy/k8s/**` 신규 · 6개 `SecurityConfig` · `docs/PHASE-16-KUBERNETES.md` · README/커밋맵/build-docs/handoff).
-- **미푸시 = `19a4435`(Phase 15)**. origin/main 은 `6f0ba71`(Phase 14)까지. 확인: `git log origin/main..HEAD`.
+- HEAD = `d413b1c`(Phase 16a). P14=`6f0ba71` · P15=`19a4435`.
+- ⚠️ **Phase 16b 작업분이 아직 미커밋** — 삭제(`services/discovery-service`·`services/config-service`·`config-repo/`·`deploy/compose/.env.example`·gateway 테스트 사본) + 신규(`deploy/config/**`·`deploy/k8s/{21~25,32~35,50,apply.sh}`·`shared/messaging/.../shopsaga-messaging-defaults.yml`) + 6개 서비스 `application.yml` 재작성 + `compose.yml` 재작성.
+- **미푸시 = `19a4435`(P15) · `d413b1c`(P16a)**. origin/main 은 `6f0ba71`(Phase 14)까지. 확인: `git log origin/main..HEAD`.
 - **커밋·푸시 모두 사용자가 명시 요청할 때만.**
-- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 15행은 `19a4435` 로 채움 완료. 16a 행이 placeholder** → **다음 커밋 때 그 해시 기입.**
+- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 16a 행은 `d413b1c` 로 채움 완료. 16b 행이 placeholder** → **다음 커밋 때 그 해시 기입.**
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
-## 지금 이 순간의 상태 (2026-08-01, Phase 16a 종료 시점)
-- **compose 컨테이너 0개**(볼륨 유지). 대신 **kind 클러스터 `shopsaga` 가 떠 있다**(노드 컨테이너 `shopsaga-control-plane`).
-  네임스페이스 `shopsaga` 에 파드 3개(order-service 1 · order-db 1 · auth-service 1) Running.
-- **Colima 8GB·4CPU → 12GB·6CPU 로 증설**(`colima start --memory 12 --cpu 6`, 디스크·이미지·볼륨 보존됨). VM 사용량 2.4Gi/11Gi.
-- k8s 도구 설치 완료: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` v4.2.3 · `k9s`. 클러스터 k8s **v1.36.1** arm64.
+## 지금 이 순간의 상태 (2026-08-01, Phase 16b 종료 시점)
+- **kind 클러스터 `shopsaga` 가 떠 있다** — ns `shopsaga` 에 **파드 13개 전부 Running(restarts=0)**, `ingress-nginx` 1개.
+  `curl localhost:8000/actuator/health` → 200. **compose 는 내려져 있다.**
+- **Colima 12GB·6CPU**(Phase 16a 에서 8GB·4CPU 에서 증설). k8s 13파드 기준 사용량 4.4Gi/11Gi.
+- 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` v4.2.3 · `k9s`. 클러스터 k8s **v1.36.1** arm64.
 - 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
-- ⚠️ **compose 와 kind 를 동시에 띄우지 말 것**(RAM). 16b 로 넘어가기 전에 compose 가 내려져 있는지 확인.
-- 프로젝트 메모리는 정리 완료(단계별 서술 제거 → 문서 참조). 중복 서술을 다시 넣지 말 것.
+- ⚠️ **compose 와 kind 는 RAM 뿐 아니라 포트(8000)도 충돌**한다. compose 를 쓰려면
+  `docker stop shopsaga-control-plane` 으로 kind 를 재우고, 끝나면 `docker start` 로 되살린다(파드는 자동 재생성).
+  ⚠️ 포트 충돌 상태에서 만들어진 컨테이너는 `up -d` 로 살려도 **포트 매핑이 없다** → `--force-recreate` 필요.
 
-### kind 빠른 조작
+### 빠른 조작
 ```bash
 export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
-kubectl get pods -n shopsaga                       # 상태
-./deploy/k8s/build-and-load.sh [서비스…|all]        # 이미지 재빌드 + kind load
-kubectl rollout restart deployment/<x> -n shopsaga  # ConfigMap 바꾼 뒤
-kind delete cluster --name shopsaga                # 통째로 정리
+kubectl get pods -n shopsaga                        # 상태
+./deploy/k8s/build-and-load.sh all                  # 이미지 재빌드 + kind load
+./deploy/k8s/apply.sh                               # 전체 배포(ConfigMap·RSA키·ingress 포함)
+./deploy/k8s/apply.sh --config                      # 설정만 갱신 + 롤아웃
+kind delete cluster --name shopsaga                 # 통째로 정리
 ```
 자세한 실행·스모크·함정표: `deploy/k8s/README.md`. 심화: `docs/PHASE-16-KUBERNETES.md`.
+
+### 설정이 사는 곳 (Phase 16b 구조 — 꼭 기억)
+```
+① services/*/src/main/resources/application.yml   로컬(IDE) 기본값 localhost
+② shared/messaging/.../shopsaga-messaging-defaults.yml   공통 메시징(4개 서비스가 classpath import)
+③ deploy/config/{common,<service>}.yml           환경 오버라이드 — compose 와 k8s 가 **공유**
+     → /application/config/{10-common,20-service}/application.yml (뒤가 이김)
+```
 
 ## 실행 / 검증 (재현)
 ```bash
 export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
-export ENCRYPT_KEY='shopsaga-dev-encrypt-key-0123456789ab'   # dev 전용, 운영 금지
+# ⚠️ ENCRYPT_KEY 는 Phase 16b 에서 불필요해졌다(Config Server·{cipher} 삭제).
 ./gradlew bootJar
-docker compose -f deploy/compose/compose.yml --profile async up -d --build   # 15컨테이너
-# 빌드/테스트(Docker 필요 — Testcontainers). 현재 61개 통과:
+docker compose -f deploy/compose/compose.yml --profile async up -d --build   # 13컨테이너
+# 빌드/테스트(Docker 필요 — Testcontainers). 현재 87개 통과:
 DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./gradlew build
 ```
-- 공개 포트: gateway :8000 · Eureka :8761 · Config :8888 · Grafana :3000 · kafka-ui :8090 · kafka :9092 · mongo :27017.
+- 공개 포트(compose): gateway :8000 · Grafana :3000 · kafka-ui :8090 · kafka :9092 · mongo :27017.
+- 공개 포트(k8s): Ingress :8000(`/`→gateway, `/grafana`→Grafana) · order-service NodePort :30080(게이트웨이 우회 디버깅).
 - **스모크**: 로그인(`POST :8000/auth/login`) → 주문(`POST :8000/orders` → **PENDING**) → 폴링(`GET :8000/orders/{id}` → CONFIRMED)
   · 읽기모델 `GET :8000/order-views?customerId=` · 재고 `GET :8000/inventory/{productId}`
   · Saga 상태 `docker exec shopsaga-order-db-1 psql -U order -d orderdb -c "SELECT * FROM saga_instance;"`
@@ -109,37 +119,28 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - **Phase 15 계약 테스트**: `./gradlew :services:inventory-service:contractTest`(프로듀서) ·
   `./gradlew :services:order-service:test --tests '*InventoryContractConsumerTest*' --rerun-tasks`(소비자) ·
   `./gradlew :services:order-service:contractTest`(이벤트 계약) · 생성 코드는 `build/generated-test-sources/contractTest`
-- ⚠️ **gateway는 config만 바뀌어도 재시작 필요**(라우트는 기동 시 로드).
+- ⚠️ **gateway는 config만 바뀌어도 재시작 필요**(라우트는 기동 시 로드). k8s 는 `kubectl rollout restart`.
+- **Phase 16b 설정 방송**: `deploy/config/*.yml` 수정 → `./deploy/k8s/apply.sh --config`(롤아웃) 또는
+  ConfigMap 만 갱신 후 아무 서비스에 `busrefresh`(재시작 없이 재바인딩 — 단 파일 동기화에 최대 ~70초).
 - ⚠️ **Gradle 결과를 `| tail` 로 파이프하면 exit code가 tail 것** → `> /tmp/x.log 2>&1; echo $?` 로 확인할 것(실제로 오판했음).
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 16b (전체 플랫폼 on k8s)
-로드맵 `MSA-LEARNING-PLAN.md` §337~. 16a 는 완료(위 참조). 16b 에서 할 일:
-- **Eureka 삭제** → k8s Service DNS(`http://payment-service:8081`). 디스커버리가 앱→플랫폼으로 이동 = 이 Phase 의 핵심 교훈.
-  `spring-cloud-starter-netflix-eureka-client` 의존성 제거 · `discovery-service` 모듈 삭제 · `@LoadBalanced` RestClient 재검토.
-- **Config Server 삭제** → ConfigMap/Secret 로 완전 이전(사용자와 합의한 방향). `config-service` 모듈·`config-repo/` 정리.
-  ⚠️ 16a 에서 서비스마다 ConfigMap 을 통째로 복제했다 → **공통 ConfigMap 분리**(여러 파일을 같은 디렉터리에 마운트)로 완화할 것.
-- **인프라 in-cluster**: payment-db·inventory-db·order-query-mongo(PVC), Kafka(KRaft 단일), otel-lgtm.
-- **게이트웨이 유지 + Ingress**(ingress-nginx). kind 는 `hostPort 8000 → 노드 :80` 이 이미 뚫려 있다.
-  노드 라벨 필요: `kubectl label node shopsaga-control-plane ingress-ready=true`.
-- **auth-service RS256 키를 Secret 으로** → replicas 2 이상 가능(16a 한계 #4).
-- 실증: Saga end-to-end · `kubectl delete pod` 중 Phase 14 회로차단기가 커버 · 롤링 업데이트 무중단.
+## 다음 단계 — Phase 17 (CI/CD)
+로드맵 `MSA-LEARNING-PLAN.md` §Phase 17.
+- **GitHub Actions**: push 시 `./gradlew build`(모노레포 한 방) → 이미지 빌드 → GHCR push.
+- ⚠️ **러너는 amd64, 노트북 kind 는 arm64** → buildx/QEMU 멀티아치(`linux/amd64,linux/arm64`) 또는 학습용이면 arm64 단독.
+- ⚠️ Testcontainers 통합테스트는 러너의 Docker 데몬에 의존한다(현재 87개 중 다수).
+- (선택) `helm/kind-action` 으로 CI 안에서 스모크 배포.
+- 이후 18 캡스톤(선택): Helm/Kustomize · metrics-server+HPA · NetworkPolicy · runAsNonRoot · Debezium CDC 등.
 
-### 16b 시작 전 체크
-① compose 가 내려져 있는지 ② `kind get clusters` 로 `shopsaga` 존재 확인(없으면 `kind create cluster --config deploy/k8s/kind-cluster.yaml`)
-③ 새 서비스 이미지는 `./deploy/k8s/build-and-load.sh all` ④ RAM 여유 `colima ssh -- free -h`
-
-### Phase 16a가 남긴 것(문서 §8에 전체 12항목 표)
-- Eureka·Config Server 가 **코드엔 아직 남아 있다**(`enabled: false` 로 끄기만) → 16b 에서 삭제
-- 서비스 3개뿐 — Kafka 없어 주문이 `PENDING` 에서 멈춘다(outbox 미발행 2건이 그 증거) → 16b
-- auth-service 복제 불가(기동 시 메모리 키 생성) → 16b · `kubectl apply -f` 수동 7회 → Phase 18(Helm)
-- 이미지 배포 수동(`kind load`) → Phase 17 CI/CD · Secret 은 base64 일 뿐 암호화 아님 → 학습 범위 밖
-
-### Phase 15가 남긴 것(문서 §8에 전체 표)
-- **스키마 레지스트리 없음**(규칙을 테스트로만 강제) · **API 버저닝(`/api/v1`) 미적용** — 둘 다 사용자와 합의해 유예
-- 이벤트 계약은 **outbox 까지만** 검증(브로커 왕복 제외) · 소비자 계약 테스트가 **UP-TO-DATE 로 건너뛸 수 있음**(`--rerun-tasks` 필요)
-- 게이트웨이엔 Bus 없음(라우트는 기동 시 로드) · config-repo 는 native 백엔드(Git 아님)
+### Phase 16 이 남긴 것 (문서 §17 에 전체 13항목 표)
+- `kubectl apply` + 셸 스크립트 배포(환경별 차이 표현 불가) → Phase 18 Helm/Kustomize
+- 이미지 배포 수동(`kind load`) → **Phase 17**
+- Secret 은 base64 일 뿐 · 컨테이너 root 실행 · NetworkPolicy 없음 → Phase 18
+- DB·Kafka 가 Deployment(StatefulSet 아님) · PVC 가 local-path · 단일 노드 → 학습 범위 밖
+- metrics-server 없음(HPA 불가) → Phase 18 · ConfigMap 반영 최대 ~70초(구조적)
+- **격리된 outbox 8건**(16b 사고의 실제 유실분) — 재처리 도구 없음
 
 ## 매 Phase 작업 흐름 (사용자 선호 — 지켜야 함)
 1. 리서치(버전 특이점) → 2. 설계(큰 결정은 AskUserQuestion) → 3. 구현 →
@@ -193,4 +194,18 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - **[k8s] ConfigMap 만 바꾸면 아무 일도 안 일어난다** → `kubectl rollout restart`. (파드가 자동으로 뜬다면 podTemplate 이 같이 바뀐 것이다.)
 - **[k8s] Service 분산은 라운드로빈이 아니라 무작위**(iptables `statistic mode random`). 표본이 작으면 편중돼 보인다(실측 30회에 13/11/6).
 - **[k8s] `depends_on` 이 없다** — 앱이 DB 보다 먼저 떠서 CrashLoopBackOff 2~3회 후 자력 회복하는 게 정상 동작이다.
+- **[k8s] Service 는 Ready 인 파드에게만 트래픽을 보낸다 → 자기참조 부트스트랩이 교착한다.**
+  Kafka KRaft `controller.quorum.voters` 를 `1@kafka:29093`(Service 이름)로 두면 브로커가 자기 등록을 못 해 영원히 안 뜬다.
+  단일 노드면 `1@localhost:29093`. 다중이면 StatefulSet + headless + `publishNotReadyAddresses: true`.
+- **[k8s] `KafkaAdmin` 은 토픽을 기동 시 딱 한 번 만든다.** 브로커보다 먼저 뜨면 조용히 실패하고 재시도하지 않는다
+  → 파드는 전부 초록불인데 `UNKNOWN_TOPIC_OR_PARTITION` 으로 Saga 가 멈춘다. **initContainer 로 대기**시킬 것.
+- **[k8s] health 그룹에 없는 컨트리뷰터를 넣으면 기동이 실패**한다(`NoSuchHealthContributorException`).
+  공통 설정을 여러 서비스가 공유하면 `management.endpoint.health.validate-group-membership: false` 가 필요하다.
+- **[k8s] Ingress 오브젝트만 만들면 아무 일도 안 일어난다** — Ingress **컨트롤러**(ingress-nginx)를 따로 설치해야 한다.
+- **[compose↔kind] 포트도 충돌한다**(둘 다 8000). kind 를 재우려면 `docker stop shopsaga-control-plane`, 복구는 `docker start`.
+  포트 충돌로 생성 실패한 컨테이너는 `up -d` 로 살려도 **포트 매핑이 없다** → `--force-recreate`.
+- **[Spring] `spring.config.import: classpath:...`** 로 공통 설정을 라이브러리에서 공유할 수 있다(Config Server 대체).
+  단 **import 문서와 겹치는 키를 두지 말 것**(우선순위를 외우지 않아도 되게).
+- **[테스트] `src/test/resources/application.yml` 사본은 실제 설정을 가린다.** Phase 6 때 만든 게이트웨이 사본이
+  라우트 4개짜리 옛 버전을 검증하고 있었다 — 원본이 5개로 바뀐 걸 몰랐다. 사본을 두면 썩는다.
 - **[zsh] `NS="-n shopsaga"; kubectl get pods $NS` 는 동작하지 않는다** — zsh 는 변수를 단어 분할하지 않아 통째로 한 인자가 된다(`namespaces " shopsaga" not found`).

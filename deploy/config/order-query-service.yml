@@ -1,0 +1,6 @@
+# Phase 16b — order-query-service 컨테이너 오버라이드 (Mongo 호스트).
+spring:
+  data:
+    mongodb:
+      host: order-query-mongo   # localhost → 플랫폼 DNS
+      port: 27017

@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * 반대로 우리가 필드명을 잘못 적어도 즉시 드러난다.
  *
  * <h2>왜 Spring 컨텍스트를 띄우지 않는가</h2>
- * 계약이 검증하는 것은 <b>HTTP 표면 ↔ 우리 파싱 코드</b>의 합이다. Eureka·회로차단기·트랜잭션은 무관하다.
+ * 계약이 검증하는 것은 <b>HTTP 표면 ↔ 우리 파싱 코드</b>의 합이다. 디스커버리·회로차단기·트랜잭션은 무관하다.
  * {@link StubRunnerExtension} 은 Spring 없이도 stub 서버를 띄워 주므로 테스트가 가볍고 빠르다.
  * (복원력 동작은 {@code StockAvailabilityRestAdapterTest} 가 따로 지킨다 — 관심사를 섞지 않는다.)
  *

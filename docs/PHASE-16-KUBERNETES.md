@@ -1,4 +1,4 @@
-# Phase 16a — 로컬 Kubernetes 로 이전 (kind)
+# Phase 16 — 로컬 Kubernetes 로 이전 (kind)
 
 > **한 줄 요약:** compose 로 잘 돌던 서비스를 **코드는 거의 그대로 둔 채** 쿠버네티스로 옮긴다.
 > 이 단계에서 배우는 건 "k8s 문법"이 아니라 **역할의 이동** —
@@ -6,10 +6,16 @@
 > **플랫폼이 대신하기 시작한다.**
 
 초심자(Java/Spring 은 알지만 쿠버네티스는 처음) 기준으로 **왜 → 무엇을 → 어떻게** 순서로 설명합니다.
-Phase 16 은 둘로 나뉩니다. 이 문서는 **16a — 클러스터를 세우고 order-service 하나를 이전**하는 단계입니다.
-(16b 에서 Eureka·Config Server 를 삭제하고 전체 플랫폼을 올립니다.)
+Phase 16 은 둘로 나뉩니다.
+- **[16a](#part-16a)** — 클러스터를 세우고 **order-service 하나**를 이전한다(§0~§9).
+- **[16b](#part-16b)** — **Eureka·Config Server 를 삭제**하고 **전체 플랫폼**을 올린다(§10~).
+
+<a id="part-16a"></a>
 
 ---
+---
+
+# 파트 16a — 클러스터를 세우고 서비스 하나를 옮긴다
 
 ## 0. 이번 단계에서 한 일 (요약)
 
@@ -147,7 +153,10 @@ Phase 4 에서 애플리케이션 라이브러리(Eureka client)가 하던 일�
 | `deploy/k8s/10-secrets.yaml` | DB 자격증명 |
 | `deploy/k8s/20-order-db.yaml` | PVC + Deployment(Recreate) + Service |
 | `deploy/k8s/30-auth-service.yaml` | ConfigMap + Deployment + Service |
-| `deploy/k8s/40-order-service.yaml` | ConfigMap + Deployment(probe 3종·Secret·Downward API) + NodePort |
+| `deploy/k8s/31-order-service.yaml` | ConfigMap + Deployment(probe 3종·Secret·Downward API) + NodePort |
+
+> 파일 번호는 16b 에서 서비스가 늘며 재정렬됐다(`40-` → `31-`). 또한 16b 부터 ConfigMap 은
+> 매니페스트에 인라인으로 있지 않고 `deploy/config/` 의 파일에서 생성된다 — §11 참고.
 
 ### 애플리케이션 코드 변경 (전체)
 
@@ -168,7 +177,7 @@ readiness 실패(트래픽 차단) → liveness 실패(무한 재시작)로 이�
 ### ① Config Server 를 ConfigMap 으로 (코드 수정 없이)
 
 ```yaml
-# deploy/k8s/40-order-service.yaml
+# deploy/k8s/31-order-service.yaml (16a 시점 — 인라인 ConfigMap)
 data:
   application.yml: |
     spring:
@@ -529,7 +538,7 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 
 ---
 
-## 8. 이번 단계의 한계 → 어디서 해결되나
+## 8. 16a 의 한계 → 어디서 해결되나
 
 | # | 한계 | 왜 문제인가 | 해결 |
 |---|---|---|---|
@@ -578,3 +587,564 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
   - [Spring Boot — Kubernetes Probes](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.kubernetes-probes)
   - [Spring Boot — Externalized Configuration (우선순위)](https://docs.spring.io/spring-boot/reference/features/external-config.html)
   - [kind — Loading an Image Into Your Cluster](https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster)
+
+<a id="part-16b"></a>
+
+---
+---
+
+# 파트 16b — Eureka·Config Server 를 삭제하고 전체 플랫폼을 올린다
+
+## 10. 16b 에서 한 일 (요약)
+
+- **Eureka 삭제.** `discovery-service` 모듈과 6개 서비스의 `eureka-client` 의존성을 지웠다.
+  `lb://order-service` → `${services.order}` (평범한 URL). 인스턴스 선택은 이제 **플랫폼**이 한다.
+- **Config Server 삭제.** `config-service` 모듈과 `config-repo/` 를 지웠다.
+  설정은 ① jar 안의 로컬 기본값 ② `shared/messaging` 라이브러리의 공통 메시징 설정
+  ③ `deploy/config/` 파일(ConfigMap / 바인드마운트) 세 층으로 나눴다.
+- **compose 도 함께 이전.** 15 → **13 컨테이너**. compose 와 k8s 가 **같은 설정 파일 한 벌**을 공유한다.
+- **전체 플랫폼 on k8s** — 13 파드(앱 6 · DB 3 · Kafka · Mongo · 관측성 · Ingress 컨트롤러).
+- **Ingress**(ingress-nginx) 를 앞에 세웠다. `localhost:8000` — **compose 시절과 같은 주소**라 기존 스모크가 그대로 동작한다.
+- **auth-service 복제본 2** — RSA 서명 키를 Secret 으로 빼서 16a 의 한계 #4 를 해결했다.
+- 무중단 롤링 업데이트 · Saga 진행 중 파드 삭제 · **Config Server 없는 설정 방송**을 실측했다.
+- **★ 두 개의 진짜 결함을 만났고 둘 다 문서에 남겼다** — KRaft 부트스트랩 교착, KafkaAdmin 토픽 미생성(§16).
+
+---
+
+## 11. 설정을 어디에 둘 것인가 — Config Server 를 지운 자리
+
+Config Server 를 지우면 그 자리가 빈다. "그럼 설정을 어디에?"가 16b 의 진짜 설계 문제였다.
+
+### 세 층으로 나눴다
+
+```
+① jar 안 src/main/resources/application.yml     ← 로컬(IDE)에서 그냥 돌아가는 기본값
+        localhost:5432, localhost:9000 …          "클론하고 bootRun 하면 뜬다"
+        ▲ 덮어씀
+② shared/messaging 의 shopsaga-messaging-defaults.yml   ← 4개 메시징 서비스의 공통 설정
+        Kafka 직렬화·trusted packages·outbox·DLQ·saga    (spring.config.import: classpath:…)
+        ▲ 덮어씀
+③ deploy/config/{common,<service>}.yml          ← 환경(컨테이너)에서 달라지는 것만
+        서비스 주소·Kafka 브로커·probe·관측성 엔드포인트·DB 호스트
+        └ compose : 바인드 마운트  ┐
+        └ k8s     : ConfigMap     ┘ → /application/config/{10-common,20-service}/application.yml
+```
+
+**②가 핵심 아이디어다.** 공통 설정을 "서버"가 아니라 **라이브러리**로 공유한다.
+
+```yaml
+# services/order-service/src/main/resources/application.yml
+spring:
+  config:
+    import: "classpath:shopsaga-messaging-defaults.yml"
+```
+
+Config Server 와 비교하면:
+
+| | Config Server (Phase 6~16a) | 라이브러리 (16b) |
+|---|---|---|
+| 기동 의존성 | **있다** — 그 서버가 죽으면 아무도 못 뜬다 | 없다 |
+| 버전 정합성 | 서버의 파일과 앱의 코드가 따로 논다 | 라이브러리와 함께 간다 |
+| 런타임 변경 | 가능(refresh) | **불가** — 재배포해야 한다 |
+
+그래서 **런타임에 바뀔 수 있는 값**은 ②가 아니라 ③에 둔다. ③은 ConfigMap 이므로 `kubectl edit` + refresh 로 바꿀 수 있다(§15-⑤ 에서 실측).
+
+### 왜 `/application/config/10-common/` 인가
+
+Spring Boot 의 **기본** 설정 탐색 경로는 이렇다(뒤쪽이 이긴다):
+
+```
+classpath:/  <  classpath:/config/  <  file:./  <  file:./config/  <  file:./config/*/
+```
+
+마지막 `file:./config/*/` 는 **하위 디렉터리들**을 이름순으로 읽는다 — 정확히 ConfigMap 여러 개를 마운트하라고 만든 경로다.
+컨테이너 WORKDIR 이 `/application` 이므로 `10-common` < `20-service` 순으로 읽히고 뒤가 이긴다.
+
+### compose 와 k8s 가 같은 파일을 쓰는 이유
+
+**compose 서비스명과 k8s Service 이름을 똑같이 지었기 때문**이다. 두 플랫폼 다 "이름 → 주소"를 DNS 로 풀어 준다.
+
+```yaml
+# deploy/config/common.yml — 이 파일 하나가 compose 와 k8s 양쪽에서 그대로 쓰인다
+services:
+  auth: http://auth-service:9000
+  order: http://order-service:8080
+  payment: http://payment-service:8081
+  inventory: http://inventory-service:8082
+  orderQuery: http://order-query-service:8083
+spring:
+  kafka:
+    bootstrap-servers: kafka:19092
+```
+
+이것 자체가 Phase 16 의 논지다 — **디스커버리는 애플리케이션이 아니라 플랫폼의 일**이므로,
+플랫폼만 바뀌고 애플리케이션 설정은 그대로다.
+
+---
+
+## 12. Eureka 를 지운다는 것
+
+### 코드에서 사라진 것
+
+```java
+// 전 (Phase 4~16a)
+@Bean @LoadBalanced
+RestClient.Builder loadBalancedRestClientBuilder(...) { ... }
+
+@Bean
+RestClient inventoryRestClient(@LoadBalanced RestClient.Builder b) {
+    return b.baseUrl("http://inventory-service").build();   // '논리 이름'
+}
+```
+```java
+// 후 (16b)
+@Bean
+RestClient inventoryRestClient(RestClientBuilderConfigurer configurer,
+                               @Value("${services.inventory}") String baseUrl) {
+    return configurer.configure(RestClient.builder()...).baseUrl(baseUrl).build();  // 그냥 URL
+}
+```
+
+게이트웨이도 같다: `uri: lb://order-service` → `uri: ${services.order}`.
+
+**사라진 것**: 레지스트리 클라이언트 라이브러리, 30초마다의 하트비트, 인스턴스 목록 캐시,
+그리고 "레지스트리가 죽으면?"이라는 걱정(Phase 4 에서 실제로 다뤘던 문제).
+
+### 공짜는 아니다 — 무엇을 잃었나
+
+| | Eureka (앱이 한다) | k8s Service (플랫폼이 한다) |
+|---|---|---|
+| 부하분산 단위 | **요청**마다 인스턴스 선택 | **커넥션**마다(iptables DNAT) |
+| 인스턴스 목록 | 앱이 안다 → 커스텀 정책 가능(존 우선, 가중치) | 앱은 모른다 |
+| 지연 | 로컬 캐시 → 0 | DNS + iptables → 무시할 수준 |
+| 장애 전파 | 레지스트리가 SPOF 후보 | 컨트롤플레인이 죽어도 **기존 규칙은 계속 동작** |
+| 이종 환경 | k8s 밖 VM 도 등록 가능 | 클러스터 안으로 한정 |
+
+**커넥션 단위 분산**이 실무에서 가장 자주 무는 지점이다. HTTP keep-alive 로 커넥션을 오래 물고 있으면
+스케일 아웃을 해도 새 파드로 트래픽이 잘 안 간다. 그래서 gRPC 처럼 커넥션을 유지하는 프로토콜은
+클라이언트 사이드 LB 나 서비스 메시(Envoy)가 여전히 필요하다.
+
+---
+
+## 13. 구성 — 13 파드
+
+```
+                         macOS :8000                      macOS :30080
+                              │                                │ (게이트웨이 우회 디버깅 경로)
+  ┌── kind 노드 (shopsaga-control-plane) ─────────────────────────────────────┐
+  │   :80 ─▶ ingress-nginx 컨트롤러                             :30080        │
+  │              │  /grafana ─▶ otel-lgtm:3000                    │           │
+  │              │  /        ─▶ gateway-service:8000              │           │
+  │              ▼                                                │           │
+  │        gateway-service  (엣지 JWT · 라우트별 회로차단기 · 과부하 차단)      │
+  │           │      │        │            │                      │           │
+  │      /auth│ /orders│ /inventory│ /order-views│                 │           │
+  │           ▼      ▼        ▼            ▼                      ▼           │
+  │      auth-service(×2)  order-service ─ inventory-service   order-service   │
+  │            │              │  │              │                              │
+  │            │       order-db  │        inventory-db                         │
+  │            │                 │                                            │
+  │            │            payment-service ─ payment-db                       │
+  │            │                 │                                            │
+  │            │            order-query-service ─ order-query-mongo            │
+  │            │                 │                                            │
+  │            └──── 전부 ───▶ kafka (KRaft 단일) ◀── outbox 릴레이·Saga·Bus    │
+  │                              │                                            │
+  │                         otel-lgtm (Tempo·Loki·Prometheus·Grafana)          │
+  └───────────────────────────────────────────────────────────────────────────┘
+```
+
+**Ingress 가 있는데 게이트웨이를 왜 남기나** — 층이 다르다.
+
+- **Ingress** = L7 라우팅·TLS 종료. 클러스터 밖에서 안으로 들어오는 문. **플랫폼 기능**.
+- **Gateway** = 엣지 **애플리케이션 로직**: JWT 선검증(Phase 5) · 라우트별 회로차단기와 fallback(Phase 14) ·
+  과부하 차단(Phase 14). 이건 k8s 가 대신해 주지 않는다.
+
+즉 Ingress 는 Eureka 처럼 "앱에서 플랫폼으로 넘어간" 것이 아니라, 게이트웨이 **앞에 한 겹 더 생긴 것**이다.
+(이 로직까지 플랫폼으로 넘기고 싶다면 그게 서비스 메시나 Gateway API 의 영역이다 — 이 학습 범위 밖.)
+
+---
+
+## 14. 코드 — 16b 의 결정적인 부분
+
+### ① auth-service 서명 키를 Secret 으로 (16a 한계 #4 해결)
+
+16a 까지 auth-service 는 기동할 때마다 RSA 키쌍을 새로 만들었다. 그래서 **복제본이 1이 상한**이었다 —
+파드가 둘이면 A 가 발급한 토큰을 B 의 JWKS 로 검증할 수 없어 산발적 401 이 난다.
+
+```java
+@Bean
+public RSAKey rsaKey(@Value("${auth.jwt.private-key:}") String privateKeyPem,
+                     @Value("${auth.jwt.key-id:}") String keyId) throws Exception {
+    String kid = StringUtils.hasText(keyId) ? keyId : UUID.randomUUID().toString();
+    if (!StringUtils.hasText(privateKeyPem)) {
+        log.warn("auth.jwt.private-key 가 비어 있다 — 임시 키쌍을 생성한다(kid={}). …", kid);
+        return generateEphemeral(kid);          // 로컬 개발 편의는 유지
+    }
+    RSAPrivateCrtKey privateKey = readPkcs8(privateKeyPem);
+    // 공개키를 따로 받지 않는다 — CRT 개인키가 modulus 와 publicExponent 를 이미 들고 있다.
+    RSAPublicKey publicKey = (RSAPublicKey) KeyFactory.getInstance("RSA")
+            .generatePublic(new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));
+    return new RSAKey.Builder(publicKey).privateKey((RSAPrivateKey) privateKey).keyID(kid).build();
+}
+```
+
+키는 `apply.sh` 가 `openssl` 로 만들어 Secret 에 넣는다 — **리포지토리에 개인키를 커밋하지 않기 위해서**다.
+그리고 이미 있으면 다시 만들지 않는다(새로 만들면 발급된 토큰이 전부 무효가 된다).
+
+> ⚠️ PKCS#1(`BEGIN RSA PRIVATE KEY`)이 아니라 **PKCS#8**(`BEGIN PRIVATE KEY`)이어야 한다.
+> `openssl genpkey` 는 PKCS#8 로 낸다. 예전 `openssl genrsa` 는 PKCS#1 이라 파싱이 깨진다.
+
+### ② health 그룹 검증을 꺼야 하는 이유
+
+```yaml
+# deploy/config/common.yml
+management:
+  endpoint:
+    health:
+      validate-group-membership: false     # ★ 이 줄이 없으면 서비스 절반이 기동 실패
+      group:
+        readiness: { include: readinessState,db,mongo }
+        liveness:  { include: livenessState }
+```
+
+기본값(true)이면 그룹에 적은 이름이 실제로 존재하는지 검사하고, 없으면
+`NoSuchHealthContributorException` 으로 **애플리케이션이 아예 뜨지 않는다**.
+그런데 공통 파일 하나를 6개 서비스가 공유한다:
+
+- order/payment/inventory → `db` 는 있지만 `mongo` 는 없다
+- order-query → `mongo` 는 있지만 `db` 는 없다
+- gateway/auth → 둘 다 없다
+
+검사를 끄면 "있는 것만 포함"으로 관대하게 동작한다. (대안은 서비스별로 그룹을 따로 정의하는 것인데
+그러면 6곳에 같은 블록이 중복된다 — 공통 설정을 공유하는 이득이 사라진다.)
+
+### ③ initContainer — "순서가 정말 필요한" 한 곳
+
+k8s 에 `depends_on` 이 없는 건 대개 옳다. 그런데 **재시도되지 않는 기동 작업**이 하나 있었다(§16-② 참고).
+
+```yaml
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.37
+          command: ['sh', '-c', 'until nc -z kafka 19092; do echo "kafka 대기..."; sleep 3; done']
+```
+
+initContainer 는 **성공할 때까지 반복**되고, 끝나야 본 컨테이너가 시작된다.
+"기본은 crash-and-retry, 예외적으로 initContainer" — 이 판단이 이 Phase 의 실무 감각이다.
+
+---
+
+## 15. 검증 — 16b 실측
+
+> 환경: macOS 18GB / Colima 12GB·6CPU / kind v0.32.0 / k8s v1.36.1 arm64.
+> compose 는 내려둔 상태. 파드 13개 + ingress-nginx 1개.
+
+### ① 전부 Running
+
+```
+auth-service-…-h84fj            1/1  Running  restarts=0     ← 복제본 2
+auth-service-…-qvzxk            1/1  Running  restarts=0
+gateway-service-…               1/1  Running  restarts=0
+order-service-… / order-db-…    1/1  Running  restarts=0
+payment-service-… / payment-db-…        1/1  Running  restarts=0
+inventory-service-… / inventory-db-…    1/1  Running  restarts=0
+order-query-service-… / order-query-mongo-…  1/1  Running
+kafka-…                         1/1  Running  restarts=0
+otel-lgtm-…                     1/1  Running  restarts=0
+ingress-nginx-controller-…      1/1  Running  (ns: ingress-nginx)
+```
+
+### ② Eureka·Config Server 가 정말 사라졌는가
+
+```
+파드 중 discovery/config     : 0 개
+jar 안 eureka 클래스         : 0 개      (unzip -l order-service.jar | grep -ci eureka)
+소스 트리 모듈               : auth · gateway · inventory · order-query · order · payment   (6개, discovery/config 없음)
+```
+
+### ③ Saga end-to-end — Ingress 를 통해
+
+```
+$ curl localhost:8000/actuator/health                → HTTP 200        (Ingress → gateway)
+$ POST /auth/login                                   → 토큰 525자      (Ingress → gateway → auth-service)
+$ POST /orders (3개)                                 → 201 PENDING
+  [3s] CONFIRMED                                     ← Saga 완주
+
+$ GET /order-views?customerId=…                      (CQRS 읽기 모델, Mongo 투영)
+[{"orderId":"1fb68e2f-…","status":"CONFIRMED","totalAmount":30.00,
+  "lines":[{"productId":"2222…","quantity":3,"unitPrice":10.00,"lineTotal":30.00}]}]
+
+$ GET /inventory/22222222-…                          {"availableQuantity":94}
+```
+
+주소가 `localhost:8000` 그대로다 — **Phase 3~15 의 스모크 명령이 한 글자도 안 바뀌었다.**
+그 사이에 디스커버리·설정·오케스트레이터가 전부 교체됐는데도.
+
+### ④ auth-service 복제본 2 — 16a 한계 #4 해결
+
+```
+auth-service-…-h84fj  1/1
+auth-service-…-qvzxk  1/1
+8회 로그인 → 다른 서비스에서 토큰 검증:  성공 8 · 실패 0
+```
+
+16a 였다면 파드마다 키가 달라 **절반이 401** 이었을 것이다.
+
+### ⑤ ★ Config Server 를 지웠는데 설정 방송이 살아있는가
+
+Phase 15 의 Spring Cloud Bus 가 Config Server 없이도 쓸모 있는지 — 이게 16b 의 가장 궁금한 지점이었다.
+
+```
+① deploy/config/order-service.yml 의 reject-on-insufficient: false
+   → POST /orders(99999개)                              HTTP 201
+
+② ConfigMap 만 true 로 갱신(파드 재시작 없음)
+   파드 안 마운트 파일 확인:  reject-on-insufficient: true     ← kubelet 이 파일을 갱신함
+   그래도 아직                                          HTTP 201   ← Spring 은 아직 안 읽었다
+
+③ inventory-service '한 곳'에만 busrefresh
+   (order-service 는 건드리지 않았다)
+
+④ POST /orders(99999개)                                 HTTP 409   ✅
+   order-service 재시작 횟수:  0 0                       ← 재시작 없이 바뀌었다
+```
+
+**방송의 의미가 바뀌었다.** 전에는 "Config Server 를 다시 읽어라"였고, 이제는 "마운트된 ConfigMap 파일을 다시 읽어라"다.
+메커니즘(Kafka 로 `RefreshRemoteApplicationEvent` 방송 → `@ConfigurationProperties` 재바인딩)은 그대로다.
+
+> ⚠️ 여기서 **두 단계의 지연**이 있다는 걸 봐야 한다.
+> ⓐ ConfigMap 을 바꿔도 파드 안 파일이 갱신되기까지 **최대 ~70초**(kubelet 동기화 주기 + 캐시).
+> ⓑ 파일이 갱신돼도 Spring 은 안 읽는다 → refresh 가 필요하다.
+> ⓐ 때문에 "바꿨는데 왜 안 바뀌지?"로 헷갈리기 쉽다. 급하면 `kubectl rollout restart` 가 확실하다.
+
+### ⑥ 무중단 롤링 업데이트
+
+복제본 2에서 `kubectl rollout restart` 하는 동안 0.5초 간격으로 90회 요청:
+
+```
+요청 90회 응답코드 분포:
+   90 404          ← 없는 주문 id 에 대한 정상 응답
+(502·503·000 = 0건)
+```
+
+**다운타임 0.** 새 파드가 Ready 가 된 뒤에야 헌 파드가 Endpoints 에서 빠지기 때문이다
+(RollingUpdate 기본값 `maxUnavailable=25%`, `maxSurge=25%` + readinessProbe).
+
+### ⑦ Saga 진행 중 파드 삭제
+
+주문 5건을 넣자마자 order-service 파드 하나를 삭제:
+
+```
+주문 최종 상태:  CONFIRMED ×5        ← 전부 완주
+파드:            2개 Running, restarts=0   (삭제된 것은 새 파드로 대체)
+Saga 인스턴스:   COMPLETED ×6, CANCELLED ×6
+읽기 모델:       10건 투영됨
+```
+
+Saga 상태가 **DB 에** 있고(Phase 13) 이벤트가 **outbox 에** 있으므로(Phase 10),
+조정자 파드가 통째로 사라져도 새 파드가 이어받는다. **k8s 가 아니라 우리가 Phase 10·13 에서 만든 성질이다** —
+k8s 는 파드를 다시 만들어 줄 뿐, 상태를 지켜주지는 않는다.
+
+### ⑧ 관측성
+
+```
+$ GET localhost:8000/grafana/api/health   → HTTP 200  {"database":"ok","version":"13.1.0"}
+$ Tempo 에 order-service 트레이스          → 3 건
+```
+
+### ⑨ 자원
+
+```
+$ colima ssh -- free -h
+               total   used   free   available
+Mem:            11Gi   4.4Gi  330Mi      7.2Gi     ← 13 파드 + 컨트롤플레인 + ingress
+```
+
+### ⑩ ★ compose 도 여전히 동작하는가 — 설정 파일 한 벌의 값어치
+
+Eureka·Config Server 를 지웠으니 compose 스택도 함께 이전해야 했다(사용자와 합의한 방향).
+**같은 `deploy/config/` 파일**로 compose 를 띄워 확인했다.
+
+```
+$ docker compose --profile async up -d --build
+컨테이너 13개 (15 → 13: discovery-service·config-service 삭제)
+전부 healthy
+
+$ docker exec shopsaga-order-service-1 ls /application/config/
+10-common   20-service                       ← k8s 와 똑같은 마운트 구조
+$ … grep 'order-db\|auth-service' /application/config/*/application.yml
+  auth: http://auth-service:9000               ← common.yml (compose 서비스명 = k8s Service 이름)
+  url: jdbc:postgresql://order-db:5432/orderdb ← order-service.yml
+
+$ POST /auth/login          → 토큰 550자
+$ POST /orders (2개)        → 201 PENDING
+  [3s] CONFIRMED                               ← Saga 완주
+$ GET /order-views?…        → 44건 (이전 Phase 볼륨 데이터 누적)
+$ GET /inventory/2222…      → {"availableQuantity":66}
+$ GET localhost:3000/api/health → 200          (Grafana)
+```
+
+**ENCRYPT_KEY 도 `.env` 도 필요 없어졌다** — 복호화할 `{cipher}` 가 없으므로.
+설정 파일 한 벌이 두 플랫폼을 모두 돌린다는 것이 여기서 증명된다.
+
+> ⚠️ 검증 중에 **"동시 금지" 규칙이 실제로 물었다.** compose 를 올리려니:
+> ```
+> Bind for 0.0.0.0:8000 failed: port is already allocated
+> ```
+> kind 의 Ingress 매핑(노드:80 → 호스트:8000)이 이미 8000 을 쥐고 있었다.
+> RAM 뿐 아니라 **포트도 충돌**한다. `docker stop shopsaga-control-plane` 으로 kind 를 잠시 재운 뒤 진행했고,
+> 검증 후 `docker start` 로 되살렸다 — 클러스터는 파드 13개를 그대로 재생성하며 복구됐다(restarts=0).
+>
+> ⚠️ 그리고 하나 더: 포트 충돌로 **생성에 실패한 컨테이너를 `up -d` 가 그냥 start 해 버린다.**
+> 컨테이너는 `running healthy` 인데 `docker port` 가 비어 있어 밖에서 닿지 않는다(내부 healthcheck 는 통과하므로).
+> `--force-recreate` 로 다시 만들어야 포트 매핑이 프로그래밍된다.
+
+### ⑪ 회귀 테스트
+
+`./gradlew build` — 전부 통과. 게이트웨이 라우트 테스트에는 **회귀 가드**를 추가했다:
+
+```java
+// 디스커버리가 플랫폼으로 넘어갔으므로 라우트 uri 는 평범한 http URL 이어야 한다.
+// 누군가 lb:// 를 되살리면(= 앱이 다시 인스턴스를 고르려 들면) 여기서 깨진다.
+assertThat(routes).allSatisfy(r ->
+        assertThat(r.getUri().getScheme()).as("route %s", r.getId()).isEqualTo("http"));
+```
+
+---
+
+## 16. 겪은 결함 — 감추지 않고 남긴다
+
+### ① KRaft 부트스트랩 교착 — "Ready 여야 Ready 가 된다"
+
+compose 설정을 그대로 옮겼더니 Kafka 가 뜨지 않고 재시작을 반복했다.
+
+```
+WARN [NodeToControllerChannelManager id=1 name=heartbeat]
+     Connection to node 1 (kafka/10.96.221.146:29093) could not be established.
+ERROR [ControllerRegistrationManager id=1 …] channel manager timed out before sending the request.
+```
+
+**원인.** `KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093` — 브로커가 기동 중에
+**자기 자신(컨트롤러)에게** 등록 요청을 보내는데, 그 주소가 Service 이름이라 ClusterIP 로 풀린다.
+그런데 kube-proxy 는 **Ready 인 파드에게만** 트래픽을 보낸다. 이 파드는 "브로커가 떠야" Ready 가 되므로:
+
+```
+브로커가 뜨려면 → 컨트롤러에 등록해야 → Service 를 거쳐야 → 파드가 Ready 여야 → 브로커가 떠야 …
+```
+
+compose 에는 이 문제가 없다. compose 네트워크의 DNS 는 "준비 상태"를 따지지 않고 그냥 컨테이너 IP 를 준다.
+**Service 가 Endpoints 를 준비 상태로 걸러낸다**는 k8s 고유의 성질이 만든 교착이다.
+
+**해결.** 단일 노드 combined 모드에서는 컨트롤러가 곧 자기 자신이므로 Service 를 경유할 이유가 없다:
+
+```yaml
+- { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@localhost:29093" }
+```
+
+(다중 브로커라면 StatefulSet + headless Service + `publishNotReadyAddresses: true` 로 푼다.)
+
+### ② KafkaAdmin 은 토픽을 딱 한 번만 만든다 — 초록불인데 Saga 가 멈췄다
+
+Kafka 를 고친 뒤 파드는 **13개 전부 `1/1 Running`** 이었는데 주문이 `PENDING` 에서 안 넘어갔다.
+
+```
+WARN  … The metadata response … reported a recoverable issue …
+      {order-events=UNKNOWN_TOPIC_OR_PARTITION, saga-commands=UNKNOWN_TOPIC_OR_PARTITION}
+ERROR … TimeoutException: Topic order-events not present in metadata after 5000 ms.
+WARN  com.shopsaga.outbox.OutboxRelay : Outbox 발행 실패 … attempts=4/5
+
+$ kafka-topics.sh --list
+__consumer_offsets  springCloudBus          ← 도메인 토픽이 하나도 없다
+```
+
+**원인.** Spring 의 `KafkaAdmin` 은 `@Bean NewTopic` 들을 **기동 시 딱 한 번** 만든다.
+앱이 Kafka 보다 먼저 떴고(k8s 에는 `depends_on` 이 없다) 그 한 번의 시도가 실패했으며, **다시 시도하지 않았다.**
+`auto.create.topics.enable=false`(Phase 9 의 의도적 선택)라 브로커가 대신 만들어 주지도 않는다.
+
+무서운 점은 **아무것도 빨간불이 아니었다는 것**이다. 파드는 Running·Ready 이고 probe 도 통과한다.
+readiness 그룹에 Kafka 를 넣지 않은 우리 선택(§11)이 여기서는 증상을 감췄다 —
+그러나 그 선택 자체는 여전히 옳다(브로커가 없어도 주문 접수는 성공해야 하므로).
+
+**해결.** 이 한 곳에만 initContainer 를 뒀다(§14-③). "기본은 crash-and-retry, 예외적으로 순서 강제".
+
+**남은 상처도 정직하게.** 이 사고로 outbox row **8건이 `attempts=5` 로 격리**됐다(Phase 14 의 장치).
+
+```
+attempts=5 topic=order-events   type=OrderPlacedEvent        created=11:51   ← 16a 시절(Kafka 자체가 없었음)
+attempts=5 topic=saga-commands  type=ReserveStockCommand     created=11:52   ← sweeper 재촉 1
+attempts=5 topic=saga-commands  type=ReserveStockCommand     created=12:55   ← 토픽 미생성 구간
+…
+```
+
+이 이벤트들은 **실제로 유실됐다**(격리 = "건너뛰고 사람에게 알린다", 무한 재시도가 아니다).
+그런데 **멈춘 Saga 는 하나도 없다**:
+
+```
+주문 상태 분포:  CONFIRMED ×6, CANCELLED ×6      (PENDING 0)
+격리된 8건에 대응하는 주문:  전부 CANCELLED
+```
+
+Phase 13 의 `SagaTimeoutSweeper` 가 15초 무응답 → 재촉 3회 → 포기 → 취소로 정리한 것이다.
+**Phase 13·14 에서 만든 안전장치가 Phase 16 의 플랫폼 사고를 받아냈다.** 이게 그 장치들을 만든 이유다.
+
+### ③ 테스트가 실제 설정을 검증하지 않고 있었다
+
+`GatewayRoutesTest` 가 깨졌는데, 원인은 **테스트 전용 `src/test/resources/application.yml`** 이었다.
+Phase 6 에서 라우트가 config-repo 로 옮겨갔을 때 "테스트가 Config Server 없이 돌게" 만든 사본인데,
+그 뒤로 **진짜 설정을 가리고 자기 사본을 검증**하고 있었다(라우트 4개짜리 옛 복사본 — `order-views-route` 조차 없었다).
+
+16b 에서 라우트가 본 `application.yml` 로 돌아왔으므로 그 사본을 삭제했다.
+이제 이 테스트는 **실제로 배포되는 설정**을 검증한다.
+
+> 교훈: "테스트를 돌리기 위한 설정 사본"은 시간이 지나면 **테스트를 무의미하게 만드는** 쪽으로 썩는다.
+> 사본을 둘 수밖에 없다면 원본과 어긋났을 때 깨지는 장치를 함께 둬야 한다.
+
+---
+
+## 17. Phase 16 전체의 한계 → 어디서 해결되나
+
+| # | 한계 | 왜 문제인가 | 해결 |
+|---|---|---|---|
+| 1 | **`kubectl apply -f` + 셸 스크립트로 배포** | 환경별 차이(dev/stage/prod)를 표현할 방법이 없다. `apply.sh` 가 명령형이라 선언성이 깨진다 | Phase 18 (Helm/Kustomize) |
+| 2 | **이미지 배포가 수동**(`kind load`) | 어느 커밋이 떠 있는지 추적 불가. 롤백도 수동 | **Phase 17** (CI/CD + 레지스트리) |
+| 3 | **Secret 이 암호화가 아니다** | base64 일 뿐이고 etcd 에도 평문. dev 비밀번호가 리포지토리에 있다 | Phase 18 (External Secrets/SOPS) |
+| 4 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·`seccompProfile` 없음 | Phase 18 |
+| 5 | **NetworkPolicy 가 없다** | 모든 파드가 모든 파드에 접근 가능. DB 도 클러스터 안에서 무방비 | Phase 18 |
+| 6 | **DB·Kafka 가 Deployment** | StatefulSet 이 정석(안정적 신원·순서·파드별 볼륨). 지금은 `Recreate` 로 우회 | 학습 범위 밖 |
+| 7 | **PVC 가 `local-path`** | 노드 로컬 디렉터리. 노드가 죽으면 데이터도 죽는다 | 학습 범위 밖(운영은 CSI) |
+| 8 | **단일 노드** | 진짜 스케줄링·안티어피니티·노드 장애를 볼 수 없다 | 학습 범위 밖 |
+| 9 | **`kubectl top`·HPA 불가** | metrics-server 미설치 → 자동 스케일을 실습할 수 없다 | Phase 18 |
+| 10 | **ConfigMap 반영이 최대 ~70초** | "바꿨는데 왜 안 바뀌지"의 흔한 원인 | 구조적 특성(rollout restart 로 우회) |
+| 11 | **Kafka 단일 브로커·replication 1** | 브로커가 죽으면 이벤트 유실. ISR·리더 선출을 볼 수 없다 | 학습 범위 밖 |
+| 12 | **격리된 outbox 8건이 남아 있다** | 실제 유실분. 재처리(replay) 도구가 없다 | 운영 과제 — Phase 18 후보 |
+| 13 | **관측성 데이터가 휘발** | otel-lgtm 에 PVC 없음 → 파드 재생성 시 트레이스 소실 | 의도적(학습용) |
+
+---
+
+## 18. 용어 (16b 추가분)
+
+- **Ingress / Ingress 컨트롤러** — 전자는 "HTTP 라우팅 규칙" 오브젝트, 후자는 그 규칙을 실제로 수행하는 파드.
+  **컨트롤러 없이 Ingress 만 만들면 아무 일도 일어나지 않는다.**
+- **initContainer** — 본 컨테이너보다 먼저, 성공할 때까지 실행되는 컨테이너. 순서가 꼭 필요할 때의 탈출구.
+- **Downward API** — 파드가 자기 메타데이터(이름·노드·라벨)를 환경변수/파일로 받는 방법.
+- **KRaft** — Kafka 4.x 의 ZooKeeper 없는 합의 모드. 브로커가 컨트롤러 역할을 겸할 수 있다(combined).
+- **maxSurge / maxUnavailable** — RollingUpdate 시 "추가로 더 띄울 수 있는 수 / 동시에 없어도 되는 수".
+  둘의 조합이 무중단 여부를 결정한다.
+- **headless Service** — `clusterIP: None`. 로드밸런싱 없이 파드 IP 를 그대로 DNS 로 노출한다.
+  StatefulSet 의 안정적 신원과 짝을 이룬다.
+
+---
+
+## 19. 참고 (16b)
+
+- 코드: `deploy/k8s/` · `deploy/config/` · [k8s README](../deploy/k8s/README.md)
+- 삭제된 것: `services/discovery-service`(Phase 4) · `services/config-service`·`config-repo/`(Phase 6)
+  → 두 Phase 의 문서는 **"그때는 왜 필요했나"** 의 기록으로 남는다:
+  [Phase 4](SERVICE-DISCOVERY.md) · [Phase 6](PHASE-6-CONFIG.md)
+- 공식 문서:
+  - [Kubernetes — Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) ·
+    [Init Containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/)
+  - [Spring Boot — Externalized Configuration (우선순위·`config/*/`)](https://docs.spring.io/spring-boot/reference/features/external-config.html)
+  - [Spring Boot — Health Groups](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.health.groups)
+  - [Apache Kafka — KRaft Configuration](https://kafka.apache.org/documentation/#kraft_config)

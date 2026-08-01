@@ -1,0 +1,60 @@
+# Phase 16b — payment-service 의 Postgres.
+# 구조·주석은 20-order-db.yaml 과 동일하다(Recreate 전략 이유, PVC, exec probe 설명은 그쪽 참고).
+# **DB-per-service** 원칙 그대로: 서비스마다 자기 DB·자기 볼륨·자기 계정이다.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: payment-db-data, namespace: shopsaga }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-db
+  namespace: shopsaga
+  labels: { app: payment-db }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }     # RWO 볼륨 + RollingUpdate = 교착 (20-order-db.yaml 참고)
+  selector:
+    matchLabels: { app: payment-db }
+  template:
+    metadata:
+      labels: { app: payment-db }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          ports: [{ name: postgres, containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_DB, value: paymentdb }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: payment-db-credentials, key: username } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: payment-db-credentials, key: password } }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql }]
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "payment", "-d", "paymentdb"] }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "payment", "-d", "paymentdb"] }
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 3
+          resources:
+            requests: { memory: 128Mi, cpu: 50m }
+            limits:   { memory: 256Mi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: payment-db-data }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: payment-db, namespace: shopsaga }
+spec:
+  type: ClusterIP
+  selector: { app: payment-db }
+  ports: [{ name: postgres, port: 5432, targetPort: 5432 }]

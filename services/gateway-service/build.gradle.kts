@@ -35,11 +35,6 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-otlp")
     // Phase 8b: Logback → OTel SDK 브릿지(로그를 OTLP로 Loki 전송). Boot BOM OTel SDK(1.49.0)에 맞춰 버전 직접 핀.
     implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.15.0-alpha")
-    // Phase 4: Eureka 클라이언트 — 게이트웨이가 레지스트리에서 서비스 위치를 조회(lb:// 해석).
-    //          loadbalancer 는 이 스타터에 전이 포함되어 lb:// 라우트가 동작한다.
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    // Phase 6: Config 클라이언트 — spring.config.import 로 config-service(:8888)에서 설정을 가져온다.
-    implementation("org.springframework.cloud:spring-cloud-starter-config")
     // Phase 5: 게이트웨이를 리액티브 OAuth2 리소스 서버로(엣지 JWT 검증). jose(RS256) 전이 포함.
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     // Phase 14: 엣지 복원력.

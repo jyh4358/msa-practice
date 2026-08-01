@@ -52,10 +52,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-aop")
     // Phase 4: Eureka 클라이언트(부팅 시 자동 등록) + spring-cloud-loadbalancer(전이 포함)
     //          → @LoadBalanced RestClient 로 payment-service 를 이름으로 호출.
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    // Phase 6: Config 클라이언트 — spring.config.import 로 config-service(:8888)에서 설정을 가져온다.
-    //          (bootstrap.yml/starter-bootstrap 쓰지 않음 — 2025.0.x 표준 import 모델.)
-    implementation("org.springframework.cloud:spring-cloud-starter-config")
     // Phase 15: Spring Cloud Bus(Kafka 백엔드) — 한 인스턴스에 POST /actuator/busrefresh 하면
     //           springCloudBus 토픽으로 RefreshRemoteApplicationEvent 가 퍼져 전 인스턴스가 설정을 다시 읽는다.
     implementation("org.springframework.cloud:spring-cloud-starter-bus-kafka")

@@ -1,9 +1,37 @@
+# payment-service 설정. Phase 16b: Config Server 삭제 → 여기가 기본값, deploy/config 가 호스트명만 덮는다.
 spring:
   application:
     name: payment-service
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import: "classpath:shopsaga-messaging-defaults.yml"
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/paymentdb
+    username: payment
+    password: paymentpw        # dev 기본값. 컨테이너/k8s 는 SPRING_DATASOURCE_PASSWORD 로 주입(Secret).
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${services.auth}/oauth2/jwks
+
+services:
+  auth: http://localhost:9000
 
 server:
   port: 8081
   shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway,metrics,refresh,busrefresh

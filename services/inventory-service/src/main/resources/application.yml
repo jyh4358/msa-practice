@@ -1,9 +1,43 @@
+# inventory-service 설정 (Phase 9: 재고 소유 서비스).
+# Phase 16b: Config Server 삭제 → 여기가 기본값, deploy/config 가 호스트명만 덮는다.
 spring:
   application:
-    name: inventory-service      # {application} 키 — config-service가 이 이름으로 설정을 찾음
+    name: inventory-service
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import: "classpath:shopsaga-messaging-defaults.yml"
+
+  datasource:
+    url: jdbc:postgresql://localhost:5434/inventorydb
+    username: inventory
+    password: inventorypw      # dev 기본값. 컨테이너/k8s 는 SPRING_DATASOURCE_PASSWORD 로 주입(Secret).
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${services.auth}/oauth2/jwks
+
+services:
+  auth: http://localhost:9000
 
 server:
   port: 8082                     # order 8080 · payment 8081 · inventory 8082
   shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway,metrics,refresh,busrefresh
+
+# ── Phase 14: 장애 주입(학습 전용!). inventory-service 의 재고 조회에 지연/오류를 주입한다.
+#    운영에는 절대 두지 않는다 — 여기서는 복원력 패턴을 '눈으로 보기 위한' 손잡이다. ──
+chaos:
+  enabled: true

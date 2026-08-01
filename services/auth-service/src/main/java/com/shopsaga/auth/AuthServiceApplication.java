@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * <p>POST /auth/login 으로 사용자 검증 후 서명된 JWT(roles 클레임 포함)를 발급하고,
  * 공개키를 GET /oauth2/jwks(JWKS)로 노출한다. 게이트웨이/order/payment 는 이 JWKS로 토큰을 검증한다.
- * Eureka 클라이언트로 등록되어 게이트웨이가 lb://auth-service 로 라우팅한다.
+ * Phase 16b: Eureka 등록을 걷어냈다 — 게이트웨이는 플랫폼 DNS(`http://auth-service:9000`)로 라우팅한다.
  */
 @SpringBootApplication
 public class AuthServiceApplication {

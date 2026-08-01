@@ -1,0 +1,45 @@
+# Phase 16b — Ingress: 클러스터 밖에서 안으로 들어오는 단 하나의 문.
+#
+# NodePort(16a)의 문제
+#   · 포트 범위가 30000~32767 로 강제되고, 서비스마다 포트를 외워야 한다.
+#   · TLS 종료도, 경로 기반 라우팅도, 가상 호스트도 없다.
+#   · 노드 수만큼 주소가 생긴다(어느 노드로 들어가야 하나?).
+#
+# Ingress 는 "HTTP 규칙"을 선언하는 오브젝트일 뿐이고, 실제로 트래픽을 받는 건
+# **Ingress 컨트롤러**(우리는 ingress-nginx)라는 파드다. Ingress 오브젝트만 만들고
+# 컨트롤러를 설치하지 않으면 아무 일도 일어나지 않는다 — 처음에 꼭 한 번 겪는 함정이다.
+#
+# 경로 설계
+#   /            → gateway-service:8000   (모든 애플리케이션 트래픽. 엣지 JWT·회로차단기를 거친다)
+#   /grafana     → otel-lgtm:3000         (관측성 UI)
+#
+# kind 설정(kind-cluster.yaml)이 `노드:80 → 호스트:8000` 을 이미 뚫어 뒀으므로
+# macOS 에서 http://localhost:8000 으로 닿는다 — **compose 시절 게이트웨이와 같은 주소**다.
+# 덕분에 Phase 3~15 의 스모크 명령이 그대로 동작한다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopsaga
+  namespace: shopsaga
+  annotations:
+    # 게이트웨이가 자체적으로 라우팅하므로 경로를 다시 쓰지 않는다(/orders 는 /orders 그대로 전달).
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: otel-lgtm
+                port: { number: 3000 }
+          # ⚠️ 순서가 아니라 **가장 긴 접두사**가 이긴다(ingress-nginx 규칙). 그래도 읽는 사람을 위해
+          #    구체적인 경로를 위에, catch-all 을 아래에 둔다.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port: { number: 8000 }

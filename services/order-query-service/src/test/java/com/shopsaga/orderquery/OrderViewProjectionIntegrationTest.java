@@ -51,7 +51,6 @@ class OrderViewProjectionIntegrationTest {
     static void mongoProperties(DynamicPropertyRegistry registry) {
         // 컨테이너는 인증 없이 뜨므로 uri 하나로 지정(host/username 등 개별 키는 무시된다).
         registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-        registry.add("eureka.client.enabled", () -> "false");
     }
 
     @Autowired

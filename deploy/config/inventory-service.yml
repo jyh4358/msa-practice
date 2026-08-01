@@ -1,0 +1,4 @@
+# Phase 16b — inventory-service 컨테이너 오버라이드.
+spring:
+  datasource:
+    url: jdbc:postgresql://inventory-db:5432/inventorydb   # localhost:5434 → inventory-db:5432

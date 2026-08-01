@@ -1,0 +1,80 @@
+# Phase 16b — gateway-service (단일 진입점 — Ingress 뒤에 선다)
+#
+# Phase 16a 와 달라진 점: ConfigMap 이 매니페스트 안에 인라인으로 있지 않다.
+# `deploy/config/{common,gateway-service}.yml` 로부터 `deploy/k8s/apply.sh` 가 ConfigMap 을 만들어
+# 두 개의 서브디렉터리로 마운트한다 — **compose 와 완전히 같은 설정 파일**이다.
+#   /application/config/10-common/application.yml   ← 공통(서비스 주소·Kafka·probe·관측성)
+#   /application/config/20-service/application.yml  ← 이 서비스 전용(DB 호스트 등)
+# Spring Boot 는 `file:./config/*/` 하위를 이름순으로 읽고 뒤쪽이 이긴다.
+#
+# ★ Ingress 가 있는데 게이트웨이를 왜 남기나 — 둘은 층이 다르다.
+#   Ingress   = L7 라우팅·TLS 종료. 클러스터 **밖에서 안으로** 들어오는 문(플랫폼 기능).
+#   Gateway   = 엣지 **애플리케이션 로직**: JWT 선검증(Phase 5)·라우트별 회로차단기와 fallback(Phase 14)
+#               ·과부하 차단(RateLimiter/Bulkhead). 이건 k8s 가 대신해 주지 않는다.
+#   즉 Ingress 는 Eureka 처럼 '앱에서 플랫폼으로' 넘어간 것이 아니라, 게이트웨이 앞에 한 겹 더 생긴 것이다.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+  namespace: shopsaga
+  labels: { app: gateway-service }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: gateway-service }
+  template:
+    metadata:
+      labels: { app: gateway-service }
+    spec:
+      containers:
+        - name: gateway-service
+          image: shopsaga/gateway-service:0.0.1
+          # ★ 태그가 latest 면 imagePullPolicy 기본값이 Always 가 되어 kind 에 넣어둔 로컬 이미지를 무시한다.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8000 }
+          env:
+            - { name: JAVA_OPTS, value: "-Xms128m -Xmx256m" }
+            # Downward API — 파드가 자기 이름을 환경변수로 받는다(k8s API 호출·권한 불필요).
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          volumeMounts:
+            - { name: common-config,  mountPath: /application/config/10-common,  readOnly: true }
+            - { name: service-config, mountPath: /application/config/20-service, readOnly: true }
+          # ⚠️ timeoutSeconds 기본값은 1초 — readiness 가 DB 를 조회하므로 여유를 준다(flapping 방지).
+          startupProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8000 }
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8000 }
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8000 }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: { memory: 320Mi, cpu: 100m }
+            limits:   { memory: 512Mi }
+      # Boot 의 graceful shutdown(server.shutdown: graceful)이 진행 중인 요청을 마칠 시간.
+      # Dockerfile 이 `exec java` 라서 JVM 이 PID 1 = SIGTERM 을 직접 받는다.
+      terminationGracePeriodSeconds: 45
+      volumes:
+        - name: common-config
+          configMap: { name: shopsaga-common }
+        - name: service-config
+          configMap: { name: gateway-service-config }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: gateway-service, namespace: shopsaga }
+spec:
+  type: ClusterIP
+  selector: { app: gateway-service }
+  ports:
+    - { name: http, port: 8000, targetPort: 8000 }

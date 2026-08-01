@@ -1,9 +1,40 @@
+# order-query-service 설정 (Phase 11: CQRS 읽기 모델).
+# 저장소가 MongoDB 라 datasource(JDBC)·Flyway 가 없다 — 문서형은 스키마 마이그레이션 대신 투영으로 모양을 만든다.
+# Phase 16b: Config Server 삭제 → 여기가 기본값, deploy/config 가 호스트명만 덮는다.
 spring:
   application:
-    name: order-query-service     # {application} 키 — config-service가 이 이름으로 설정을 찾음
+    name: order-query-service
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import: "classpath:shopsaga-messaging-defaults.yml"
+
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: orderquerydb
+      username: orderquery
+      password: orderquerypw   # dev 기본값. 컨테이너/k8s 는 SPRING_DATA_MONGODB_PASSWORD 로 주입(Secret).
+      # mongo 이미지의 루트 사용자는 admin DB 에 생성된다 → 인증은 admin 에서 수행.
+      authentication-database: admin
+      # Spring Data MongoDB 3.0+ 는 @Indexed 자동 인덱스 생성을 기본 OFF 로 둔다
+      # (운영에서 앱 기동이 몰래 인덱스를 만드는 걸 막기 위함). 학습용이라 명시적으로 켠다 —
+      # 켜지 않으면 @Indexed 가 아무 일도 하지 않아 고객별 조회가 컬렉션 풀스캔이 된다.
+      auto-index-creation: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${services.auth}/oauth2/jwks
+
+services:
+  auth: http://localhost:9000
 
 server:
   port: 8083                      # order 8080 · payment 8081 · inventory 8082 · order-query 8083
   shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,refresh,busrefresh

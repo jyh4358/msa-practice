@@ -1,0 +1,91 @@
+# Phase 16b — 공통 메시징 설정 (Config Server 를 대신한다).
+#
+# Phase 6~15 에서는 이 내용이 `config-repo/application.yml` 에 있었고, 모든 서비스가 기동 시
+# **Config Server(다른 서비스)에 HTTP 로 물어봐서** 받아 갔다. 그 서버가 죽으면 아무도 못 떴다.
+#
+# Phase 16b 에서 Config Server 를 삭제하면서, 공통값은 **라이브러리(클래스패스 리소스)** 로 옮겼다.
+# 이 파일을 쓰는 서비스는 자기 application.yml 에 한 줄만 적는다:
+#
+#     spring.config.import: "classpath:shopsaga-messaging-defaults.yml"
+#
+# 왜 이게 나은가
+#   · 기동 의존성이 사라진다 — 설정을 받으려고 남의 서비스가 살아있길 기다리지 않는다.
+#   · 버전이 함께 간다 — 라이브러리를 올리면 그 라이브러리가 요구하는 설정도 같이 온다.
+#   · 대신 **런타임에 못 바꾼다** — 값을 바꾸려면 재배포다. 그래서 환경별로 달라지는 값
+#     (브로커 주소 같은 것)은 여기 두지 않고 `deploy/config/common.yml`(ConfigMap/바인드마운트)이 덮는다.
+#
+# ⚠️ 이 파일과 서비스별 application.yml 은 **키가 겹치지 않도록** 유지한다.
+#    (import 문서와 import 하는 문서의 우선순위를 외우지 않아도 되게 하는 가장 안전한 방법이다.)
+
+spring:
+  # ── Phase 9~12: Kafka. 한 토픽에 여러 이벤트 타입이 흐르므로 소비 측은 JSON 타입 헤더(__TypeId__)로
+  #    @KafkaHandler 분기한다 → JsonDeserializer 에 기본 타입을 주지 않고 trusted.packages 로 계약만 허용. ──
+  kafka:
+    bootstrap-servers: localhost:9092    # 로컬(IDE) 기본값. 컨테이너/k8s 는 deploy/config/common.yml 이 kafka:19092 로 덮는다.
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.block.ms: 5000               # 브로커 부재 시 send 가 5초만 대기하고 실패 → 주문은 계속 진행
+    consumer:
+      auto-offset-reset: earliest        # 그룹 최초 조인 시 처음부터 소비(리플레이 학습)
+      # ── Phase 14: 역직렬화기를 ErrorHandlingDeserializer 로 '감싼다'. ──
+      # 이게 없으면 깨진 JSON(poison pill)이 리스너에 도달하기 전 컨슈머 스레드에서 터져
+      # 에러 핸들러가 손도 못 대고 같은 레코드가 무한 재배달된다(파티션 영구 정지).
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        # ⚠️ 하위 패키지는 자동 포함되지 않는다 — Phase 13 에서 commands 패키지를 빠뜨려
+        #    "not in the trusted packages" 로 커맨드 소비가 전부 실패했다. 각각 명시할 것.
+        spring.json.trusted.packages: "com.shopsaga.events,com.shopsaga.events.commands"
+    template:
+      observation-enabled: true          # KafkaTemplate → traceparent 헤더 주입(HTTP→Kafka 트레이스 연결)
+    listener:
+      observation-enabled: true          # @KafkaListener → traceparent 추출·자식 스팬
+
+  # ── Phase 15: Spring Cloud Bus(Kafka 백엔드). 설정 변경을 한 번의 busrefresh 로 전 인스턴스에 방송한다.
+  #    Phase 16b 에서 Config Server 는 사라졌지만 Bus 는 그대로 쓸모가 있다 —
+  #    이제 방송의 대상은 "Config Server 를 다시 읽어라"가 아니라 "**마운트된 ConfigMap 파일을 다시 읽어라**"다. ──
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${spring.kafka.bootstrap-servers}   # 바인더의 브로커 주소는 spring.kafka 와 '별개'다
+          # ⚠️⚠️ Phase 15 에서 가장 오래 헤맨 지점. 스트림 바인더는 위 spring.kafka.{producer,consumer} 를
+          #  물려받는데, 그 설정은 도메인 이벤트용(JsonSerializer)이라 byte[] 를 쓰는 Bus 메시지가
+          #  base64 로 이중 인코딩돼 버린다. 토픽엔 쌓이는데 아무도 리프레시되지 않는다(에러도 안 난다).
+          configuration:
+            key.serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+            value.serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+            key.deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+            value.deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+    bus:
+      enabled: true
+      destination: springCloudBus        # 이벤트가 흐르는 토픽(바인더가 AdminClient 로 자동 생성)
+
+# ── Phase 10~12: Outbox 릴레이. 릴레이가 없는 서비스(order-query)는 이 값을 그냥 무시한다. ──
+outbox:
+  relay:
+    fixed-delay: 1000                    # ms. 미발행 outbox row 를 Kafka 로 내보내는 폴링 간격.
+    # Phase 14: 이만큼 실패한 row 는 조회 대상에서 제외(격리)한다. 무한 재시도가 배치 앞자리를
+    # 영구 점유해 뒤의 정상 이벤트를 굶기는 것을 막는다. 격리 건수는 메트릭 outbox_stuck 으로 노출.
+    max-attempts: 5
+
+# ── Phase 14: 소비 실패 처리(유한 백오프 재시도 → DLQ). shared/messaging 의 DefaultErrorHandler 가 읽는다. ──
+messaging:
+  dlq:
+    max-retries: 3
+    initial-interval: 500                # ms
+    multiplier: 2.0
+    max-interval: 5000                   # ms
+
+# ── Phase 13: Saga 실행 방식 토글. 같은 업무를 두 방식으로 만들어 비교하기 위한 장치다.
+#    ⚠️ 두 방식이 동시에 켜지면 이중 처리되므로 리스너들이 이 값으로 상호배타 게이팅된다. ──
+saga:
+  mode: orchestration
+  timeout:
+    sweep-interval: 5000                 # ms. 정체된 Saga 를 찾는 주기.
+    deadline: 15s                        # 이 시간 동안 리플라이가 없으면 정체로 판단 → 커맨드 재전송.
+    max-attempts: 3                      # 이만큼 재촉해도 응답이 없으면 보상/취소로 종료.

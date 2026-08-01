@@ -1,0 +1,96 @@
+# Phase 16b — Kafka (KRaft 모드, 단일 노드).
+#
+# compose 의 kafka 를 그대로 옮겼다. 리스너 구성이 조금 단순해졌다 —
+# compose 에선 호스트에서 붙기 위한 PLAINTEXT_HOST(:9092) 가 필요했지만, k8s 에선 클러스터 안에서만 쓰므로
+# 내부 리스너(:19092) 하나면 된다. 밖에서 볼 일이 있으면 `kubectl port-forward svc/kafka 19092:19092`.
+#
+# ⚠️ 여기서도 Deployment 를 쓴다. 원래 Kafka 는 StatefulSet 이 정석이다(브로커 신원·순서 있는 기동·
+#    브로커별 볼륨). 단일 브로커 학습용이라 Recreate 로 대신한다 — 한계표(#9)에 남겼다.
+#
+# ⚠️ advertised.listeners 가 `kafka:19092` 인 것이 중요하다. 클라이언트는 처음에 bootstrap 주소로 붙지만
+#    브로커가 **자기가 광고한 주소**를 돌려주고, 이후 통신은 그 주소로 한다.
+#    Service 이름과 다르게 적으면 "붙었는데 메타데이터를 받은 뒤 끊긴다"는 헷갈리는 증상이 난다.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: kafka-data, namespace: shopsaga }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 2Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: shopsaga
+  labels: { app: kafka }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: kafka }
+  template:
+    metadata:
+      labels: { app: kafka }
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:4.3.1        # KRaft(ZooKeeper 없음), arm64 네이티브
+          ports:
+            - { name: internal, containerPort: 19092 }
+            - { name: controller, containerPort: 29093 }
+          env:
+            - { name: KAFKA_NODE_ID, value: "1" }
+            - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
+            - { name: KAFKA_LISTENERS, value: "CONTROLLER://:29093,PLAINTEXT://:19092" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "PLAINTEXT://kafka:19092" }
+            - { name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
+            - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: "CONTROLLER" }
+            # ★★ compose 에서는 `1@kafka:29093` 이었는데 k8s 에서는 **그대로 쓰면 영원히 안 뜬다.**
+            #  KRaft 브로커는 기동 중 자기 자신(컨트롤러)에게 등록 요청을 보낸다. 그 주소가 Service 이름이면
+            #  ClusterIP 로 풀리는데, kube-proxy 는 **Ready 인 파드에게만** 트래픽을 보낸다.
+            #  그런데 이 파드는 "브로커가 떠야" Ready 가 되므로 → 엔드포인트 0개 → 연결 거부 → 영원히 순환한다.
+            #    Connection to node 1 (kafka/10.96.x.x:29093) could not be established
+            #  단일 노드 combined 모드에서는 컨트롤러가 곧 자기 자신이므로 Service 를 경유할 이유가 없다.
+            #  (다중 브로커라면 StatefulSet + headless Service + publishNotReadyAddresses: true 로 푼다.)
+            - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@localhost:29093" }
+            # 단일 노드 — 내부 토픽 replication-factor 를 1로(기본 3이면 생성 실패).
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR, value: "1" }
+            - { name: KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR, value: "1" }   # Kafka 4.x
+            - { name: KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR, value: "1" }
+            - { name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS, value: "0" }
+            - { name: KAFKA_AUTO_CREATE_TOPICS_ENABLE, value: "false" }   # 토픽은 KafkaAdmin+NewTopic 으로 명시 생성
+            - { name: CLUSTER_ID, value: "4L6g3nShT-eMCtK--X86sw" }
+            - { name: KAFKA_HEAP_OPTS, value: "-Xmx400m -Xms200m" }
+            - { name: KAFKA_LOG_DIRS, value: "/var/lib/kafka/data" }
+          volumeMounts: [{ name: data, mountPath: /var/lib/kafka }]
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:19092 > /dev/null 2>&1"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: { port: 19092 }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests: { memory: 512Mi, cpu: 100m }
+            limits:   { memory: 900Mi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: kafka-data }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: kafka, namespace: shopsaga }
+spec:
+  type: ClusterIP
+  selector: { app: kafka }
+  ports:
+    - { name: internal, port: 19092, targetPort: 19092 }
+    - { name: controller, port: 29093, targetPort: 29093 }

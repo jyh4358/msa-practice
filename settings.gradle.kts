@@ -17,8 +17,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "msa-platform"
 
-include(":services:discovery-service")
-include(":services:config-service")
+// Phase 16b: discovery-service(Eureka)·config-service(Config Server) 삭제.
+//   디스커버리 → 플랫폼 DNS(compose 네트워크 / k8s Service), 설정 → 파일(ConfigMap/바인드마운트).
+//   "그 자리에 무엇이 들어섰나"는 docs/PHASE-16-KUBERNETES.md 참고.
 include(":services:order-service")
 include(":services:payment-service")
 include(":services:gateway-service")

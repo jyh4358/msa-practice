@@ -1,0 +1,5 @@
+# Phase 16b — auth-service 컨테이너 오버라이드.
+#
+# 서명 키(auth.jwt.*)는 여기가 아니라 **Secret** 에서 환경변수로 들어온다
+# (AUTH_JWT_PRIVATE_KEY / AUTH_JWT_KEY_ID). 비밀값을 ConfigMap 에 두지 않기 위함이다.
+{}

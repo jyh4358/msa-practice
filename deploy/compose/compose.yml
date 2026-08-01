@@ -1,10 +1,15 @@
-# Phase 7: 전체 스택 로컬 오케스트레이션 — 2 DB + 6 서비스를 한 번에.
+# Phase 7 (Phase 16b 갱신): 전체 스택 로컬 오케스트레이션.
 #
 #   ./gradlew bootJar                                        # 먼저 각 서비스 jar 빌드
-#   cp deploy/compose/.env.example deploy/compose/.env       # ENCRYPT_KEY 준비
-#   docker compose -f deploy/compose/compose.yml up --build  # 이미지 빌드 + 기동
+#   docker compose -f deploy/compose/compose.yml --profile async up -d --build
 #
-# 로컬(호스트) ./gradlew bootRun 워크플로와 공존한다(프로파일 default vs docker). 단 포트가 겹치므로 동시 실행 X.
+# ★ Phase 16b 에서 두 컨테이너가 사라졌다 — discovery-service(Eureka)와 config-service(Config Server).
+#   · 디스커버리 → compose 네트워크의 DNS 가 한다(`http://order-service:8080`).
+#   · 설정      → `deploy/config/` 를 바인드 마운트한다(k8s 는 같은 파일로 ConfigMap 을 만든다).
+#   그래서 ENCRYPT_KEY 도, .env 도 더 이상 필요 없다.
+#
+# ⚠️ compose 와 kind(Phase 16) 를 동시에 띄우지 말 것 — 18GB 노트북에서 RAM 이 모자란다.
+# 로컬(호스트) ./gradlew bootRun 워크플로와 공존한다. 단 포트가 겹치므로 동시 실행 X.
 name: shopsaga
 
 networks:
@@ -18,13 +23,20 @@ volumes:
   order-query-mongo-data:  # Phase 11 읽기 모델 (--profile async)
 
 # 4개 앱 클라이언트(auth/order/payment/gateway) 공통 설정 (YAML 앵커).
+# 앱 컨테이너 공통 (YAML 앵커).
+#
+# ★ 설정 주입 방식이 Phase 16b 에서 바뀌었다.
+#   전: SPRING_CONFIG_IMPORT=configserver://… → 기동 시 Config Server 에 HTTP 로 물어봄(기동 의존성!)
+#   후: deploy/config/*.yml 을 파일로 마운트 → 아무에게도 안 물어본다.
+#
+# 마운트 경로가 /application/config/{10-common,20-service}/ 인 이유:
+#   Spring Boot 기본 탐색 경로에 `optional:file:./config/*/` 가 있고(WORKDIR=/application),
+#   그 하위 디렉터리들을 **이름순으로 읽어 뒤쪽이 이긴다** → 10-common < 20-service.
+#   k8s 도 똑같은 경로에 ConfigMap 을 마운트한다(deploy/k8s/apply.sh) — 설정 파일 한 벌을 공유한다.
 x-app-common: &app-common
   networks: [shopsaga-net]
   restart: unless-stopped
   environment: &app-env
-    SPRING_PROFILES_ACTIVE: docker
-    # 부트스트랩 값(Config Server 자신을 가리킴)이라 중앙 config가 아닌 env로 주입.
-    SPRING_CONFIG_IMPORT: "configserver:http://config-service:8888"
     JAVA_OPTS: "-Xms128m -Xmx320m"
   deploy:
     resources:
@@ -210,63 +222,10 @@ services:
         limits:
           memory: 2G
 
-  # ── Config Server (먼저 떠야 함) ──
-  config-service:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile.service
-      args:
-        JAR_FILE: services/config-service/build/libs/config-service-0.0.1-SNAPSHOT.jar
-    image: shopsaga/config-service:latest
-    restart: unless-stopped
-    networks: [shopsaga-net]
-    ports:
-      - "8888:8888"        # 설정 확인용 공개
-    environment:
-      ENCRYPT_KEY: "${ENCRYPT_KEY:?ENCRYPT_KEY 필요 (deploy/compose/.env 참고)}"
-      # native 검색 경로를 마운트된 컨테이너 경로로 오버라이드(로컬은 절대 호스트 경로).
-      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: "file:/config-repo"
-      SPRING_CLOUD_CONFIG_SERVER_NATIVE_ADD_LABEL_LOCATIONS: "false"
-      JAVA_OPTS: "-Xms128m -Xmx256m"
-    volumes:
-      - ../../config-repo:/config-repo:ro   # config-repo 를 읽기전용 마운트
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8888/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 384M
+  # ── 앱 서비스 ──
+  # Phase 16b: config-service·discovery-service 가 사라져 기동 순서 의존이 **자기 DB·Kafka 로만** 남았다.
+  #   (예전엔 모든 앱이 Config Server 와 Eureka 가 healthy 해질 때까지 기다렸다 = 직렬 기동.)
 
-  # ── Eureka (config 클라이언트 아님, 독립) ──
-  discovery-service:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile.service
-      args:
-        JAR_FILE: services/discovery-service/build/libs/discovery-service-0.0.1-SNAPSHOT.jar
-    image: shopsaga/discovery-service:latest
-    restart: unless-stopped
-    networks: [shopsaga-net]
-    ports:
-      - "8761:8761"        # Eureka 대시보드 공개
-    environment:
-      JAVA_OPTS: "-Xms128m -Xmx256m"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8761/actuator/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 384M
-
-  # ── 앱 서비스 (config·discovery healthy 이후) ──
   auth-service:
     <<: *app-common
     build:
@@ -275,9 +234,9 @@ services:
       args:
         JAR_FILE: services/auth-service/build/libs/auth-service-0.0.1-SNAPSHOT.jar
     image: shopsaga/auth-service:latest
-    depends_on:
-      config-service: { condition: service_healthy }
-      discovery-service: { condition: service_healthy }
+    volumes:
+      - ../config/common.yml:/application/config/10-common/application.yml:ro
+      - ../config/auth-service.yml:/application/config/20-service/application.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9000/actuator/health || exit 1"]
       interval: 15s
@@ -293,9 +252,10 @@ services:
       args:
         JAR_FILE: services/order-service/build/libs/order-service-0.0.1-SNAPSHOT.jar
     image: shopsaga/order-service:latest
+    volumes:
+      - ../config/common.yml:/application/config/10-common/application.yml:ro
+      - ../config/order-service.yml:/application/config/20-service/application.yml:ro
     depends_on:
-      config-service: { condition: service_healthy }
-      discovery-service: { condition: service_healthy }
       order-db: { condition: service_healthy }
       # Phase 12: order 가 order-events 토픽을 선언·발행한다(auto-create 꺼짐) → 브로커가 먼저 떠야 한다.
       # required:false = async 프로파일이 아닐 때는 kafka 없이도 기동(그때는 Saga가 진행되지 않는다).
@@ -315,9 +275,10 @@ services:
       args:
         JAR_FILE: services/payment-service/build/libs/payment-service-0.0.1-SNAPSHOT.jar
     image: shopsaga/payment-service:latest
+    volumes:
+      - ../config/common.yml:/application/config/10-common/application.yml:ro
+      - ../config/payment-service.yml:/application/config/20-service/application.yml:ro
     depends_on:
-      config-service: { condition: service_healthy }
-      discovery-service: { condition: service_healthy }
       payment-db: { condition: service_healthy }
       # Phase 12: payment 가 payment-events 토픽을 선언·발행하고 inventory-events 를 소비한다.
       kafka: { condition: service_healthy, required: false }
@@ -338,9 +299,10 @@ services:
       args:
         JAR_FILE: services/inventory-service/build/libs/inventory-service-0.0.1-SNAPSHOT.jar
     image: shopsaga/inventory-service:latest
+    volumes:
+      - ../config/common.yml:/application/config/10-common/application.yml:ro
+      - ../config/inventory-service.yml:/application/config/20-service/application.yml:ro
     depends_on:
-      config-service: { condition: service_healthy }
-      discovery-service: { condition: service_healthy }
       inventory-db: { condition: service_healthy }
       kafka: { condition: service_healthy }
     healthcheck:
@@ -360,9 +322,10 @@ services:
       args:
         JAR_FILE: services/order-query-service/build/libs/order-query-service-0.0.1-SNAPSHOT.jar
     image: shopsaga/order-query-service:latest
+    volumes:
+      - ../config/common.yml:/application/config/10-common/application.yml:ro
+      - ../config/order-query-service.yml:/application/config/20-service/application.yml:ro
     depends_on:
-      config-service: { condition: service_healthy }
-      discovery-service: { condition: service_healthy }
       order-query-mongo: { condition: service_healthy }
       kafka: { condition: service_healthy }
     healthcheck:
@@ -382,9 +345,9 @@ services:
     image: shopsaga/gateway-service:latest
     ports:
       - "8000:8000"        # 단일 진입점만 공개
-    depends_on:
-      config-service: { condition: service_healthy }
-      discovery-service: { condition: service_healthy }
+    volumes:
+      - ../config/common.yml:/application/config/10-common/application.yml:ro
+      - ../config/gateway-service.yml:/application/config/20-service/application.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8000/actuator/health || exit 1"]
       interval: 15s

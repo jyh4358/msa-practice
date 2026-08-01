@@ -1,0 +1,14 @@
+# Phase 16b — order-service 컨테이너 오버라이드. 호스트명만 바꾼다(나머지는 jar 안 기본값 + common.yml).
+# 마운트 위치: /application/config/20-service/application.yml  (common 보다 뒤 → 이긴다)
+spring:
+  datasource:
+    # localhost:5432 → 플랫폼 DNS. compose 서비스명과 k8s Service 이름이 같아 한 줄로 둘 다 커버된다.
+    # username/password 는 여기 두지 않는다 → Secret(k8s) / compose environment 로 주입.
+    url: jdbc:postgresql://order-db:5432/orderdb
+
+# Phase 16b 실증용: 이 값을 바꾸고 busrefresh 하면 **재시작 없이** 동작이 바뀌는지 본다.
+# (Phase 15 의 Spring Cloud Bus 가 Config Server 없이도 그대로 쓸모 있다는 증거 —
+#  이제 방송의 의미는 "Config Server 를 다시 읽어라"가 아니라 "마운트된 ConfigMap 파일을 다시 읽어라"다.)
+order:
+  stock-precheck:
+    reject-on-insufficient: false

@@ -32,10 +32,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    // Phase 9: Eureka 클라이언트 — inventory-service 이름으로 등록(게이트웨이 /inventory 라우팅).
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    // Config 클라이언트 — config-service(:8888)에서 설정 수신.
-    implementation("org.springframework.cloud:spring-cloud-starter-config")
     // Phase 15: Spring Cloud Bus(Kafka 백엔드) — 한 인스턴스에 POST /actuator/busrefresh 하면
     //           springCloudBus 토픽으로 RefreshRemoteApplicationEvent 가 퍼져 전 인스턴스가 설정을 다시 읽는다.
     implementation("org.springframework.cloud:spring-cloud-starter-bus-kafka")

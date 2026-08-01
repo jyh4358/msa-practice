@@ -1,7 +1,0 @@
-# Phase 11: order-query-service docker 오버라이드 — Mongo 호스트를 compose 서비스명으로.
-# (username·{cipher} password·database·authentication-database 는 order-query-service.yml 에서 상속.)
-spring:
-  data:
-    mongodb:
-      host: order-query-mongo   # localhost → compose 서비스명 DNS
-      port: 27017

@@ -1,9 +1,25 @@
+# auth-service 설정 (Phase 5: RS256 JWT 발급 + JWKS 공개).
+# Phase 16b: Config Server 삭제 → 여기가 기본값, deploy/config 가 덮는다.
 spring:
   application:
     name: auth-service
-  config:
-    import: "optional:configserver:http://localhost:8888"
 
 server:
   port: 9000
   shutdown: graceful
+
+# ── Phase 16b: 서명 키를 '설정'으로 뺀다 ──
+# Phase 5~16a 에서는 기동할 때마다 RSA 키쌍을 새로 만들었다(kid 도 매번 새로). 그래서
+#   · 재시작하면 이전 토큰이 전부 무효가 되고,
+#   · **복제본을 2 이상으로 올릴 수 없었다** — 파드마다 키가 달라 A 가 발급한 토큰을 B 가 검증 못 한다.
+# 값이 비어 있으면 예전처럼 임시 키를 생성한다(로컬 개발 편의). 컨테이너/k8s 는 Secret 으로 주입한다.
+auth:
+  jwt:
+    key-id: ""          # 비우면 UUID 자동 생성
+    private-key: ""     # PKCS#8 PEM. 비우면 RSA 2048 키쌍을 매 기동 시 새로 생성(단일 인스턴스 전용)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

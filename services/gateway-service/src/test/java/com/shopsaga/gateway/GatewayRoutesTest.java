@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
@@ -19,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 게이트웨이는 DB를 쓰지 않으므로 Docker/Postgres 없이 컨텍스트가 뜬다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = "eureka.client.enabled=false")   // 레지스트리 없이 라우트 정의 로딩만 검증
+// Phase 16b: Eureka 가 사라져 비활성화 프로퍼티가 필요 없어졌다 — 라우트는 그냥 URL 이다.
 class GatewayRoutesTest {
 
     @Autowired
@@ -33,6 +32,13 @@ class GatewayRoutesTest {
 
         assertThat(routes)
                 .extracting(RouteDefinition::getId)
-                .contains("auth-route", "orders-route", "inventory-route", "payments-route");
+                .contains("auth-route", "orders-route", "inventory-route", "payments-route", "order-views-route");
+
+        // Phase 16b 회귀 가드: 디스커버리가 플랫폼으로 넘어갔으므로 라우트 uri 는 평범한 http URL 이어야 한다.
+        // 누군가 lb:// 를 되살리면(= 앱이 다시 인스턴스를 고르려 들면) 여기서 깨진다.
+        assertThat(routes)
+                .allSatisfy(r -> assertThat(r.getUri().getScheme())
+                        .as("route %s", r.getId())
+                        .isEqualTo("http"));
     }
 }

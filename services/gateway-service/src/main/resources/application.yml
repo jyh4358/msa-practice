@@ -1,10 +1,101 @@
+# gateway-service 설정 (Phase 3: 단일 진입점 + Phase 5 엣지 JWT + Phase 14 엣지 복원력).
+#
+# ★ Phase 16b 의 핵심 변화가 여기서 가장 잘 보인다.
+#   전: uri: lb://order-service      ← 'lb://' = spring-cloud-loadbalancer 가 Eureka 레지스트리에서
+#                                       order-service 인스턴스 목록을 받아 직접 하나를 고른다(앱이 한다).
+#   후: uri: ${services.order}       ← 그냥 URL. 실제 인스턴스 선택은 **플랫폼**이 한다
+#                                       (compose 네트워크 DNS / k8s Service + kube-proxy).
+#   게이트웨이 코드에서 디스커버리·부하분산 책임이 통째로 사라졌다.
 spring:
   application:
     name: gateway-service
-  config:
-    # 라우트·jwk-set-uri·eureka 는 config-service에서 온다.
-    import: "optional:configserver:http://localhost:8888"
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${services.auth}/oauth2/jwks
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-route
+              uri: ${services.auth}
+              predicates:
+                - Path=/auth/**
+            # ── Phase 14: 라우트마다 CircuitBreaker 필터 + fallbackUri.
+            #    회로가 열리거나 TimeLimiter(3s)를 넘기면 다운스트림을 때리지 않고 즉시 forward → 503.
+            #    ⚠️ 회로 이름을 라우트별로 다르게 둔다 — 하나로 묶으면 order 장애가 inventory 회로까지 연다.
+            - id: orders-route
+              uri: ${services.order}
+              predicates:
+                - Path=/orders/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: ordersCb
+                    fallbackUri: forward:/fallback/order-service
+            - id: inventory-route
+              uri: ${services.inventory}
+              predicates:
+                - Path=/inventory/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: inventoryCb
+                    fallbackUri: forward:/fallback/inventory-service
+            - id: payments-route
+              uri: ${services.payment}
+              predicates:
+                - Path=/payments/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: paymentsCb
+                    fallbackUri: forward:/fallback/payment-service
+            # Phase 11: CQRS 읽기 측 — 조회는 읽기 모델 서비스로(쓰기 /orders 와 다른 서비스로 분리 라우팅).
+            - id: order-views-route
+              uri: ${services.orderQuery}
+              predicates:
+                - Path=/order-views/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: orderViewsCb
+                    fallbackUri: forward:/fallback/order-query-service
+  # Phase 8: WebFlux 리액터 컨텍스트 자동 전파 — 트레이스 컨텍스트가 리액티브 파이프라인/다운스트림으로 이어지게.
+  reactor:
+    context-propagation: auto
+
+# 다른 서비스의 주소. 로컬(IDE) 기본값은 localhost, 컨테이너/k8s 는 deploy/config/common.yml 이 덮는다.
+services:
+  auth: http://localhost:9000
+  order: http://localhost:8080
+  payment: http://localhost:8081
+  inventory: http://localhost:8082
+  orderQuery: http://localhost:8083
 
 server:
   port: 8000
   shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,circuitbreakers,metrics
+  endpoint:
+    gateway:
+      access: read-only
+  health:
+    circuitbreakers:
+      enabled: true          # Phase 14: /actuator/health 에 회로 상태(CLOSED/OPEN/HALF_OPEN) 노출
+
+# ── Phase 14: 엣지(게이트웨이) 과부하 차단. 학습용으로 일부러 낮게 잡았다. ──
+gateway:
+  resilience:
+    protected-path-prefix: /orders
+    rate-limit-per-second: 20
+    max-concurrent-calls: 20

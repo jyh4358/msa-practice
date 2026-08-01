@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phase 16a · 로컬 k8s(kind) · ShopSaga 문서</title>
+<title>Phase 16 · 로컬 k8s(kind) · ShopSaga 문서</title>
 <style>
 
 :root{
@@ -373,10 +373,10 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li class="active"><a href="PHASE-16-KUBERNETES.html">Phase 16a · 로컬 k8s(kind)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li class="active"><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
-<h1 id="phase-16a--로컬-kubernetes-로-이전-kind">Phase 16a — 로컬 Kubernetes 로 이전 (kind)</h1>
+<h1 id="phase-16--로컬-kubernetes-로-이전-kind">Phase 16 — 로컬 Kubernetes 로 이전 (kind)</h1>
 <blockquote>
 <p><strong>한 줄 요약:</strong> compose 로 잘 돌던 서비스를 <strong>코드는 거의 그대로 둔 채</strong> 쿠버네티스로 옮긴다.
 이 단계에서 배우는 건 &quot;k8s 문법&quot;이 아니라 <strong>역할의 이동</strong> —
@@ -384,9 +384,15 @@ code.hljs {
 <strong>플랫폼이 대신하기 시작한다.</strong></p>
 </blockquote>
 <p>초심자(Java/Spring 은 알지만 쿠버네티스는 처음) 기준으로 <strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.
-Phase 16 은 둘로 나뉩니다. 이 문서는 <strong>16a — 클러스터를 세우고 order-service 하나를 이전</strong>하는 단계입니다.
-(16b 에서 Eureka·Config Server 를 삭제하고 전체 플랫폼을 올립니다.)</p>
+Phase 16 은 둘로 나뉩니다.</p>
+<ul>
+<li><strong><a href="#part-16a">16a</a></strong> — 클러스터를 세우고 <strong>order-service 하나</strong>를 이전한다(§0~§9).</li>
+<li><strong><a href="#part-16b">16b</a></strong> — <strong>Eureka·Config Server 를 삭제</strong>하고 <strong>전체 플랫폼</strong>을 올린다(§10~).</li>
+</ul>
+<p><a id="part-16a"></a></p>
 <hr>
+<hr>
+<h1 id="파트-16a--클러스터를-세우고-서비스-하나를-옮긴다">파트 16a — 클러스터를 세우고 서비스 하나를 옮긴다</h1>
 <h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
 <ul>
 <li><strong>kind 클러스터</strong> 를 Colima VM 안에 세웠다(단일 노드, k8s v1.36.1, arm64).</li>
@@ -588,10 +594,14 @@ Phase 4 에서 애플리케이션 라이브러리(Eureka client)가 하던 일�
 <td>ConfigMap + Deployment + Service</td>
 </tr>
 <tr>
-<td><code>deploy/k8s/40-order-service.yaml</code></td>
+<td><code>deploy/k8s/31-order-service.yaml</code></td>
 <td>ConfigMap + Deployment(probe 3종·Secret·Downward API) + NodePort</td>
 </tr>
 </tbody></table>
+<blockquote>
+<p>파일 번호는 16b 에서 서비스가 늘며 재정렬됐다(<code>40-</code> → <code>31-</code>). 또한 16b 부터 ConfigMap 은
+매니페스트에 인라인으로 있지 않고 <code>deploy/config/</code> 의 파일에서 생성된다 — §11 참고.</p>
+</blockquote>
 <h3 id="애플리케이션-코드-변경-전체">애플리케이션 코드 변경 (전체)</h3>
 <pre><code class="hljs language-java"><span class="hljs-comment">// services/*/…/SecurityConfig.java  — 6개 서비스 모두 동일하게</span>
 .requestMatchers(<span class="hljs-string">&quot;/actuator/health&quot;</span>, <span class="hljs-string">&quot;/actuator/health/**&quot;</span>).permitAll()
@@ -602,7 +612,7 @@ readiness 실패(트래픽 차단) → liveness 실패(무한 재시작)로 이�
 <hr>
 <h2 id="4-코드--결정적인-부분만">4. 코드 — 결정적인 부분만</h2>
 <h3 id="-config-server-를-configmap-으로-코드-수정-없이">① Config Server 를 ConfigMap 으로 (코드 수정 없이)</h3>
-<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/40-order-service.yaml</span>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/31-order-service.yaml (16a 시점 — 인라인 ConfigMap)</span>
 <span class="hljs-attr">data:</span>
   <span class="hljs-attr">application.yml:</span> <span class="hljs-string">|
     spring:
@@ -853,7 +863,7 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 <h3 id="-회귀-테스트">⑩ 회귀 테스트</h3>
 <p><code>./gradlew build</code> — 기존 테스트 전부 통과(보안 매처 변경이 아무것도 깨뜨리지 않았다).</p>
 <hr>
-<h2 id="8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</h2>
+<h2 id="8-16a-의-한계--어디서-해결되나">8. 16a 의 한계 → 어디서 해결되나</h2>
 <table>
 <thead>
 <tr>
@@ -969,6 +979,524 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 </ul>
 </li>
 </ul>
+<p><a id="part-16b"></a></p>
+<hr>
+<hr>
+<h1 id="파트-16b--eurekaconfig-server-를-삭제하고-전체-플랫폼을-올린다">파트 16b — Eureka·Config Server 를 삭제하고 전체 플랫폼을 올린다</h1>
+<h2 id="10-16b-에서-한-일-요약">10. 16b 에서 한 일 (요약)</h2>
+<ul>
+<li><strong>Eureka 삭제.</strong> <code>discovery-service</code> 모듈과 6개 서비스의 <code>eureka-client</code> 의존성을 지웠다.
+<code>lb://order-service</code> → <code>${services.order}</code> (평범한 URL). 인스턴스 선택은 이제 <strong>플랫폼</strong>이 한다.</li>
+<li><strong>Config Server 삭제.</strong> <code>config-service</code> 모듈과 <code>config-repo/</code> 를 지웠다.
+설정은 ① jar 안의 로컬 기본값 ② <code>shared/messaging</code> 라이브러리의 공통 메시징 설정
+③ <code>deploy/config/</code> 파일(ConfigMap / 바인드마운트) 세 층으로 나눴다.</li>
+<li><strong>compose 도 함께 이전.</strong> 15 → <strong>13 컨테이너</strong>. compose 와 k8s 가 <strong>같은 설정 파일 한 벌</strong>을 공유한다.</li>
+<li><strong>전체 플랫폼 on k8s</strong> — 13 파드(앱 6 · DB 3 · Kafka · Mongo · 관측성 · Ingress 컨트롤러).</li>
+<li><strong>Ingress</strong>(ingress-nginx) 를 앞에 세웠다. <code>localhost:8000</code> — <strong>compose 시절과 같은 주소</strong>라 기존 스모크가 그대로 동작한다.</li>
+<li><strong>auth-service 복제본 2</strong> — RSA 서명 키를 Secret 으로 빼서 16a 의 한계 #4 를 해결했다.</li>
+<li>무중단 롤링 업데이트 · Saga 진행 중 파드 삭제 · <strong>Config Server 없는 설정 방송</strong>을 실측했다.</li>
+<li><strong>★ 두 개의 진짜 결함을 만났고 둘 다 문서에 남겼다</strong> — KRaft 부트스트랩 교착, KafkaAdmin 토픽 미생성(§16).</li>
+</ul>
+<hr>
+<h2 id="11-설정을-어디에-둘-것인가--config-server-를-지운-자리">11. 설정을 어디에 둘 것인가 — Config Server 를 지운 자리</h2>
+<p>Config Server 를 지우면 그 자리가 빈다. &quot;그럼 설정을 어디에?&quot;가 16b 의 진짜 설계 문제였다.</p>
+<h3 id="세-층으로-나눴다">세 층으로 나눴다</h3>
+<pre><code>① jar 안 src/main/resources/application.yml     ← 로컬(IDE)에서 그냥 돌아가는 기본값
+        localhost:5432, localhost:9000 …          "클론하고 bootRun 하면 뜬다"
+        ▲ 덮어씀
+② shared/messaging 의 shopsaga-messaging-defaults.yml   ← 4개 메시징 서비스의 공통 설정
+        Kafka 직렬화·trusted packages·outbox·DLQ·saga    (spring.config.import: classpath:…)
+        ▲ 덮어씀
+③ deploy/config/{common,&lt;service&gt;}.yml          ← 환경(컨테이너)에서 달라지는 것만
+        서비스 주소·Kafka 브로커·probe·관측성 엔드포인트·DB 호스트
+        └ compose : 바인드 마운트  ┐
+        └ k8s     : ConfigMap     ┘ → /application/config/{10-common,20-service}/application.yml
+</code></pre><p><strong>②가 핵심 아이디어다.</strong> 공통 설정을 &quot;서버&quot;가 아니라 <strong>라이브러리</strong>로 공유한다.</p>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># services/order-service/src/main/resources/application.yml</span>
+<span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">config:</span>
+    <span class="hljs-attr">import:</span> <span class="hljs-string">&quot;classpath:shopsaga-messaging-defaults.yml&quot;</span>
+</code></pre><p>Config Server 와 비교하면:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Config Server (Phase 6~16a)</th>
+<th>라이브러리 (16b)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>기동 의존성</td>
+<td><strong>있다</strong> — 그 서버가 죽으면 아무도 못 뜬다</td>
+<td>없다</td>
+</tr>
+<tr>
+<td>버전 정합성</td>
+<td>서버의 파일과 앱의 코드가 따로 논다</td>
+<td>라이브러리와 함께 간다</td>
+</tr>
+<tr>
+<td>런타임 변경</td>
+<td>가능(refresh)</td>
+<td><strong>불가</strong> — 재배포해야 한다</td>
+</tr>
+</tbody></table>
+<p>그래서 <strong>런타임에 바뀔 수 있는 값</strong>은 ②가 아니라 ③에 둔다. ③은 ConfigMap 이므로 <code>kubectl edit</code> + refresh 로 바꿀 수 있다(§15-⑤ 에서 실측).</p>
+<h3 id="왜-applicationconfig10-common-인가">왜 <code>/application/config/10-common/</code> 인가</h3>
+<p>Spring Boot 의 <strong>기본</strong> 설정 탐색 경로는 이렇다(뒤쪽이 이긴다):</p>
+<pre><code>classpath:/  &lt;  classpath:/config/  &lt;  file:./  &lt;  file:./config/  &lt;  file:./config/*/
+</code></pre><p>마지막 <code>file:./config/*/</code> 는 <strong>하위 디렉터리들</strong>을 이름순으로 읽는다 — 정확히 ConfigMap 여러 개를 마운트하라고 만든 경로다.
+컨테이너 WORKDIR 이 <code>/application</code> 이므로 <code>10-common</code> &lt; <code>20-service</code> 순으로 읽히고 뒤가 이긴다.</p>
+<h3 id="compose-와-k8s-가-같은-파일을-쓰는-이유">compose 와 k8s 가 같은 파일을 쓰는 이유</h3>
+<p><strong>compose 서비스명과 k8s Service 이름을 똑같이 지었기 때문</strong>이다. 두 플랫폼 다 &quot;이름 → 주소&quot;를 DNS 로 풀어 준다.</p>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/config/common.yml — 이 파일 하나가 compose 와 k8s 양쪽에서 그대로 쓰인다</span>
+<span class="hljs-attr">services:</span>
+  <span class="hljs-attr">auth:</span> <span class="hljs-string">http://auth-service:9000</span>
+  <span class="hljs-attr">order:</span> <span class="hljs-string">http://order-service:8080</span>
+  <span class="hljs-attr">payment:</span> <span class="hljs-string">http://payment-service:8081</span>
+  <span class="hljs-attr">inventory:</span> <span class="hljs-string">http://inventory-service:8082</span>
+  <span class="hljs-attr">orderQuery:</span> <span class="hljs-string">http://order-query-service:8083</span>
+<span class="hljs-attr">spring:</span>
+  <span class="hljs-attr">kafka:</span>
+    <span class="hljs-attr">bootstrap-servers:</span> <span class="hljs-string">kafka:19092</span>
+</code></pre><p>이것 자체가 Phase 16 의 논지다 — <strong>디스커버리는 애플리케이션이 아니라 플랫폼의 일</strong>이므로,
+플랫폼만 바뀌고 애플리케이션 설정은 그대로다.</p>
+<hr>
+<h2 id="12-eureka-를-지운다는-것">12. Eureka 를 지운다는 것</h2>
+<h3 id="코드에서-사라진-것">코드에서 사라진 것</h3>
+<pre><code class="hljs language-java"><span class="hljs-comment">// 전 (Phase 4~16a)</span>
+<span class="hljs-meta">@Bean</span> <span class="hljs-meta">@LoadBalanced</span>
+RestClient.Builder <span class="hljs-title function_">loadBalancedRestClientBuilder</span><span class="hljs-params">(...)</span> { ... }
+
+<span class="hljs-meta">@Bean</span>
+RestClient <span class="hljs-title function_">inventoryRestClient</span><span class="hljs-params">(<span class="hljs-meta">@LoadBalanced</span> RestClient.Builder b)</span> {
+    <span class="hljs-keyword">return</span> b.baseUrl(<span class="hljs-string">&quot;http://inventory-service&quot;</span>).build();   <span class="hljs-comment">// &#x27;논리 이름&#x27;</span>
+}
+</code></pre><pre><code class="hljs language-java"><span class="hljs-comment">// 후 (16b)</span>
+<span class="hljs-meta">@Bean</span>
+RestClient <span class="hljs-title function_">inventoryRestClient</span><span class="hljs-params">(RestClientBuilderConfigurer configurer,
+                               <span class="hljs-meta">@Value(&quot;${services.inventory}&quot;)</span> String baseUrl)</span> {
+    <span class="hljs-keyword">return</span> configurer.configure(RestClient.builder()...).baseUrl(baseUrl).build();  <span class="hljs-comment">// 그냥 URL</span>
+}
+</code></pre><p>게이트웨이도 같다: <code>uri: lb://order-service</code> → <code>uri: ${services.order}</code>.</p>
+<p><strong>사라진 것</strong>: 레지스트리 클라이언트 라이브러리, 30초마다의 하트비트, 인스턴스 목록 캐시,
+그리고 &quot;레지스트리가 죽으면?&quot;이라는 걱정(Phase 4 에서 실제로 다뤘던 문제).</p>
+<h3 id="공짜는-아니다--무엇을-잃었나">공짜는 아니다 — 무엇을 잃었나</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Eureka (앱이 한다)</th>
+<th>k8s Service (플랫폼이 한다)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>부하분산 단위</td>
+<td><strong>요청</strong>마다 인스턴스 선택</td>
+<td><strong>커넥션</strong>마다(iptables DNAT)</td>
+</tr>
+<tr>
+<td>인스턴스 목록</td>
+<td>앱이 안다 → 커스텀 정책 가능(존 우선, 가중치)</td>
+<td>앱은 모른다</td>
+</tr>
+<tr>
+<td>지연</td>
+<td>로컬 캐시 → 0</td>
+<td>DNS + iptables → 무시할 수준</td>
+</tr>
+<tr>
+<td>장애 전파</td>
+<td>레지스트리가 SPOF 후보</td>
+<td>컨트롤플레인이 죽어도 <strong>기존 규칙은 계속 동작</strong></td>
+</tr>
+<tr>
+<td>이종 환경</td>
+<td>k8s 밖 VM 도 등록 가능</td>
+<td>클러스터 안으로 한정</td>
+</tr>
+</tbody></table>
+<p><strong>커넥션 단위 분산</strong>이 실무에서 가장 자주 무는 지점이다. HTTP keep-alive 로 커넥션을 오래 물고 있으면
+스케일 아웃을 해도 새 파드로 트래픽이 잘 안 간다. 그래서 gRPC 처럼 커넥션을 유지하는 프로토콜은
+클라이언트 사이드 LB 나 서비스 메시(Envoy)가 여전히 필요하다.</p>
+<hr>
+<h2 id="13-구성--13-파드">13. 구성 — 13 파드</h2>
+<pre><code>                         macOS :8000                      macOS :30080
+                              │                                │ (게이트웨이 우회 디버깅 경로)
+  ┌── kind 노드 (shopsaga-control-plane) ─────────────────────────────────────┐
+  │   :80 ─▶ ingress-nginx 컨트롤러                             :30080        │
+  │              │  /grafana ─▶ otel-lgtm:3000                    │           │
+  │              │  /        ─▶ gateway-service:8000              │           │
+  │              ▼                                                │           │
+  │        gateway-service  (엣지 JWT · 라우트별 회로차단기 · 과부하 차단)      │
+  │           │      │        │            │                      │           │
+  │      /auth│ /orders│ /inventory│ /order-views│                 │           │
+  │           ▼      ▼        ▼            ▼                      ▼           │
+  │      auth-service(×2)  order-service ─ inventory-service   order-service   │
+  │            │              │  │              │                              │
+  │            │       order-db  │        inventory-db                         │
+  │            │                 │                                            │
+  │            │            payment-service ─ payment-db                       │
+  │            │                 │                                            │
+  │            │            order-query-service ─ order-query-mongo            │
+  │            │                 │                                            │
+  │            └──── 전부 ───▶ kafka (KRaft 단일) ◀── outbox 릴레이·Saga·Bus    │
+  │                              │                                            │
+  │                         otel-lgtm (Tempo·Loki·Prometheus·Grafana)          │
+  └───────────────────────────────────────────────────────────────────────────┘
+</code></pre><p><strong>Ingress 가 있는데 게이트웨이를 왜 남기나</strong> — 층이 다르다.</p>
+<ul>
+<li><strong>Ingress</strong> = L7 라우팅·TLS 종료. 클러스터 밖에서 안으로 들어오는 문. <strong>플랫폼 기능</strong>.</li>
+<li><strong>Gateway</strong> = 엣지 <strong>애플리케이션 로직</strong>: JWT 선검증(Phase 5) · 라우트별 회로차단기와 fallback(Phase 14) ·
+과부하 차단(Phase 14). 이건 k8s 가 대신해 주지 않는다.</li>
+</ul>
+<p>즉 Ingress 는 Eureka 처럼 &quot;앱에서 플랫폼으로 넘어간&quot; 것이 아니라, 게이트웨이 <strong>앞에 한 겹 더 생긴 것</strong>이다.
+(이 로직까지 플랫폼으로 넘기고 싶다면 그게 서비스 메시나 Gateway API 의 영역이다 — 이 학습 범위 밖.)</p>
+<hr>
+<h2 id="14-코드--16b-의-결정적인-부분">14. 코드 — 16b 의 결정적인 부분</h2>
+<h3 id="-auth-service-서명-키를-secret-으로-16a-한계-4-해결">① auth-service 서명 키를 Secret 으로 (16a 한계 #4 해결)</h3>
+<p>16a 까지 auth-service 는 기동할 때마다 RSA 키쌍을 새로 만들었다. 그래서 <strong>복제본이 1이 상한</strong>이었다 —
+파드가 둘이면 A 가 발급한 토큰을 B 의 JWKS 로 검증할 수 없어 산발적 401 이 난다.</p>
+<pre><code class="hljs language-java"><span class="hljs-meta">@Bean</span>
+<span class="hljs-keyword">public</span> RSAKey <span class="hljs-title function_">rsaKey</span><span class="hljs-params">(<span class="hljs-meta">@Value(&quot;${auth.jwt.private-key:}&quot;)</span> String privateKeyPem,
+                     <span class="hljs-meta">@Value(&quot;${auth.jwt.key-id:}&quot;)</span> String keyId)</span> <span class="hljs-keyword">throws</span> Exception {
+    <span class="hljs-type">String</span> <span class="hljs-variable">kid</span> <span class="hljs-operator">=</span> StringUtils.hasText(keyId) ? keyId : UUID.randomUUID().toString();
+    <span class="hljs-keyword">if</span> (!StringUtils.hasText(privateKeyPem)) {
+        log.warn(<span class="hljs-string">&quot;auth.jwt.private-key 가 비어 있다 — 임시 키쌍을 생성한다(kid={}). …&quot;</span>, kid);
+        <span class="hljs-keyword">return</span> generateEphemeral(kid);          <span class="hljs-comment">// 로컬 개발 편의는 유지</span>
+    }
+    <span class="hljs-type">RSAPrivateCrtKey</span> <span class="hljs-variable">privateKey</span> <span class="hljs-operator">=</span> readPkcs8(privateKeyPem);
+    <span class="hljs-comment">// 공개키를 따로 받지 않는다 — CRT 개인키가 modulus 와 publicExponent 를 이미 들고 있다.</span>
+    <span class="hljs-type">RSAPublicKey</span> <span class="hljs-variable">publicKey</span> <span class="hljs-operator">=</span> (RSAPublicKey) KeyFactory.getInstance(<span class="hljs-string">&quot;RSA&quot;</span>)
+            .generatePublic(<span class="hljs-keyword">new</span> <span class="hljs-title class_">RSAPublicKeySpec</span>(privateKey.getModulus(), privateKey.getPublicExponent()));
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RSAKey</span>.Builder(publicKey).privateKey((RSAPrivateKey) privateKey).keyID(kid).build();
+}
+</code></pre><p>키는 <code>apply.sh</code> 가 <code>openssl</code> 로 만들어 Secret 에 넣는다 — <strong>리포지토리에 개인키를 커밋하지 않기 위해서</strong>다.
+그리고 이미 있으면 다시 만들지 않는다(새로 만들면 발급된 토큰이 전부 무효가 된다).</p>
+<blockquote>
+<p>⚠️ PKCS#1(<code>BEGIN RSA PRIVATE KEY</code>)이 아니라 <strong>PKCS#8</strong>(<code>BEGIN PRIVATE KEY</code>)이어야 한다.
+<code>openssl genpkey</code> 는 PKCS#8 로 낸다. 예전 <code>openssl genrsa</code> 는 PKCS#1 이라 파싱이 깨진다.</p>
+</blockquote>
+<h3 id="-health-그룹-검증을-꺼야-하는-이유">② health 그룹 검증을 꺼야 하는 이유</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/config/common.yml</span>
+<span class="hljs-attr">management:</span>
+  <span class="hljs-attr">endpoint:</span>
+    <span class="hljs-attr">health:</span>
+      <span class="hljs-attr">validate-group-membership:</span> <span class="hljs-literal">false</span>     <span class="hljs-comment"># ★ 이 줄이 없으면 서비스 절반이 기동 실패</span>
+      <span class="hljs-attr">group:</span>
+        <span class="hljs-attr">readiness:</span> { <span class="hljs-attr">include:</span> <span class="hljs-string">readinessState</span>,<span class="hljs-string">db</span>,<span class="hljs-string">mongo</span> }
+        <span class="hljs-attr">liveness:</span>  { <span class="hljs-attr">include:</span> <span class="hljs-string">livenessState</span> }
+</code></pre><p>기본값(true)이면 그룹에 적은 이름이 실제로 존재하는지 검사하고, 없으면
+<code>NoSuchHealthContributorException</code> 으로 <strong>애플리케이션이 아예 뜨지 않는다</strong>.
+그런데 공통 파일 하나를 6개 서비스가 공유한다:</p>
+<ul>
+<li>order/payment/inventory → <code>db</code> 는 있지만 <code>mongo</code> 는 없다</li>
+<li>order-query → <code>mongo</code> 는 있지만 <code>db</code> 는 없다</li>
+<li>gateway/auth → 둘 다 없다</li>
+</ul>
+<p>검사를 끄면 &quot;있는 것만 포함&quot;으로 관대하게 동작한다. (대안은 서비스별로 그룹을 따로 정의하는 것인데
+그러면 6곳에 같은 블록이 중복된다 — 공통 설정을 공유하는 이득이 사라진다.)</p>
+<h3 id="-initcontainer--순서가-정말-필요한-한-곳">③ initContainer — &quot;순서가 정말 필요한&quot; 한 곳</h3>
+<p>k8s 에 <code>depends_on</code> 이 없는 건 대개 옳다. 그런데 <strong>재시도되지 않는 기동 작업</strong>이 하나 있었다(§16-② 참고).</p>
+<pre><code class="hljs language-yaml">      <span class="hljs-attr">initContainers:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">wait-for-kafka</span>
+          <span class="hljs-attr">image:</span> <span class="hljs-string">busybox:1.37</span>
+          <span class="hljs-attr">command:</span> [<span class="hljs-string">&#x27;sh&#x27;</span>, <span class="hljs-string">&#x27;-c&#x27;</span>, <span class="hljs-string">&#x27;until nc -z kafka 19092; do echo &quot;kafka 대기...&quot;; sleep 3; done&#x27;</span>]
+</code></pre><p>initContainer 는 <strong>성공할 때까지 반복</strong>되고, 끝나야 본 컨테이너가 시작된다.
+&quot;기본은 crash-and-retry, 예외적으로 initContainer&quot; — 이 판단이 이 Phase 의 실무 감각이다.</p>
+<hr>
+<h2 id="15-검증--16b-실측">15. 검증 — 16b 실측</h2>
+<blockquote>
+<p>환경: macOS 18GB / Colima 12GB·6CPU / kind v0.32.0 / k8s v1.36.1 arm64.
+compose 는 내려둔 상태. 파드 13개 + ingress-nginx 1개.</p>
+</blockquote>
+<h3 id="-전부-running">① 전부 Running</h3>
+<pre><code>auth-service-…-h84fj            1/1  Running  restarts=0     ← 복제본 2
+auth-service-…-qvzxk            1/1  Running  restarts=0
+gateway-service-…               1/1  Running  restarts=0
+order-service-… / order-db-…    1/1  Running  restarts=0
+payment-service-… / payment-db-…        1/1  Running  restarts=0
+inventory-service-… / inventory-db-…    1/1  Running  restarts=0
+order-query-service-… / order-query-mongo-…  1/1  Running
+kafka-…                         1/1  Running  restarts=0
+otel-lgtm-…                     1/1  Running  restarts=0
+ingress-nginx-controller-…      1/1  Running  (ns: ingress-nginx)
+</code></pre><h3 id="-eurekaconfig-server-가-정말-사라졌는가">② Eureka·Config Server 가 정말 사라졌는가</h3>
+<pre><code>파드 중 discovery/config     : 0 개
+jar 안 eureka 클래스         : 0 개      (unzip -l order-service.jar | grep -ci eureka)
+소스 트리 모듈               : auth · gateway · inventory · order-query · order · payment   (6개, discovery/config 없음)
+</code></pre><h3 id="-saga-end-to-end--ingress-를-통해">③ Saga end-to-end — Ingress 를 통해</h3>
+<pre><code>$ curl localhost:8000/actuator/health                → HTTP 200        (Ingress → gateway)
+$ POST /auth/login                                   → 토큰 525자      (Ingress → gateway → auth-service)
+$ POST /orders (3개)                                 → 201 PENDING
+  [3s] CONFIRMED                                     ← Saga 완주
+
+$ GET /order-views?customerId=…                      (CQRS 읽기 모델, Mongo 투영)
+[{&quot;orderId&quot;:&quot;1fb68e2f-…&quot;,&quot;status&quot;:&quot;CONFIRMED&quot;,&quot;totalAmount&quot;:30.00,
+  &quot;lines&quot;:[{&quot;productId&quot;:&quot;2222…&quot;,&quot;quantity&quot;:3,&quot;unitPrice&quot;:10.00,&quot;lineTotal&quot;:30.00}]}]
+
+$ GET /inventory/22222222-…                          {&quot;availableQuantity&quot;:94}
+</code></pre><p>주소가 <code>localhost:8000</code> 그대로다 — <strong>Phase 3~15 의 스모크 명령이 한 글자도 안 바뀌었다.</strong>
+그 사이에 디스커버리·설정·오케스트레이터가 전부 교체됐는데도.</p>
+<h3 id="-auth-service-복제본-2--16a-한계-4-해결">④ auth-service 복제본 2 — 16a 한계 #4 해결</h3>
+<pre><code>auth-service-…-h84fj  1/1
+auth-service-…-qvzxk  1/1
+8회 로그인 → 다른 서비스에서 토큰 검증:  성공 8 · 실패 0
+</code></pre><p>16a 였다면 파드마다 키가 달라 <strong>절반이 401</strong> 이었을 것이다.</p>
+<h3 id="--config-server-를-지웠는데-설정-방송이-살아있는가">⑤ ★ Config Server 를 지웠는데 설정 방송이 살아있는가</h3>
+<p>Phase 15 의 Spring Cloud Bus 가 Config Server 없이도 쓸모 있는지 — 이게 16b 의 가장 궁금한 지점이었다.</p>
+<pre><code>① deploy/config/order-service.yml 의 reject-on-insufficient: false
+   → POST /orders(99999개)                              HTTP 201
+
+② ConfigMap 만 true 로 갱신(파드 재시작 없음)
+   파드 안 마운트 파일 확인:  reject-on-insufficient: true     ← kubelet 이 파일을 갱신함
+   그래도 아직                                          HTTP 201   ← Spring 은 아직 안 읽었다
+
+③ inventory-service &#39;한 곳&#39;에만 busrefresh
+   (order-service 는 건드리지 않았다)
+
+④ POST /orders(99999개)                                 HTTP 409   ✅
+   order-service 재시작 횟수:  0 0                       ← 재시작 없이 바뀌었다
+</code></pre><p><strong>방송의 의미가 바뀌었다.</strong> 전에는 &quot;Config Server 를 다시 읽어라&quot;였고, 이제는 &quot;마운트된 ConfigMap 파일을 다시 읽어라&quot;다.
+메커니즘(Kafka 로 <code>RefreshRemoteApplicationEvent</code> 방송 → <code>@ConfigurationProperties</code> 재바인딩)은 그대로다.</p>
+<blockquote>
+<p>⚠️ 여기서 <strong>두 단계의 지연</strong>이 있다는 걸 봐야 한다.
+ⓐ ConfigMap 을 바꿔도 파드 안 파일이 갱신되기까지 <strong>최대 ~70초</strong>(kubelet 동기화 주기 + 캐시).
+ⓑ 파일이 갱신돼도 Spring 은 안 읽는다 → refresh 가 필요하다.
+ⓐ 때문에 &quot;바꿨는데 왜 안 바뀌지?&quot;로 헷갈리기 쉽다. 급하면 <code>kubectl rollout restart</code> 가 확실하다.</p>
+</blockquote>
+<h3 id="-무중단-롤링-업데이트">⑥ 무중단 롤링 업데이트</h3>
+<p>복제본 2에서 <code>kubectl rollout restart</code> 하는 동안 0.5초 간격으로 90회 요청:</p>
+<pre><code>요청 90회 응답코드 분포:
+   90 404          ← 없는 주문 id 에 대한 정상 응답
+(502·503·000 = 0건)
+</code></pre><p><strong>다운타임 0.</strong> 새 파드가 Ready 가 된 뒤에야 헌 파드가 Endpoints 에서 빠지기 때문이다
+(RollingUpdate 기본값 <code>maxUnavailable=25%</code>, <code>maxSurge=25%</code> + readinessProbe).</p>
+<h3 id="-saga-진행-중-파드-삭제">⑦ Saga 진행 중 파드 삭제</h3>
+<p>주문 5건을 넣자마자 order-service 파드 하나를 삭제:</p>
+<pre><code>주문 최종 상태:  CONFIRMED ×5        ← 전부 완주
+파드:            2개 Running, restarts=0   (삭제된 것은 새 파드로 대체)
+Saga 인스턴스:   COMPLETED ×6, CANCELLED ×6
+읽기 모델:       10건 투영됨
+</code></pre><p>Saga 상태가 <strong>DB 에</strong> 있고(Phase 13) 이벤트가 <strong>outbox 에</strong> 있으므로(Phase 10),
+조정자 파드가 통째로 사라져도 새 파드가 이어받는다. <strong>k8s 가 아니라 우리가 Phase 10·13 에서 만든 성질이다</strong> —
+k8s 는 파드를 다시 만들어 줄 뿐, 상태를 지켜주지는 않는다.</p>
+<h3 id="-관측성">⑧ 관측성</h3>
+<pre><code>$ GET localhost:8000/grafana/api/health   → HTTP 200  {&quot;database&quot;:&quot;ok&quot;,&quot;version&quot;:&quot;13.1.0&quot;}
+$ Tempo 에 order-service 트레이스          → 3 건
+</code></pre><h3 id="-자원-1">⑨ 자원</h3>
+<pre><code>$ colima ssh -- free -h
+               total   used   free   available
+Mem:            11Gi   4.4Gi  330Mi      7.2Gi     ← 13 파드 + 컨트롤플레인 + ingress
+</code></pre><h3 id="--compose-도-여전히-동작하는가--설정-파일-한-벌의-값어치">⑩ ★ compose 도 여전히 동작하는가 — 설정 파일 한 벌의 값어치</h3>
+<p>Eureka·Config Server 를 지웠으니 compose 스택도 함께 이전해야 했다(사용자와 합의한 방향).
+<strong>같은 <code>deploy/config/</code> 파일</strong>로 compose 를 띄워 확인했다.</p>
+<pre><code>$ docker compose --profile async up -d --build
+컨테이너 13개 (15 → 13: discovery-service·config-service 삭제)
+전부 healthy
+
+$ docker exec shopsaga-order-service-1 ls /application/config/
+10-common   20-service                       ← k8s 와 똑같은 마운트 구조
+$ … grep &#39;order-db\|auth-service&#39; /application/config/*/application.yml
+  auth: http://auth-service:9000               ← common.yml (compose 서비스명 = k8s Service 이름)
+  url: jdbc:postgresql://order-db:5432/orderdb ← order-service.yml
+
+$ POST /auth/login          → 토큰 550자
+$ POST /orders (2개)        → 201 PENDING
+  [3s] CONFIRMED                               ← Saga 완주
+$ GET /order-views?…        → 44건 (이전 Phase 볼륨 데이터 누적)
+$ GET /inventory/2222…      → {&quot;availableQuantity&quot;:66}
+$ GET localhost:3000/api/health → 200          (Grafana)
+</code></pre><p><strong>ENCRYPT_KEY 도 <code>.env</code> 도 필요 없어졌다</strong> — 복호화할 <code>{cipher}</code> 가 없으므로.
+설정 파일 한 벌이 두 플랫폼을 모두 돌린다는 것이 여기서 증명된다.</p>
+<blockquote>
+<p>⚠️ 검증 중에 <strong>&quot;동시 금지&quot; 규칙이 실제로 물었다.</strong> compose 를 올리려니:</p>
+<pre><code>Bind for 0.0.0.0:8000 failed: port is already allocated
+</code></pre><p>kind 의 Ingress 매핑(노드:80 → 호스트:8000)이 이미 8000 을 쥐고 있었다.
+RAM 뿐 아니라 <strong>포트도 충돌</strong>한다. <code>docker stop shopsaga-control-plane</code> 으로 kind 를 잠시 재운 뒤 진행했고,
+검증 후 <code>docker start</code> 로 되살렸다 — 클러스터는 파드 13개를 그대로 재생성하며 복구됐다(restarts=0).</p>
+<p>⚠️ 그리고 하나 더: 포트 충돌로 <strong>생성에 실패한 컨테이너를 <code>up -d</code> 가 그냥 start 해 버린다.</strong>
+컨테이너는 <code>running healthy</code> 인데 <code>docker port</code> 가 비어 있어 밖에서 닿지 않는다(내부 healthcheck 는 통과하므로).
+<code>--force-recreate</code> 로 다시 만들어야 포트 매핑이 프로그래밍된다.</p>
+</blockquote>
+<h3 id="-회귀-테스트-1">⑪ 회귀 테스트</h3>
+<p><code>./gradlew build</code> — 전부 통과. 게이트웨이 라우트 테스트에는 <strong>회귀 가드</strong>를 추가했다:</p>
+<pre><code class="hljs language-java"><span class="hljs-comment">// 디스커버리가 플랫폼으로 넘어갔으므로 라우트 uri 는 평범한 http URL 이어야 한다.</span>
+<span class="hljs-comment">// 누군가 lb:// 를 되살리면(= 앱이 다시 인스턴스를 고르려 들면) 여기서 깨진다.</span>
+assertThat(routes).allSatisfy(r -&gt;
+        assertThat(r.getUri().getScheme()).as(<span class="hljs-string">&quot;route %s&quot;</span>, r.getId()).isEqualTo(<span class="hljs-string">&quot;http&quot;</span>));
+</code></pre><hr>
+<h2 id="16-겪은-결함--감추지-않고-남긴다">16. 겪은 결함 — 감추지 않고 남긴다</h2>
+<h3 id="-kraft-부트스트랩-교착--ready-여야-ready-가-된다">① KRaft 부트스트랩 교착 — &quot;Ready 여야 Ready 가 된다&quot;</h3>
+<p>compose 설정을 그대로 옮겼더니 Kafka 가 뜨지 않고 재시작을 반복했다.</p>
+<pre><code>WARN [NodeToControllerChannelManager id=1 name=heartbeat]
+     Connection to node 1 (kafka/10.96.221.146:29093) could not be established.
+ERROR [ControllerRegistrationManager id=1 …] channel manager timed out before sending the request.
+</code></pre><p><strong>원인.</strong> <code>KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093</code> — 브로커가 기동 중에
+<strong>자기 자신(컨트롤러)에게</strong> 등록 요청을 보내는데, 그 주소가 Service 이름이라 ClusterIP 로 풀린다.
+그런데 kube-proxy 는 <strong>Ready 인 파드에게만</strong> 트래픽을 보낸다. 이 파드는 &quot;브로커가 떠야&quot; Ready 가 되므로:</p>
+<pre><code>브로커가 뜨려면 → 컨트롤러에 등록해야 → Service 를 거쳐야 → 파드가 Ready 여야 → 브로커가 떠야 …
+</code></pre><p>compose 에는 이 문제가 없다. compose 네트워크의 DNS 는 &quot;준비 상태&quot;를 따지지 않고 그냥 컨테이너 IP 를 준다.
+<strong>Service 가 Endpoints 를 준비 상태로 걸러낸다</strong>는 k8s 고유의 성질이 만든 교착이다.</p>
+<p><strong>해결.</strong> 단일 노드 combined 모드에서는 컨트롤러가 곧 자기 자신이므로 Service 를 경유할 이유가 없다:</p>
+<pre><code class="hljs language-yaml"><span class="hljs-bullet">-</span> { <span class="hljs-attr">name:</span> <span class="hljs-string">KAFKA_CONTROLLER_QUORUM_VOTERS</span>, <span class="hljs-attr">value:</span> <span class="hljs-string">&quot;1@localhost:29093&quot;</span> }
+</code></pre><p>(다중 브로커라면 StatefulSet + headless Service + <code>publishNotReadyAddresses: true</code> 로 푼다.)</p>
+<h3 id="-kafkaadmin-은-토픽을-딱-한-번만-만든다--초록불인데-saga-가-멈췄다">② KafkaAdmin 은 토픽을 딱 한 번만 만든다 — 초록불인데 Saga 가 멈췄다</h3>
+<p>Kafka 를 고친 뒤 파드는 <strong>13개 전부 <code>1/1 Running</code></strong> 이었는데 주문이 <code>PENDING</code> 에서 안 넘어갔다.</p>
+<pre><code>WARN  … The metadata response … reported a recoverable issue …
+      {order-events=UNKNOWN_TOPIC_OR_PARTITION, saga-commands=UNKNOWN_TOPIC_OR_PARTITION}
+ERROR … TimeoutException: Topic order-events not present in metadata after 5000 ms.
+WARN  com.shopsaga.outbox.OutboxRelay : Outbox 발행 실패 … attempts=4/5
+
+$ kafka-topics.sh --list
+__consumer_offsets  springCloudBus          ← 도메인 토픽이 하나도 없다
+</code></pre><p><strong>원인.</strong> Spring 의 <code>KafkaAdmin</code> 은 <code>@Bean NewTopic</code> 들을 <strong>기동 시 딱 한 번</strong> 만든다.
+앱이 Kafka 보다 먼저 떴고(k8s 에는 <code>depends_on</code> 이 없다) 그 한 번의 시도가 실패했으며, <strong>다시 시도하지 않았다.</strong>
+<code>auto.create.topics.enable=false</code>(Phase 9 의 의도적 선택)라 브로커가 대신 만들어 주지도 않는다.</p>
+<p>무서운 점은 <strong>아무것도 빨간불이 아니었다는 것</strong>이다. 파드는 Running·Ready 이고 probe 도 통과한다.
+readiness 그룹에 Kafka 를 넣지 않은 우리 선택(§11)이 여기서는 증상을 감췄다 —
+그러나 그 선택 자체는 여전히 옳다(브로커가 없어도 주문 접수는 성공해야 하므로).</p>
+<p><strong>해결.</strong> 이 한 곳에만 initContainer 를 뒀다(§14-③). &quot;기본은 crash-and-retry, 예외적으로 순서 강제&quot;.</p>
+<p><strong>남은 상처도 정직하게.</strong> 이 사고로 outbox row <strong>8건이 <code>attempts=5</code> 로 격리</strong>됐다(Phase 14 의 장치).</p>
+<pre><code>attempts=5 topic=order-events   type=OrderPlacedEvent        created=11:51   ← 16a 시절(Kafka 자체가 없었음)
+attempts=5 topic=saga-commands  type=ReserveStockCommand     created=11:52   ← sweeper 재촉 1
+attempts=5 topic=saga-commands  type=ReserveStockCommand     created=12:55   ← 토픽 미생성 구간
+…
+</code></pre><p>이 이벤트들은 <strong>실제로 유실됐다</strong>(격리 = &quot;건너뛰고 사람에게 알린다&quot;, 무한 재시도가 아니다).
+그런데 <strong>멈춘 Saga 는 하나도 없다</strong>:</p>
+<pre><code>주문 상태 분포:  CONFIRMED ×6, CANCELLED ×6      (PENDING 0)
+격리된 8건에 대응하는 주문:  전부 CANCELLED
+</code></pre><p>Phase 13 의 <code>SagaTimeoutSweeper</code> 가 15초 무응답 → 재촉 3회 → 포기 → 취소로 정리한 것이다.
+<strong>Phase 13·14 에서 만든 안전장치가 Phase 16 의 플랫폼 사고를 받아냈다.</strong> 이게 그 장치들을 만든 이유다.</p>
+<h3 id="-테스트가-실제-설정을-검증하지-않고-있었다">③ 테스트가 실제 설정을 검증하지 않고 있었다</h3>
+<p><code>GatewayRoutesTest</code> 가 깨졌는데, 원인은 <strong>테스트 전용 <code>src/test/resources/application.yml</code></strong> 이었다.
+Phase 6 에서 라우트가 config-repo 로 옮겨갔을 때 &quot;테스트가 Config Server 없이 돌게&quot; 만든 사본인데,
+그 뒤로 <strong>진짜 설정을 가리고 자기 사본을 검증</strong>하고 있었다(라우트 4개짜리 옛 복사본 — <code>order-views-route</code> 조차 없었다).</p>
+<p>16b 에서 라우트가 본 <code>application.yml</code> 로 돌아왔으므로 그 사본을 삭제했다.
+이제 이 테스트는 <strong>실제로 배포되는 설정</strong>을 검증한다.</p>
+<blockquote>
+<p>교훈: &quot;테스트를 돌리기 위한 설정 사본&quot;은 시간이 지나면 <strong>테스트를 무의미하게 만드는</strong> 쪽으로 썩는다.
+사본을 둘 수밖에 없다면 원본과 어긋났을 때 깨지는 장치를 함께 둬야 한다.</p>
+</blockquote>
+<hr>
+<h2 id="17-phase-16-전체의-한계--어디서-해결되나">17. Phase 16 전체의 한계 → 어디서 해결되나</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>한계</th>
+<th>왜 문제인가</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong><code>kubectl apply -f</code> + 셸 스크립트로 배포</strong></td>
+<td>환경별 차이(dev/stage/prod)를 표현할 방법이 없다. <code>apply.sh</code> 가 명령형이라 선언성이 깨진다</td>
+<td>Phase 18 (Helm/Kustomize)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>이미지 배포가 수동</strong>(<code>kind load</code>)</td>
+<td>어느 커밋이 떠 있는지 추적 불가. 롤백도 수동</td>
+<td><strong>Phase 17</strong> (CI/CD + 레지스트리)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Secret 이 암호화가 아니다</strong></td>
+<td>base64 일 뿐이고 etcd 에도 평문. dev 비밀번호가 리포지토리에 있다</td>
+<td>Phase 18 (External Secrets/SOPS)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>컨테이너가 root 로 돈다</strong></td>
+<td><code>runAsNonRoot</code>·<code>readOnlyRootFilesystem</code>·<code>seccompProfile</code> 없음</td>
+<td>Phase 18</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>NetworkPolicy 가 없다</strong></td>
+<td>모든 파드가 모든 파드에 접근 가능. DB 도 클러스터 안에서 무방비</td>
+<td>Phase 18</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>DB·Kafka 가 Deployment</strong></td>
+<td>StatefulSet 이 정석(안정적 신원·순서·파드별 볼륨). 지금은 <code>Recreate</code> 로 우회</td>
+<td>학습 범위 밖</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>PVC 가 <code>local-path</code></strong></td>
+<td>노드 로컬 디렉터리. 노드가 죽으면 데이터도 죽는다</td>
+<td>학습 범위 밖(운영은 CSI)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>단일 노드</strong></td>
+<td>진짜 스케줄링·안티어피니티·노드 장애를 볼 수 없다</td>
+<td>학습 범위 밖</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong><code>kubectl top</code>·HPA 불가</strong></td>
+<td>metrics-server 미설치 → 자동 스케일을 실습할 수 없다</td>
+<td>Phase 18</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>ConfigMap 반영이 최대 ~70초</strong></td>
+<td>&quot;바꿨는데 왜 안 바뀌지&quot;의 흔한 원인</td>
+<td>구조적 특성(rollout restart 로 우회)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Kafka 단일 브로커·replication 1</strong></td>
+<td>브로커가 죽으면 이벤트 유실. ISR·리더 선출을 볼 수 없다</td>
+<td>학습 범위 밖</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>격리된 outbox 8건이 남아 있다</strong></td>
+<td>실제 유실분. 재처리(replay) 도구가 없다</td>
+<td>운영 과제 — Phase 18 후보</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>관측성 데이터가 휘발</strong></td>
+<td>otel-lgtm 에 PVC 없음 → 파드 재생성 시 트레이스 소실</td>
+<td>의도적(학습용)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="18-용어-16b-추가분">18. 용어 (16b 추가분)</h2>
+<ul>
+<li><strong>Ingress / Ingress 컨트롤러</strong> — 전자는 &quot;HTTP 라우팅 규칙&quot; 오브젝트, 후자는 그 규칙을 실제로 수행하는 파드.
+<strong>컨트롤러 없이 Ingress 만 만들면 아무 일도 일어나지 않는다.</strong></li>
+<li><strong>initContainer</strong> — 본 컨테이너보다 먼저, 성공할 때까지 실행되는 컨테이너. 순서가 꼭 필요할 때의 탈출구.</li>
+<li><strong>Downward API</strong> — 파드가 자기 메타데이터(이름·노드·라벨)를 환경변수/파일로 받는 방법.</li>
+<li><strong>KRaft</strong> — Kafka 4.x 의 ZooKeeper 없는 합의 모드. 브로커가 컨트롤러 역할을 겸할 수 있다(combined).</li>
+<li><strong>maxSurge / maxUnavailable</strong> — RollingUpdate 시 &quot;추가로 더 띄울 수 있는 수 / 동시에 없어도 되는 수&quot;.
+둘의 조합이 무중단 여부를 결정한다.</li>
+<li><strong>headless Service</strong> — <code>clusterIP: None</code>. 로드밸런싱 없이 파드 IP 를 그대로 DNS 로 노출한다.
+StatefulSet 의 안정적 신원과 짝을 이룬다.</li>
+</ul>
+<hr>
+<h2 id="19-참고-16b">19. 참고 (16b)</h2>
+<ul>
+<li>코드: <code>deploy/k8s/</code> · <code>deploy/config/</code> · <a href="README.html">k8s README</a></li>
+<li>삭제된 것: <code>services/discovery-service</code>(Phase 4) · <code>services/config-service</code>·<code>config-repo/</code>(Phase 6)
+→ 두 Phase 의 문서는 <strong>&quot;그때는 왜 필요했나&quot;</strong> 의 기록으로 남는다:
+<a href="SERVICE-DISCOVERY.html">Phase 4</a> · <a href="PHASE-6-CONFIG.html">Phase 6</a></li>
+<li>공식 문서:<ul>
+<li><a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes — Ingress</a> ·
+<a href="https://kubernetes.io/docs/concepts/workloads/pods/init-containers/">Init Containers</a></li>
+<li><a href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot — Externalized Configuration (우선순위·<code>config/*/</code>)</a></li>
+<li><a href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.health.groups">Spring Boot — Health Groups</a></li>
+<li><a href="https://kafka.apache.org/documentation/#kraft_config">Apache Kafka — KRaft Configuration</a></li>
+</ul>
+</li>
+</ul>
 
   </article>
   <footer class="site-footer">
@@ -1008,8 +1536,40 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 <li class="toc-h3"><a href="#-kind-load-를-잊으면-계획서-582-의-함정-재현">⑧ kind load 를 잊으면 (계획서 §582 의 함정 재현)</a></li>
 <li class="toc-h3"><a href="#-자원">⑨ 자원</a></li>
 <li class="toc-h3"><a href="#-회귀-테스트">⑩ 회귀 테스트</a></li>
-<li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#8-16a-의-한계--어디서-해결되나">8. 16a 의 한계 → 어디서 해결되나</a></li>
 <li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
-<li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>
+<li class="toc-h2"><a href="#10-참고">10. 참고</a></li>
+<li class="toc-h2"><a href="#10-16b-에서-한-일-요약">10. 16b 에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#11-설정을-어디에-둘-것인가--config-server-를-지운-자리">11. 설정을 어디에 둘 것인가 — Config Server 를 지운 자리</a></li>
+<li class="toc-h3"><a href="#세-층으로-나눴다">세 층으로 나눴다</a></li>
+<li class="toc-h3"><a href="#왜-applicationconfig10-common-인가">왜 /application/config/10-common/ 인가</a></li>
+<li class="toc-h3"><a href="#compose-와-k8s-가-같은-파일을-쓰는-이유">compose 와 k8s 가 같은 파일을 쓰는 이유</a></li>
+<li class="toc-h2"><a href="#12-eureka-를-지운다는-것">12. Eureka 를 지운다는 것</a></li>
+<li class="toc-h3"><a href="#코드에서-사라진-것">코드에서 사라진 것</a></li>
+<li class="toc-h3"><a href="#공짜는-아니다--무엇을-잃었나">공짜는 아니다 — 무엇을 잃었나</a></li>
+<li class="toc-h2"><a href="#13-구성--13-파드">13. 구성 — 13 파드</a></li>
+<li class="toc-h2"><a href="#14-코드--16b-의-결정적인-부분">14. 코드 — 16b 의 결정적인 부분</a></li>
+<li class="toc-h3"><a href="#-auth-service-서명-키를-secret-으로-16a-한계-4-해결">① auth-service 서명 키를 Secret 으로 (16a 한계 #4 해결)</a></li>
+<li class="toc-h3"><a href="#-health-그룹-검증을-꺼야-하는-이유">② health 그룹 검증을 꺼야 하는 이유</a></li>
+<li class="toc-h3"><a href="#-initcontainer--순서가-정말-필요한-한-곳">③ initContainer — &quot;순서가 정말 필요한&quot; 한 곳</a></li>
+<li class="toc-h2"><a href="#15-검증--16b-실측">15. 검증 — 16b 실측</a></li>
+<li class="toc-h3"><a href="#-전부-running">① 전부 Running</a></li>
+<li class="toc-h3"><a href="#-eurekaconfig-server-가-정말-사라졌는가">② Eureka·Config Server 가 정말 사라졌는가</a></li>
+<li class="toc-h3"><a href="#-saga-end-to-end--ingress-를-통해">③ Saga end-to-end — Ingress 를 통해</a></li>
+<li class="toc-h3"><a href="#-auth-service-복제본-2--16a-한계-4-해결">④ auth-service 복제본 2 — 16a 한계 #4 해결</a></li>
+<li class="toc-h3"><a href="#--config-server-를-지웠는데-설정-방송이-살아있는가">⑤ ★ Config Server 를 지웠는데 설정 방송이 살아있는가</a></li>
+<li class="toc-h3"><a href="#-무중단-롤링-업데이트">⑥ 무중단 롤링 업데이트</a></li>
+<li class="toc-h3"><a href="#-saga-진행-중-파드-삭제">⑦ Saga 진행 중 파드 삭제</a></li>
+<li class="toc-h3"><a href="#-관측성">⑧ 관측성</a></li>
+<li class="toc-h3"><a href="#-자원-1">⑨ 자원</a></li>
+<li class="toc-h3"><a href="#--compose-도-여전히-동작하는가--설정-파일-한-벌의-값어치">⑩ ★ compose 도 여전히 동작하는가 — 설정 파일 한 벌의 값어치</a></li>
+<li class="toc-h3"><a href="#-회귀-테스트-1">⑪ 회귀 테스트</a></li>
+<li class="toc-h2"><a href="#16-겪은-결함--감추지-않고-남긴다">16. 겪은 결함 — 감추지 않고 남긴다</a></li>
+<li class="toc-h3"><a href="#-kraft-부트스트랩-교착--ready-여야-ready-가-된다">① KRaft 부트스트랩 교착 — &quot;Ready 여야 Ready 가 된다&quot;</a></li>
+<li class="toc-h3"><a href="#-kafkaadmin-은-토픽을-딱-한-번만-만든다--초록불인데-saga-가-멈췄다">② KafkaAdmin 은 토픽을 딱 한 번만 만든다 — 초록불인데 Saga 가 멈췄다</a></li>
+<li class="toc-h3"><a href="#-테스트가-실제-설정을-검증하지-않고-있었다">③ 테스트가 실제 설정을 검증하지 않고 있었다</a></li>
+<li class="toc-h2"><a href="#17-phase-16-전체의-한계--어디서-해결되나">17. Phase 16 전체의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#18-용어-16b-추가분">18. 용어 (16b 추가분)</a></li>
+<li class="toc-h2"><a href="#19-참고-16b">19. 참고 (16b)</a></li></ul></nav></aside>
 </body>
 </html>

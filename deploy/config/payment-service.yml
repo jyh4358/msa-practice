@@ -1,0 +1,4 @@
+# Phase 16b — payment-service 컨테이너 오버라이드.
+spring:
+  datasource:
+    url: jdbc:postgresql://payment-db:5432/paymentdb   # localhost:5433(호스트 포트) → 컨테이너 내부 5432

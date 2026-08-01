@@ -1,0 +1,86 @@
+# Phase 16b — 컨테이너 공통 오버라이드. **compose 와 k8s 가 이 파일 한 벌을 공유한다.**
+#
+# 어떻게 공유되는가
+#   compose : deploy/compose/compose.yml 이 이 파일을 바인드 마운트
+#             → /application/config/10-common/application.yml (읽기 전용)
+#   k8s     : 이 파일로 ConfigMap `shopsaga-common` 을 만들어 같은 경로에 마운트
+#             → deploy/k8s/apply.sh 참고
+#
+# 왜 한 벌로 되는가 — **compose 서비스명과 k8s Service 이름을 똑같이 지었기 때문**이다.
+# 두 플랫폼 모두 "서비스 이름 → 실제 주소"를 DNS 로 풀어 준다. 이름만 같으면 설정은 하나면 된다.
+# (이것 자체가 Phase 16 의 교훈이다: 디스커버리는 애플리케이션이 아니라 플랫폼의 일이다.)
+#
+# Spring Boot 설정 우선순위: classpath:/application.yml  <  file:./config/10-common/  <  file:./config/20-service/
+#   → jar 안의 로컬 기본값(localhost)을 이 파일이 덮고, 서비스별 파일이 다시 덮는다.
+
+# ── 서비스 주소: localhost → 플랫폼 DNS 이름 ──
+# Phase 4~15 라면 여기 대신 Eureka 가 이 일을 했다(그리고 그러기 위해 서비스마다 클라이언트 라이브러리와
+# 하트비트·레지스트리 캐시를 들고 있어야 했다). 지금은 값 5개가 전부다.
+services:
+  auth: http://auth-service:9000
+  order: http://order-service:8080
+  payment: http://payment-service:8081
+  inventory: http://inventory-service:8082
+  orderQuery: http://order-query-service:8083
+
+spring:
+  kafka:
+    # Phase 9: 컨테이너 네트워크용 내부 리스너. 호스트에서 붙을 때(localhost:9092)와 주소가 다르다.
+    bootstrap-servers: kafka:19092
+
+# 어느 인스턴스가 응답했는지 눈으로 확인하기 위한 장치(스케일·자가치유·롤링 업데이트 실증용).
+# POD_NAME 은 k8s 가 Downward API 로, compose 에서는 도커가 컨테이너 ID 를 HOSTNAME 으로 넣어 준다.
+info:
+  pod: ${POD_NAME:${HOSTNAME:unknown}}
+
+management:
+  info:
+    env:
+      enabled: true              # info.* 프로퍼티를 /actuator/info 에 노출(기본 false)
+
+  # ── Phase 16a: k8s probe. compose 에서도 켜 두면 healthcheck 로 같은 엔드포인트를 쓸 수 있다. ──
+  endpoint:
+    health:
+      probes:
+        enabled: true            # /actuator/health/{liveness,readiness} 생성
+      show-details: always
+      # ★★ 이 한 줄이 없으면 서비스 절반이 기동에 실패한다.
+      # 기본값(true)이면 그룹에 적은 이름이 실제로 존재하는지 검사하고, 없으면
+      # NoSuchHealthContributorException 으로 **애플리케이션이 아예 뜨지 않는다**.
+      # 우리는 공통 파일 하나를 6개 서비스가 공유하는데
+      #   · order/payment/inventory → `db` 는 있지만 `mongo` 는 없다
+      #   · order-query            → `mongo` 는 있지만 `db` 는 없다
+      #   · gateway/auth           → 둘 다 없다
+      # 이 검사를 끄면 "있는 것만 포함"으로 관대하게 동작한다.
+      # (대안: 서비스별 파일에서 그룹을 따로 정의 — 중복이 커져서 이쪽을 택했다.)
+      validate-group-membership: false
+      group:
+        readiness:
+          # readiness = "지금 트래픽을 받아도 되는가". 의존성이 죽으면 요청을 받아봐야 실패한다.
+          # 실패하면 k8s 는 이 파드를 Service Endpoints 에서 빼기만 한다(죽이지 않는다).
+          # ⚠️ 여기에 kafka 를 넣지 않는 이유: 브로커가 잠깐 없어도 outbox 덕분에 주문 접수는 성공한다.
+          #    "지금 요청을 처리할 수 있는가"의 답이 여전히 '예'라면 readiness 는 UP 이어야 한다.
+          include: readinessState,db,mongo
+        liveness:
+          # liveness = "이 프로세스를 죽였다 살리면 나아지는가".
+          # ⚠️ 외부 의존성을 넣으면 안 된다. DB 장애 때 전 파드가 동시에 재시작 루프에 빠지고,
+          #    복구 순간 커넥션 폭풍이 DB 를 다시 눕힌다.
+          include: livenessState
+
+  # ── Phase 8: 관측성. 컨테이너 안에서 localhost 는 자기 자신이므로 서비스명으로 보낸다. ──
+  tracing:
+    sampling:
+      probability: 1.0           # 학습용 전량 샘플링(운영은 0.1~0.3)
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true   # Phase 8b: p95 지연 히스토그램 버킷(대시보드 histogram_quantile 용)
+  otlp:
+    logging:
+      endpoint: http://otel-lgtm:4318/v1/logs      # 이 키가 OtlpLogging 자동구성 트리거
+    tracing:
+      endpoint: http://otel-lgtm:4318/v1/traces
+    metrics:
+      export:
+        url: http://otel-lgtm:4318/v1/metrics
+        step: 10s                # push 주기(기본 60s) — 데모에서 빨리 보이게
