@@ -40,6 +40,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# ★ 감사(2026-08-02) 수정: 워크플로 기본 토큰 권한을 읽기 전용으로 못 박는다.
+#   이 블록이 없으면 permissions 를 안 적은 잡(build 등)이 "저장소 설정의 기본값"을 상속하는데,
+#   그 기본값이 read/write 인 저장소에서는 ./gradlew build 가 실행하는 서드파티 코드(Gradle 플러그인,
+#   Testcontainers)가 main 에 push 할 수 있게 된다 — Argo CD 가 main 을 selfHeal 로 지켜보므로
+#   그대로 클러스터 장악 경로가 된다. 더 필요한 잡은 각자 잡 레벨에서 넓힌다(gitops: contents: write 등).
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   # ghcr.io/jyh4358/msa-practice/<service> 형태 — 저장소에 자동으로 연결된다.
@@ -59,6 +67,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 이 잡은 push 하지 않는다 — 토큰을 .git/config 에 남기지 않는다(기본값 true).
+          # ./gradlew build 가 실행하는 서드파티 코드가 토큰을 줍지 못하게 하는 방어선.
+          persist-credentials: false
 
       - name: JDK 21
         uses: actions/setup-java@v4
@@ -117,6 +129,8 @@ jobs:
             runner: ubuntu-24.04-arm     # 공개 저장소 무료 arm64 러너 (우리 kind 와 같은 아키텍처)
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # 이 잡은 GHCR 로만 push(docker login) — git 자격증명 불필요
 
       - name: bootJar 내려받기
         uses: actions/download-artifact@v4
@@ -214,6 +228,8 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # 이 잡은 push 하지 않는다 — git 자격증명 불필요
 
       # 로컬과 **같은 클러스터 정의**를 쓴다(포트 매핑 30080·8000 포함).
       - name: kind 클러스터

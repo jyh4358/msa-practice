@@ -7,6 +7,13 @@
 이 문서는 6개 전문가 관점(도메인 분해 · 기술스택 · 학습순서 · Saga · 관측성/복원력 · 인프라)으로 병렬 설계한 뒤,
 버전 호환성(웹 검증)·완성도·순서 타당성을 교차 검증하고 **하나의 모순 없는 로드맵**으로 합친 결과입니다.
 
+> ⚠️ **실제 구축 결과(사후 기록, 2026-08 기준):** 이 문서는 **계획 당시의 로드맵**이며, 아래 원문은 고치지 않고
+> 실제와 달라진 지점에만 정정 주석을 달았습니다. 가장 큰 차이 셋: ① **Phase 재번호매김** — Phase 18은
+> 계획대로의 "캡스톤(선택 확장)"이 아니라 **Kustomize/Helm 선언적 배포**가, Phase 19는 **GitOps(Argo CD)**가
+> 채웠습니다(§Phase 18 참고). ② **Keycloak 대신 auth-service 직접 구현**(§Phase 5 참고). ③ **Config Server는
+> native 백엔드로 시작해 Phase 16b에서 완전히 삭제**됐습니다(§Phase 6 참고). 실제 결과물 인덱스는 루트
+> [README.md](README.md), 재번호매김으로 남은 과제는 [docs/BACKLOG.md](docs/BACKLOG.md) 참고.
+
 ---
 
 ## 0. 확정된 결정 (한눈에)
@@ -83,7 +90,7 @@ docker run --rm --platform linux/arm64 alpine uname -m   # -> aarch64
 | 메트릭 | `micrometer-registry-prometheus` | (Boot BOM) | ✅ | `/actuator/prometheus` |
 | 트레이싱 | `micrometer-tracing-bridge-otel` + `opentelemetry-exporter-otlp` | (Boot BOM) | ✅ | OTLP → Tempo. **Java agent와 동시 사용 금지** |
 | 관측성 백엔드 | `grafana/otel-lgtm` (올인원) → 이후 분리 | latest | ✅ | Tempo+Loki+Prometheus+Grafana 한 컨테이너 |
-| 보안(엣지) | `spring-boot-starter-oauth2-resource-server` + Keycloak/Spring Authorization Server | (BOM) | ✅ | JWT 검증을 게이트웨이에서 |
+| 보안(엣지) | `spring-boot-starter-oauth2-resource-server` + Keycloak/Spring Authorization Server | (BOM) | ✅ | JWT 검증을 게이트웨이에서(실제로는 둘 다 대신 **auth-service 직접 구현** — §Phase 5 주석) |
 | 로컬 k8s | **kind** + kubectl | latest, `kindest/node:v1.31.x` | ✅ | Colima 엔진 재사용 |
 | 런타임 베이스 이미지 | `eclipse-temurin:21-jre` | — | ✅ | 툴체인과 일치(21) |
 
@@ -259,6 +266,10 @@ msa-platform/
 - **새 개념:** 엣지 인증, 신원 전파, 서비스 간 인가.
 - **검증:** 토큰 없이 `POST /api/orders` → 401. 유효 토큰 → 통과하고 다운스트림이 사용자 식별.
 
+> ⚠️ **실제 구축 결과:** Keycloak도 Spring Authorization Server도 붙이지 않고 **auth-service를 직접 구현**했습니다
+> (RSA 키페어 자체 발급 + RS256 서명 + `/oauth2/jwks` 노출). 이유: 학습 목적상 기성 IdP를 배선하는 것보다
+> **JWT 발급·서명·JWKS 노출 자체를 직접 만드는 쪽이 배울 게 많기** 때문입니다. → `docs/SECURITY.md`.
+>
 > 보안을 빼고 싶다면 **명시적으로 "범위 외"라고 선언**하세요. customer-service를 "신원 서비스"라 부르면서 아무도 인증 안 하면 모순입니다. 게이트웨이 직후가 보안의 자연스러운 자리입니다.
 
 #### Phase 6 — 중앙 설정 (Config Server) ⏱️ ~0.5d
@@ -267,11 +278,16 @@ msa-platform/
 - **새 개념:** 관리·버전관리되는 중앙 설정, 재시작 없는 리프레시.
 - **검증:** Git의 속성 변경 → `/actuator/refresh` → 재시작 없이 새 값.
 
+> ⚠️ **실제 구축 결과:** 백엔드는 계획한 **Git이 아니라 native**(로컬 파일, `config-repo/*.yml`)로 시작했습니다.
+> 그리고 여기서 세운 Config Server 자체가 **Phase 16b에서 완전히 삭제**됐습니다 — 역할이 플랫폼(k8s ConfigMap/Secret)으로
+> 옮겨갔기 때문입니다. 아래 "k8s 단계에서 ConfigMap으로 대체한다"는 메모가 실제로 그대로 실현된 셈입니다.
+> → `docs/PHASE-6-CONFIG.md`, `docs/PHASE-16-KUBERNETES.md`(#part-16b).
+>
 > Spring Cloud **Bus**(Kafka로 전 인스턴스 broadcast 리프레시)는 Kafka가 없으니 **Phase 15로 미룹니다**. 또한 "k8s 단계(16)에서 이걸 ConfigMap으로 대체한다"는 점을 지금 메모해두세요.
 
 #### Phase 7 — 동기 플랫폼 전체를 Docker Compose로 (통합 체크포인트) ⏱️ ~1d
 - **목표:** 한 명령으로 동기 시스템 전체 기동.
-- **빌드:** 서비스별 멀티스테이지 `Dockerfile`(레이어드 jar, `eclipse-temurin:21-jre`). `compose.infra.yml`(DB들·Keycloak) + `compose.apps.yml`(discovery·config·gateway·order·payment). **healthcheck + `depends_on: condition: service_healthy`** (`sleep` 금지). 서비스에 `server.shutdown=graceful` 추가.
+- **빌드:** 서비스별 멀티스테이지 `Dockerfile`(레이어드 jar, `eclipse-temurin:21-jre`). `compose.infra.yml`(DB들·Keycloak) + `compose.apps.yml`(discovery·config·gateway·order·payment). **healthcheck + `depends_on: condition: service_healthy`** (`sleep` 금지). 서비스에 `server.shutdown=graceful` 추가. (실제로는 Keycloak 대신 **auth-service** 컨테이너 — §Phase 5 주석)
 - **새 개념:** 재현 가능한 멀티서비스 런타임, 컨테이너 네트워킹(서비스명으로 통신), 이미지 빌드, **graceful shutdown**.
 - **검증:** 깨끗한 상태에서 `docker compose up` → 게이트웨이 통한 해피패스. `down && up` 반복 가능.
 
@@ -351,6 +367,12 @@ msa-platform/
 
 #### Phase 18 — 캡스톤 (선택·확장) ⏱️ 가변
 - shipping·catalog·customer 서비스 추가(6서비스 목표 완성, Saga 참여자 확장) / **Boot 4.1 + Spring Cloud 2025.1(Oakwood) 이전**(Jackson 3·Jakarta EE 11·JSpecify·Spring Framework 7) / **Helm** 리팩터 + Bitnami 차트로 in-cluster 인프라 / **Debezium CDC**로 폴링 릴레이 대체 / order↔inventory **gRPC** 엣지 / Grafana Alertmanager 경보.
+
+> ⚠️ **실제 구축 결과:** 이 "캡스톤" 계획은 실행되지 않았고, **Phase 번호가 재배정**됐습니다 — 실제 Phase 18은
+> **Kustomize/Helm 선언적 배포**(base/overlay·설정 변경→자동 롤아웃·ingress-nginx를 Helm 릴리스로), 실제 Phase 19는
+> **GitOps(Argo CD)** 로 채워졌습니다. → `docs/PHASE-18-KUSTOMIZE.md`, `docs/PHASE-19-GITOPS.md`.
+> 여기 나열된 shipping/catalog 확장·Boot 4.1 이전·Helm 리팩터·Debezium·gRPC·Alertmanager 등은 전부 **아직 미착수**이며,
+> 최신 우선순위는 [`docs/BACKLOG.md`](docs/BACKLOG.md) 참고.
 
 ---
 

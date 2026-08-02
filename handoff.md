@@ -66,7 +66,9 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- **전부 커밋·푸시 완료.** 작성 시점 HEAD = `751d32c`, 미푸시 0 · 미커밋 0.
+- ⚠️ **감사(2026-08-02) 수정분이 미커밋 상태다** — 코드(H1/H2/IDOR)·CI·k8s·docs 전반.
+  커밋·푸시는 사용자가 명시 요청할 때만. 푸시 전 `git pull --rebase` (gitops 봇 커밋 존재 가능).
+  감사 이전 마지막 푸시 HEAD = `1894a0e`.
   Phase 19: `894e12d`(GitOps 도입) · `46e0c69`(prune 실증) · `4c6b748`(문서).
   복습 자료: `0656391`(파트 B·C·D) · `751d32c`(복습 우선 방침).
   ⚠️ 마지막 push 로 CI 가 돌았으므로 **봇 커밋이 하나 더 생겨 있을 수 있다** →
@@ -100,8 +102,15 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - `docs/site/` HTML **30p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
 - `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
 
-## 지금 이 순간의 상태 (2026-08-02, Phase 19 완료 + 복습 자료 작성 후)
-- **모두 정지 상태.** kind 노드 `docker stop` + `colima stop` 완료.
+## 지금 이 순간의 상태 (2026-08-02, Phase 19 완료 + 복습 자료 작성 + **전면 감사·수정 후**)
+- ★★ **2026-08-02 전면 감사(Fable 5, 4개 축) 수행 → 결함 수정 적용, 아직 미커밋.**
+  무엇을 왜 고쳤는지는 `docs/AUDIT-2026-08.md`, 안 고치고 이연한 것은 `docs/BACKLOG.md` 가 단일 진실 공급원.
+  핵심 수정: ① processed_commands.payment_id 저장·재생(H1, 마이그레이션 payment V5·inventory V5·order V9)
+  ② Order.confirm 단조 전이(H2, 코레오그래피 순서 역전) ③ 게이트웨이 payments-route 삭제 + 주문
+  소유권 검사(IDOR — POST /orders 의 customerId 는 이제 JWT subject 에서 유도, 몸통 값 무시)
+  ④ CI 최상단 permissions: contents: read + persist-credentials: false ⑤ Grafana 익명 Admin→Viewer.
+  **테스트 88개 / 실패 0** (감사 전 87 + 신규 1) — Testcontainers·contractTest 포함 전부 실측 통과.
+- **모두 정지 상태.** kind 노드 `docker stop` + `colima stop` 완료(감사 검증차 잠깐 켰다 다시 껐다).
   **클러스터 정의·PVC·이미지·Helm 릴리스(argocd·ingress-nginx) 전부 보존** — 재개는 아래 "재개 절차".
   마지막으로 확인된 Argo CD 상태: `sync=Synced health=Healthy`.
 - ★ **사용자는 지금 복습 중이다.** 새 Phase 를 먼저 제안하지 말 것(아래 "다음 단계" 참조).
@@ -111,7 +120,7 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
   ingress-nginx·Argo CD 는 **Helm 릴리스**다(`helm list -A`).
 - **Colima 12GB·6CPU**(Phase 16a 에서 증설). compose 와 kind 는 RAM·**포트(8000)** 모두 충돌 → **동시 금지**.
 - 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` **v4.2.3** · `k9s` · `gh` v2.97.0(**로그인 완료**, API 5000/hr).
-- 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
+- 빌드: `./gradlew build` 통과, **테스트 88개 / 실패 0**(감사 수정 반영 후 실측).
 - **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 최신 `46e0c69` **전부 success**.
   잡 **6개**: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크 → **gitops 승격**.
   마지막 잡이 `overlays/gitops` 에 이미지 태그를 커밋한다. `paths-ignore` 로 재트리거를 막는다.

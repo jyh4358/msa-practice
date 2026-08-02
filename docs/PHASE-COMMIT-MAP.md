@@ -67,23 +67,24 @@
 ## 새 세션에서 이렇게 보면 됩니다 (git 명령)
 
 ```bash
+# (2026-08-02 이력 재작성 이후 해시 — 위 경고 참고)
 # 0) 전체 흐름
 git log --oneline --reverse
 
 # 1) 특정 Phase가 무엇을 바꿨나 (해당 커밋의 전체 diff)
-git show 41392a2                 # Phase 3
-git show a9a1cda --stat          # Phase 2-2 변경 파일 목록만
+git show a7ed2fb                 # Phase 3
+git show 72bc785 --stat          # Phase 2-2 변경 파일 목록만
 
 # 2) Phase A → B 사이의 누적 변화 (경계 커밋 사용)
-git diff a9a1cda..41392a2        # Phase 2-2 → Phase 3
-git diff 91e27d6..98003e7        # Phase 4 → Phase 5
+git diff 72bc785..a7ed2fb        # Phase 2-2 → Phase 3
+git diff 0c34e24..19fad3a        # Phase 4 → Phase 5
 
 # 3) 특정 파일이 Phase마다 어떻게 바뀌었나
 git log --oneline -- services/order-service/src/main/resources/application.yml
 git log -p  -- services/gateway-service/src/main/resources/application.yml
 
 # 4) 한 Phase에서 추가/삭제/수정된 파일 분류
-git show 98003e7 --name-status   # A/D/M
+git show 19fad3a --name-status   # A/D/M (Phase 5)
 ```
 
 > 팁: 각 커밋 메시지는 **`(Phase N)` 태그**가 있어(2~7) `git log --oneline | grep Phase` 로도 빠르게 짚을 수 있다.

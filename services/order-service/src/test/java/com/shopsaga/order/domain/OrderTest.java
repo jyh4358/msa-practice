@@ -53,12 +53,31 @@ class OrderTest {
     }
 
     @Test
-    void confirm_requiresInventoryReservedFirst() {
+    void confirm_acceptsOutOfOrderPaymentCharged_monotonicTransition() {
         Order order = orderWithOneItem();   // PENDING — 재고 예약 이벤트를 아직 못 봤다
+        UUID paymentId = UUID.randomUUID();
 
-        // 순서가 뒤바뀐 배달: 확정하지 않고 무시한다(예외 아님 — 재배달은 정상 상황이므로)
-        assertThat(order.confirm(UUID.randomUUID())).isFalse();
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        // 순서가 뒤바뀐 배달: PaymentCharged 는 인과적으로 재고 예약 '뒤'의 사건이므로,
+        // 먼저 도착해도 받아들인다(단조 전이). 무시하면 전이가 영영 사라져 주문이
+        // "결제됐는데 미확정"으로 남는다 — 읽기 모델의 rank 와 같은 원리.
+        assertThat(order.confirm(paymentId)).isTrue();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(order.getPaymentId()).isEqualTo(paymentId);
+
+        // 늦게 도착한 InventoryReserved 는 상태를 되돌리지 않는다
+        assertThat(order.markInventoryReserved()).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void confirm_withoutPaymentId_isIgnored_notAnException() {
+        Order order = orderWithOneItem();
+        order.markInventoryReserved();
+
+        // 결제 id 없는 확정 지시: 예외를 던지면 트랜잭션 롤백 → 재시도 → DLT 로 파티션이 오염된다.
+        // 다른 가드처럼 "전이 안 함"으로 다룬다.
+        assertThat(order.confirm(null)).isFalse();
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.INVENTORY_RESERVED);
         assertThat(order.getPaymentId()).isNull();
     }
 

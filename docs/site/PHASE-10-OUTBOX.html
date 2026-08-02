@@ -373,7 +373,7 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li class="active"><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li class="active"><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="phase-10--신뢰성-척추-트랜잭셔널-outbox--멱등-소비자">Phase 10 — 신뢰성 척추: 트랜잭셔널 Outbox + 멱등 소비자</h1>
@@ -510,7 +510,7 @@ code.hljs {
   handled_at TIMESTAMPTZ <span class="hljs-keyword">NOT NULL</span>
 );
 </code></pre><p><code>message_id</code>가 <strong>PK</strong> — 같은 메시지의 두 번째 INSERT는 PK 위반으로 막힌다(경합 시 진짜 방어벽).</p>
-<h3 id="45-inventory--멱등-가드dedup예약기록을-한-트랜잭션에">4.5 inventory — 멱등 가드(dedup·예약·기록을 한 트랜잭션에)</h3>
+<h3 id="45-inventory--멱등-가드dedup예약기록을-한-트랜잭션에-요지--실패-처리-생략">4.5 inventory — 멱등 가드(dedup·예약·기록을 한 트랜잭션에) (요지 — 실패 처리 생략)</h3>
 <pre><code class="hljs language-java"><span class="hljs-meta">@Transactional</span>
 <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">reserveForOrder</span><span class="hljs-params">(UUID messageId, UUID orderId, Map&lt;UUID,Integer&gt; qty)</span> {
     <span class="hljs-keyword">if</span> (processedMessagePort.isAlreadyProcessed(messageId)) {   <span class="hljs-comment">// 이미 처리 → 부수효과 없이 skip</span>
@@ -520,7 +520,13 @@ code.hljs {
     <span class="hljs-keyword">new</span> <span class="hljs-title class_">TreeMap</span>&lt;&gt;(qty).forEach((product, q) -&gt; reserveStockPort.reserve(product, q));  <span class="hljs-comment">// 진짜 부수효과</span>
     processedMessagePort.markProcessed(messageId);   <span class="hljs-comment">// 처리 기록 — 예약과 같은 트랜잭션</span>
 }
-</code></pre><p>소비 어댑터(<code>OrderPlacedListener</code>)는 <code>@Header(&quot;messageId&quot;)</code>로 헤더를 읽어 이 유스케이스에 넘긴다(헤더 없으면 orderId로 대체 dedup).</p>
+</code></pre><blockquote>
+<p><strong>실제 동작(위 스니펫에서 생략됨):</strong> <code>reserveStockPort.reserve()</code>가 재고 부족으로 <code>InsufficientStockException</code>을
+던지면, 이 시점(Phase 10)의 실제 코드는 그 예외를 <strong>catch해 로그만 남기고 그대로 <code>markProcessed()</code>를 호출</strong>한다
+— 재시도도 실패 이벤트 발행도 없다. 즉 재고가 부족해도 주문은 그대로 <code>CONFIRMED</code>로 남는다(§8 &quot;보상 없음&quot; 참고).
+이 구멍은 실패를 <strong>사실 이벤트</strong>(<code>InventoryFailed</code>)로 발행하는 <strong>Phase 12</strong>에서 메워진다.</p>
+</blockquote>
+<p>소비 어댑터(<code>OrderPlacedListener</code>)는 <code>@Header(&quot;messageId&quot;)</code>로 헤더를 읽어 이 유스케이스에 넘긴다(헤더 없으면 orderId로 대체 dedup).</p>
 <h3 id="46-설정-config-repoapplicationyml">4.6 설정 (<code>config-repo/application.yml</code>)</h3>
 <pre><code class="hljs language-yaml"><span class="hljs-attr">outbox:</span>
   <span class="hljs-attr">relay:</span>
@@ -645,7 +651,7 @@ code.hljs {
 <li class="toc-h3"><a href="#42-order--발행-어댑터-kafka로-안-보내고-outbox에만-쓴다">4.2 order — 발행 어댑터: Kafka로 안 보내고 outbox에만 쓴다</a></li>
 <li class="toc-h3"><a href="#43-order--릴레이scheduled-ack-후에만-발행완료">4.3 order — 릴레이(@Scheduled): ack 후에만 발행완료</a></li>
 <li class="toc-h3"><a href="#44-inventory--processed_messages-테이블-flyway-v2__processed_messagessql">4.4 inventory — processed_messages 테이블 (Flyway V2__processed_messages.sql)</a></li>
-<li class="toc-h3"><a href="#45-inventory--멱등-가드dedup예약기록을-한-트랜잭션에">4.5 inventory — 멱등 가드(dedup·예약·기록을 한 트랜잭션에)</a></li>
+<li class="toc-h3"><a href="#45-inventory--멱등-가드dedup예약기록을-한-트랜잭션에-요지--실패-처리-생략">4.5 inventory — 멱등 가드(dedup·예약·기록을 한 트랜잭션에) (요지 — 실패 처리 생략)</a></li>
 <li class="toc-h3"><a href="#46-설정-config-repoapplicationyml">4.6 설정 (config-repo/application.yml)</a></li>
 <li class="toc-h2"><a href="#5-요청-하나가-흐르는-순서">5. 요청 하나가 흐르는 순서</a></li>
 <li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>

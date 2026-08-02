@@ -269,6 +269,9 @@ private void onPaymentCharged(SagaInstance saga, SagaReply reply, Instant now) {
 - Saga 상태는 **건드리지 않는다.** 되돌리면 "취소됐다가 다시 진행 중"이 되어 sweep 대상으로 되살아난다.
 - payment 는 결제 row 를 **지우지 않고** `REFUNDED` 로 남긴다 — 돈이 움직인 사실은 감사(audit) 대상이다.
 - 멱등성은 결정적 커맨드 키 `CommandKeys.of(sagaId, "RefundPayment")` 가 보장한다(청구 키와 다르므로 서로 간섭 없음).
+- ⚠️ **관련 결함(감사 2026-08-02):** 이 상쇄가 의존하는 `SagaReply`의 `paymentId`가 **재전송된 리플라이에서 유실**될
+  수 있었다 — 유실되면 `confirm`도 실패하고 이 보상 경로도 올바른 결제 id를 못 받았다. `processed_commands`에
+  `payment_id`를 저장해 재생하는 방식으로 해결됐다(→ [PHASE-13-SAGA-ORCHESTRATION.md §8](PHASE-13-SAGA-ORCHESTRATION.md)).
 
 ---
 

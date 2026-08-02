@@ -154,7 +154,7 @@ CREATE TABLE processed_messages (
 ```
 `message_id`가 **PK** — 같은 메시지의 두 번째 INSERT는 PK 위반으로 막힌다(경합 시 진짜 방어벽).
 
-### 4.5 inventory — 멱등 가드(dedup·예약·기록을 한 트랜잭션에)
+### 4.5 inventory — 멱등 가드(dedup·예약·기록을 한 트랜잭션에) (요지 — 실패 처리 생략)
 ```java
 @Transactional
 public void reserveForOrder(UUID messageId, UUID orderId, Map<UUID,Integer> qty) {
@@ -166,6 +166,11 @@ public void reserveForOrder(UUID messageId, UUID orderId, Map<UUID,Integer> qty)
     processedMessagePort.markProcessed(messageId);   // 처리 기록 — 예약과 같은 트랜잭션
 }
 ```
+> **실제 동작(위 스니펫에서 생략됨):** `reserveStockPort.reserve()`가 재고 부족으로 `InsufficientStockException`을
+> 던지면, 이 시점(Phase 10)의 실제 코드는 그 예외를 **catch해 로그만 남기고 그대로 `markProcessed()`를 호출**한다
+> — 재시도도 실패 이벤트 발행도 없다. 즉 재고가 부족해도 주문은 그대로 `CONFIRMED`로 남는다(§8 "보상 없음" 참고).
+> 이 구멍은 실패를 **사실 이벤트**(`InventoryFailed`)로 발행하는 **Phase 12**에서 메워진다.
+
 소비 어댑터(`OrderPlacedListener`)는 `@Header("messageId")`로 헤더를 읽어 이 유스케이스에 넘긴다(헤더 없으면 orderId로 대체 dedup).
 
 ### 4.6 설정 (`config-repo/application.yml`)

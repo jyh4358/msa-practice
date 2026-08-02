@@ -75,8 +75,9 @@ class PaymentCommandServiceTest {
         verify(publishSagaReplyPort).reply(replyCaptor.capture());
         assertThat(replyCaptor.getValue().kind()).isEqualTo(SagaReply.Kind.PAYMENT_CHARGED);
         assertThat(replyCaptor.getValue().paymentId()).isEqualTo(paymentId);
+        // ★ paymentId 까지 기록해야 한다 — 재전송 리플라이는 저장한 결과 '그대로'여야 하므로.
         verify(processedCommandPort).record(any(), eq(sagaId), any(),
-                eq(SagaReply.Kind.PAYMENT_CHARGED), eq(null));
+                eq(SagaReply.Kind.PAYMENT_CHARGED), eq(paymentId), eq(null));
     }
 
     @Test
@@ -95,11 +96,12 @@ class PaymentCommandServiceTest {
     @Test
     void resentCommand_doesNotChargeTwice_butStillReplies() {
         UUID sagaId = UUID.randomUUID();
+        UUID priorPaymentId = UUID.randomUUID();
         ChargePaymentCommand cmd = command(sagaId, "30.00");
         UUID expectedKey = CommandKeys.of(sagaId, PaymentCommandService.CMD_CHARGE);
         when(processedCommandPort.findOutcome(expectedKey))
                 .thenReturn(Optional.of(new ProcessedCommandPort.PriorOutcome(
-                        SagaReply.Kind.PAYMENT_CHARGED, null)));
+                        SagaReply.Kind.PAYMENT_CHARGED, priorPaymentId, null)));
 
         service.onChargePayment(cmd);
 
@@ -108,6 +110,9 @@ class PaymentCommandServiceTest {
         // ★ 그러나 응답은 다시 보낸다 — 조용히 무시하면 조정자가 영영 기다린다.
         verify(publishSagaReplyPort).reply(replyCaptor.capture());
         assertThat(replyCaptor.getValue().kind()).isEqualTo(SagaReply.Kind.PAYMENT_CHARGED);
+        // ★ 재전송 리플라이도 원본과 같은 paymentId 를 실어야 한다 — null 이면 조정자가
+        //   confirm 도 고아 결제 보상도 못 해서 "청구됐는데 환불 불가"가 된다(감사에서 발견된 결함).
+        assertThat(replyCaptor.getValue().paymentId()).isEqualTo(priorPaymentId);
     }
 
     @Test
@@ -153,7 +158,8 @@ class PaymentCommandServiceTest {
         UUID sagaId = UUID.randomUUID();
         UUID paymentId = UUID.randomUUID();
         when(processedCommandPort.findOutcome(CommandKeys.of(sagaId, PaymentCommandService.CMD_REFUND)))
-                .thenReturn(Optional.of(new ProcessedCommandPort.PriorOutcome(SagaReply.Kind.PAYMENT_REFUNDED, null)));
+                .thenReturn(Optional.of(new ProcessedCommandPort.PriorOutcome(
+                        SagaReply.Kind.PAYMENT_REFUNDED, paymentId, null)));
 
         service.onRefundPayment(refundCommand(sagaId, paymentId));
 
@@ -162,6 +168,7 @@ class PaymentCommandServiceTest {
         // ⚠️ 그래도 리플라이는 다시 보낸다 — 무시하면 조정자가 영영 기다린다.
         verify(publishSagaReplyPort).reply(replyCaptor.capture());
         assertThat(replyCaptor.getValue().kind()).isEqualTo(SagaReply.Kind.PAYMENT_REFUNDED);
+        assertThat(replyCaptor.getValue().paymentId()).isEqualTo(paymentId);
     }
 
     @Test

@@ -43,6 +43,15 @@ public class ProcessedCommand {
     @Column(name = "reply_kind", nullable = false, length = 40)
     private String replyKind;
 
+    /**
+     * 리플라이에 실어 보낸 결제 id(결제 커맨드가 아니면 null).
+     *
+     * <p>결과를 "재구성"하지 않고 "저장한 그대로" 재전송하기 위한 필드다 — 이게 없으면 재전송 리플라이의
+     * paymentId 가 null 이 되어, 조정자의 {@code confirm(paymentId)}·고아 결제 보상이 모두 무력화된다.
+     */
+    @Column(name = "payment_id")
+    private UUID paymentId;
+
     @Column(length = 500)
     private String reason;
 
@@ -50,11 +59,12 @@ public class ProcessedCommand {
     private Instant handledAt;
 
     public ProcessedCommand(UUID commandKey, UUID sagaId, UUID orderId,
-                            String replyKind, String reason, Instant handledAt) {
+                            String replyKind, UUID paymentId, String reason, Instant handledAt) {
         this.commandKey = commandKey;
         this.sagaId = sagaId;
         this.orderId = orderId;
         this.replyKind = replyKind;
+        this.paymentId = paymentId;
         this.reason = reason;
         this.handledAt = handledAt;
     }

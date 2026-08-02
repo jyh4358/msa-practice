@@ -272,13 +272,13 @@ POST :8000/orders  (Authorization: Bearer <JWT>)
 
 | 한계 / 갭 | 성격 | 해결 Phase |
 |---|---|---|
-| **payment 캡처가 공개 게이트웨이로 노출** — 인증된 USER면 `/payments` 직접 호출로 임의 결제 생성 가능(서비스 신원/스코프 없음) | 인가 깊이(A01/A04) | **Phase 15**(하드닝: 서비스 스코프/내부 전용화) — 또는 게이트웨이에서 `/payments` 라우트 제거 |
-| **소유권 검증 없음(IDOR)** — 아무 인증 사용자나 `GET /orders/{id}`로 남의 주문 조회 가능. 주문이 토큰 subject에 묶이지 않음(customerId를 클라가 지정) | 인가 깊이(A01) | **Phase 15** (+주문-사용자 바인딩 도입) |
-| JWT **issuer/audience 미검증**(서명·만료만 검증) — 방어 심화 부족 | 하드닝 | **Phase 15** (issuer/audience validator) |
+| **payment 캡처가 공개 게이트웨이로 노출** — 인증된 USER면 `/payments` 직접 호출로 임의 결제 생성 가능(서비스 신원/스코프 없음) | 인가 깊이(A01/A04) | ✅ **감사(2026-08-02)에서 폐쇄** — 게이트웨이 `payments-route` 삭제(결제는 Saga/Kafka로만 구동). [AUDIT-2026-08.md](AUDIT-2026-08.md) |
+| **소유권 검증 없음(IDOR)** — 아무 인증 사용자나 `GET /orders/{id}`로 남의 주문 조회 가능. 주문이 토큰 subject에 묶이지 않음(customerId를 클라가 지정) | 인가 깊이(A01) | ✅ **감사(2026-08-02)에서 폐쇄** — customerId를 JWT subject에서 유도 + 본인/ADMIN만 조회 허용(403). [AUDIT-2026-08.md](AUDIT-2026-08.md) |
+| JWT **issuer/audience 미검증**(서명·만료만 검증) — 방어 심화 부족 | 하드닝 | → [BACKLOG.md](BACKLOG.md) |
 | 게이트웨이 `permitAll(/auth/**)`가 `/auth/login`보다 넓음(현재 노출 없음, 잠재적) | 하드닝 | **Phase 15** (정확히 `/auth/login`만) |
 | `/actuator/health` `show-details: always` 공개 | 하드닝/관측성 | **Phase 8/15** |
-| DB 비밀번호·인메모리 키가 코드/설정에 하드코딩(재시작 시 키 회전) | 시크릿 관리 | **Phase 6**(Config) + **Phase 7**(keystore/compose) |
-| 서비스간 호출이 사용자 토큰 재전파에 의존(서비스 자체 신원 없음) | 서비스 인증 | **Phase 15** (client-credentials/mTLS) |
+| DB 비밀번호·인메모리 키가 코드/설정에 하드코딩(재시작 시 키 회전) | 시크릿 관리 | → [BACKLOG.md](BACKLOG.md) |
+| 서비스간 호출이 사용자 토큰 재전파에 의존(서비스 자체 신원 없음) | 서비스 인증 | → [BACKLOG.md](BACKLOG.md) |
 
 > 리뷰에서 **정상 확인**된 것들: 리액티브/서블릿 배선, CSRF off+stateless 적절, `@ConditionalOnWebApplication`이
 > 운영 보안을 끄지 않음, auth-service가 리소스 서버로 오작동하지 않음, 토큰 전파 스레드 안전성.

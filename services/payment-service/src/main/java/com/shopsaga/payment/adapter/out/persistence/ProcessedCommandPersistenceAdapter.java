@@ -21,11 +21,14 @@ class ProcessedCommandPersistenceAdapter implements ProcessedCommandPort {
     @Override
     public Optional<PriorOutcome> findOutcome(UUID commandKey) {
         return repository.findById(commandKey)
-                .map(pc -> new PriorOutcome(SagaReply.Kind.valueOf(pc.getReplyKind()), pc.getReason()));
+                .map(pc -> new PriorOutcome(SagaReply.Kind.valueOf(pc.getReplyKind()),
+                        pc.getPaymentId(), pc.getReason()));
     }
 
     @Override
-    public void record(UUID commandKey, UUID sagaId, UUID orderId, SagaReply.Kind kind, String reason) {
-        repository.save(new ProcessedCommand(commandKey, sagaId, orderId, kind.name(), reason, Instant.now()));
+    public void record(UUID commandKey, UUID sagaId, UUID orderId, SagaReply.Kind kind,
+                       UUID paymentId, String reason) {
+        repository.save(new ProcessedCommand(commandKey, sagaId, orderId, kind.name(),
+                paymentId, reason, Instant.now()));
     }
 }

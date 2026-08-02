@@ -108,8 +108,9 @@ public boolean markInventoryReserved() {
     return true;
 }
 public boolean confirm(UUID paymentId) {
-    if (status == OrderStatus.CONFIRMED) return false;                 // 재배달
-    if (status != OrderStatus.INVENTORY_RESERVED) return false;        // PENDING/CANCELLED → 확정 안 함
+    if (paymentId == null) return false;                                          // 결제 id 없는 지시는 무시
+    if (status != OrderStatus.PENDING && status != OrderStatus.INVENTORY_RESERVED)
+        return false;                                                             // CONFIRMED(재배달)/CANCELLED(경합) → 유지
     this.paymentId = paymentId; this.status = OrderStatus.CONFIRMED; return true;
 }
 public boolean cancel() {
@@ -119,6 +120,14 @@ public boolean cancel() {
 ```
 **핵심: 예외를 던지지 않고 `false`를 반환한다.** at-least-once 배달에서 재배달은 **정상**이므로,
 도메인이 "이번엔 할 일이 없다"고 조용히 답해야 한다. 예외로 처리하면 소비자가 무한 재시도에 빠진다.
+
+> ⚠️ **`confirm`이 `PENDING`에서도 확정한다(단조 전이) — 감사 2026-08-02.** 처음 이 Phase를 만들 때는
+> `INVENTORY_RESERVED`에서만 확정을 허용했다. 그런데 코레오그래피에서는 `InventoryReserved`와 `PaymentCharged`를
+> **서로 다른 리스너 컨테이너**가 받으므로 처리 순서가 보장되지 않는다 — `PaymentCharged`가 먼저 도착하면
+> 그 시점의 주문은 아직 `PENDING`이라 확정 지시가 조용히 무시되고, 주문은 "결제는 됐는데 영영 미확정"으로 남았다.
+> 지금은 §4.9의 읽기 모델(`OrderViewStatus.rank`)과 같은 원리로 **쓰기 모델도 단조 전이**로 방어한다 — 뒤 단계
+> 사건(`PaymentCharged`)은 앞 단계를 건너뛰어 도착해도 받아들이고, 늦게 온 `InventoryReserved`는
+> `markInventoryReserved`가 (이미 `PENDING`이 아니므로) 무시한다.
 
 ### 4.2 order의 Saga 반응 — 공통 골격
 ```java
@@ -239,6 +248,10 @@ mongoTemplate.updateFirst(
 상태에 순위를 주고 **전진만** 허용하면 도착 순서와 무관하게 최종 상태가 같아진다(리플레이 결정성도 유지).
 같은 이유로 `OrderPlaced` 재배달이 상태를 되돌리지 않도록, 본문은 `$set`·상태는 `$setOnInsert` 로 나눴다.
 
+> **쓰기 모델(`Order.confirm`)도 같은 원리 적용(감사 2026-08-02).** 여기서는 순위를 Mongo 쿼리 조건으로 걸었지만,
+> §4.1의 `confirm`은 같은 아이디어를 도메인 메서드 안의 상태 체크로 구현한다 — 접근 방식은 다르지만
+> "뒤 단계 사건은 앞 단계를 건너뛰어도 받아들이고, 앞 단계 사건이 늦게 오면 무시한다"는 원리는 동일하다.
+
 ---
 
 ## 5. 요청 하나가 흐르는 순서 (해피패스)
@@ -269,6 +282,8 @@ mongoTemplate.updateFirst(
   - **보상은 완벽하지 않다.** 확정된 주문은 취소하지 않는다(환불이라는 다른 보상이 필요 — 범위 밖).
 - **왜 예외 대신 `false`/이벤트인가:** at-least-once 배달에서 재배달·순서뒤바뀜은 **정상 상황**이다.
   이를 예외로 다루면 무한 재시도가 되고, 브로커가 같은 메시지를 계속 되돌려준다.
+  (`confirm`이 `PENDING`도 허용하는 단조 전이로 바뀐 것도 같은 맥락 — 순서뒤바뀜을 예외가 아니라
+  정상 입력으로 다룬다. 감사 2026-08-02, §4.9 참고.)
 - **`@EntityScan` 함정(실제로 걸림):** 공유 라이브러리의 `@Configuration` 에 `@EntityScan` 을 넣으면
   Boot의 기본 스캔(앱 패키지)을 **대체**해 버려 그 서비스 자신의 엔티티가 사라진다.
   그래서 스캔 범위는 각 서비스가 **자기 패키지 + outbox** 를 함께 명시한다.
@@ -352,6 +367,7 @@ after : stock=98, payments=1, statuses=CONFIRMED,CANCELLED,CANCELLED   ← 완�
 | **전이 유실 가능** | `InventoryReserved` 가 `OrderPlaced` 보다 먼저 읽기 모델에 도착하면 그 전이는 버려진다(문서 없음) | 종료 상태는 자기치유됨. 엄격히는 지연 재처리 필요(후속) |
 | **다품목 예약의 락 범위** | 여러 상품을 한 트랜잭션에서 순차 락 → 처리량 제한(교착은 정렬로 회피) | 운영: 락 범위·파티셔닝 재설계(후속) |
 | **`--profile async` 필수** | Kafka 없이는 주문이 `PENDING` 에서 멈춘다 | 설계상(이벤트 기반의 본질) |
+| **코레오그래피 `PaymentCharged` 선행 도착 시 주문 영구 미확정** | 서로 다른 리스너 컨테이너가 두 이벤트를 처리해 순서가 뒤바뀌면, 확정 지시가 `PENDING`에서 무시돼 주문이 "결제됐는데 미확정"으로 영영 남았다 | ✅ **감사(2026-08-02)에서 단조 전이로 해결** — `confirm`이 `PENDING`에서도 확정을 허용(§4.1·§4.9) |
 
 ---
 

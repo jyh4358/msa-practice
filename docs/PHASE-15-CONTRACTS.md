@@ -364,8 +364,8 @@ if (body == null || body.availableQuantity() == null) {
 
 | # | 한계 | 왜 지금은 이대로 | 해결 |
 |---|---|---|---|
-| 1 | **스키마 레지스트리 없음** — 규칙을 테스트로만 강제 | Apicurio 컨테이너 추가는 Phase 16(RAM 최대 고비) 직전 부담 | Phase 18(캡스톤) 또는 별도 |
-| 2 | **API 버저닝(`/api/v1`) 미적용** | 소비자를 전부 우리가 통제 중 | Phase 18 / 외부 소비자 생길 때 |
+| 1 | **스키마 레지스트리 없음** — 규칙을 테스트로만 강제 | Apicurio 컨테이너 추가는 Phase 16(RAM 최대 고비) 직전 부담 | → [BACKLOG.md](BACKLOG.md) (Phase 18은 Kustomize로 재편) |
+| 2 | **API 버저닝(`/api/v1`) 미적용** | 소비자를 전부 우리가 통제 중 | → [BACKLOG.md](BACKLOG.md) (Phase 18은 Kustomize로 재편) / 외부 소비자 생길 때 |
 | 3 | 이벤트 계약이 **브로커 왕복을 검증하지 않음**(outbox 까지만) | SCC에 Kafka 통합이 없음 | 통합은 compose 실증이 담당 / 필요시 Testcontainers 기반 검증기 |
 | 4 | 소비자 계약 테스트가 **UP-TO-DATE 로 건너뛸 수 있음**(stub jar 가 Gradle 입력이 아님) | 로컬 편의 | CI는 clean 빌드라 무해 · 개선하려면 stub jar 를 입력으로 선언 |
 | 5 | Bus 가 **게이트웨이에는 없음** — 라우트는 여전히 재시작 필요 | 라우트는 기동 시 로드(리프레시 불가) | Phase 16 k8s 롤링 재시작 |

@@ -31,8 +31,8 @@ const DOCS = [
     desc: 'ShopSaga 학습 문서 모음의 시작점' },
   { key: 'README',               out: 'README.html', title: 'README (프로젝트 개요)', group: '시작',        file: 'README.md',
     desc: '현재 상태·서비스 구성·실행/검증 방법' },
-  { key: 'MSA-LEARNING-PLAN',    out: 'MSA-LEARNING-PLAN.html', title: '전체 로드맵 (18단계)', group: '시작', file: 'MSA-LEARNING-PLAN.md',
-    desc: 'Phase 0~18 전체 학습 로드맵' },
+  { key: 'MSA-LEARNING-PLAN',    out: 'MSA-LEARNING-PLAN.html', title: '전체 로드맵 (Phase 0~19)', group: '시작', file: 'MSA-LEARNING-PLAN.md',
+    desc: 'Phase 0~19 전체 학습 로드맵' },
 
   { key: 'HEXAGONAL',            out: 'HEXAGONAL.html', title: '헥사고날 아키텍처 컨벤션', group: '공통 개념', file: 'docs/HEXAGONAL.md',
     desc: '포트/어댑터·의존성 방향·QueryDSL 규약' },
@@ -81,6 +81,10 @@ const DOCS = [
   { key: 'PHASE-19-GITOPS', out: 'PHASE-19-GITOPS.html', title: 'Phase 19 · GitOps', group: 'Phase 단계별', file: 'docs/PHASE-19-GITOPS.md',
     desc: 'Argo CD·CI→Git 승격 루프·selfHeal로 드리프트 복원·prune·비밀을 렌더 밖으로' },
 
+  { key: 'BACKLOG',              out: 'BACKLOG.html', title: 'BACKLOG (남은 주제)',         group: '지도·복습', file: 'docs/BACKLOG.md',
+    desc: 'Phase 재번호매김으로 무효화된 "해결 Phase" 약속을 모은 단일 목록' },
+  { key: 'AUDIT-2026-08',        out: 'AUDIT-2026-08.html', title: '감사 기록 (2026-08-02)',    group: '지도·복습', file: 'docs/AUDIT-2026-08.md',
+    desc: '로드맵/구현/인프라/보안 4개 축 감사 — 발견·수정·이연 기록' },
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },
   { key: 'REVIEW-PART-A',        out: 'REVIEW-PART-A.html', title: '파트 A 복습 (Phase 0~7)',   group: '지도·복습', file: 'docs/REVIEW-PART-A.md',

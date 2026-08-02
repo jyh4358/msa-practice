@@ -46,15 +46,11 @@ spring:
                   args:
                     name: inventoryCb
                     fallbackUri: forward:/fallback/inventory-service
-            - id: payments-route
-              uri: ${services.payment}
-              predicates:
-                - Path=/payments/**
-              filters:
-                - name: CircuitBreaker
-                  args:
-                    name: paymentsCb
-                    fallbackUri: forward:/fallback/payment-service
+            # ★ 감사(2026-08-02) 수정: payments-route 제거.
+            #   Phase 12부터 결제는 Saga(Kafka 커맨드)로만 구동된다 — 외부에서 POST /payments 를
+            #   직접 부를 수 있으면 Saga·멱등성·보상을 전부 우회하는 뒷문이 된다(SECURITY.md 의
+            #   "payment 공개 노출" 갭). payment-service 는 클러스터 내부에서만 접근한다
+            #   (자체 JWT 검증은 유지 — defense in depth).
             # Phase 11: CQRS 읽기 측 — 조회는 읽기 모델 서비스로(쓰기 /orders 와 다른 서비스로 분리 라우팅).
             - id: order-views-route
               uri: ${services.orderQuery}
@@ -73,7 +69,7 @@ spring:
 services:
   auth: http://localhost:9000
   order: http://localhost:8080
-  payment: http://localhost:8081
+  # payment 주소 없음 — 결제는 Saga(Kafka)로만 구동, 외부 라우트 제거(감사 2026-08-02)
   inventory: http://localhost:8082
   orderQuery: http://localhost:8083
 

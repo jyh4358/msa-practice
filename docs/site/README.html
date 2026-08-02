@@ -373,13 +373,13 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li class="active"><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="shopsaga--msa-핸즈온-학습-플랫폼">ShopSaga — MSA 핸즈온 학습 플랫폼</h1>
 <p><a href="https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml"><img src="https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
 <p>Spring Cloud로 마이크로서비스 아키텍처를 <strong>한 단계씩 직접 만들며 트레이드오프를 배우는</strong> 학습 프로젝트.
-전체 로드맵(18단계)은 <strong><a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a></strong>,
+전체 로드맵(Phase 0~19)은 <strong><a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a></strong>,
 설치·실행 상세(트러블슈팅 포함)는 <strong><a href="SETUP.html"><code>docs/SETUP.md</code></a></strong>,
 서비스 내부 아키텍처(<strong>헥사고날</strong>) 컨벤션은 <strong><a href="HEXAGONAL.html"><code>docs/HEXAGONAL.md</code></a></strong> 참고.</p>
 <ul>
@@ -388,9 +388,11 @@ code.hljs {
 <li>도메인: 전자상거래 &quot;ShopSaga&quot; (order → inventory → payment)</li>
 </ul>
 <hr>
-<h2 id="현재-상태-phase-17--cicd-전체-플랫폼이-kubernetes-위에서-돈다">현재 상태: Phase 17 — CI/CD (전체 플랫폼이 Kubernetes 위에서 돈다)</h2>
-<p><strong>6개 서비스</strong>가 주문→재고→결제 <strong>Saga</strong>로 협력하고, 그 전체가 <strong>로컬 Kubernetes(kind)</strong> 에서 돕니다.
-push 하면 <strong>GitHub Actions</strong> 가 빌드·테스트·멀티아치 이미지·<strong>CI 안 kind 스모크 배포</strong>까지 자동으로 검증합니다.</p>
+<h2 id="현재-상태-phase-19-완료--gitops-argo-cd가-git을-보고-스스로-배포한다">현재 상태: Phase 19 완료 — GitOps (Argo CD가 Git을 보고 스스로 배포한다)</h2>
+<p><strong>6개 런타임 서비스</strong>(도메인 3: order·payment·inventory + gateway + auth + order-query)가
+주문→재고→결제 <strong>Saga</strong>로 협력하고, 그 전체가 <strong>로컬 Kubernetes(kind)</strong> 위에서 <strong>Argo CD</strong>가 Git 상태를 보고 스스로 배포·복구합니다.
+push 하면 <strong>GitHub Actions</strong> 가 빌드·테스트·멀티아치 이미지·<strong>CI 안 kind 스모크 배포</strong>까지 자동으로 검증하고,
+통과한 이미지 태그를 <code>overlays/gitops/</code>에 커밋하면 Argo CD가 그 상태로 동기화합니다.</p>
 <blockquote>
 <p>⚠️ <strong>Phase 16b 에서 두 서비스가 사라졌습니다</strong> — <code>discovery-service</code>(Eureka)와 <code>config-service</code>(Config Server).
 그 일을 이제 <strong>플랫폼이</strong> 합니다: 디스커버리는 <strong>DNS</strong>(compose 네트워크 / k8s Service), 설정은 <strong>파일</strong>(ConfigMap·바인드마운트).
@@ -569,6 +571,16 @@ Phase 4·6 문서는 <em>&quot;그때는 왜 필요했나&quot;</em> 의 기록�
 <td><strong>GitOps</strong>(Argo CD가 Git을 보고 스스로 배포·<strong>CI→Git 승격 루프</strong>·<code>selfHeal</code>로 드리프트 복원·<code>prune</code>으로 Phase 18 한계 해결)</td>
 <td><a href="PHASE-19-GITOPS.html">PHASE-19-GITOPS.md</a></td>
 </tr>
+<tr>
+<td>—</td>
+<td><strong>남은 주제</strong>(Phase 재번호매김으로 무효화된 &quot;해결 Phase&quot; 약속을 모은 단일 목록)</td>
+<td><a href="BACKLOG.html">BACKLOG.md</a></td>
+</tr>
+<tr>
+<td>—</td>
+<td><strong>감사 기록</strong>(2026-08-02, 로드맵/구현/인프라/보안 4개 축)</td>
+<td><a href="AUDIT-2026-08.html">AUDIT-2026-08.md</a></td>
+</tr>
 </tbody></table>
 <p>공통 아키텍처 컨벤션은 <a href="HEXAGONAL.html">HEXAGONAL.md</a>, 설치/실행은 <a href="SETUP.html">SETUP.md</a>.</p>
 <blockquote>
@@ -634,12 +646,9 @@ curl -s localhost:8000/inventory/22222222-2222-2222-2222-222222222222 -H <span c
 각 서비스 Swagger: <code>http://localhost:&lt;port&gt;/swagger-ui/index.html</code>.</p>
 </blockquote>
 <hr>
-<h2 id="다음-phase-18--캡스톤-선택확장">다음: Phase 18 — 캡스톤 (선택·확장)</h2>
-<p>Phase 0~17 을 마쳤습니다. 남은 18단계는 <strong>필수가 아니라 고르는</strong> 단계입니다:
-서비스 추가(shipping·catalog) · <strong>Boot 4.1 + Spring Cloud 2025.1(Oakwood) 이전</strong> ·
-<strong>Helm/Kustomize</strong> 리팩터 · Debezium CDC 로 outbox 릴레이 대체 · gRPC · metrics-server+HPA ·
-NetworkPolicy·<code>runAsNonRoot</code> 같은 보안 기본값 · Grafana 경보.
-자세한 목록은 <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a>.</p>
+<h2 id="다음은">다음은?</h2>
+<p><strong>Phase 0~19 완료.</strong> 남은 주제는 필수가 아니라 고르는 확장 과제입니다 —
+목록·우선순위·&quot;왜 지금 안 했나&quot;는 <strong><a href="BACKLOG.html"><code>docs/BACKLOG.md</code></a></strong> 참고.</p>
 <blockquote>
 <p>⚠️ <strong>Phase 12부터 주문 흐름은 Kafka 가 필수</strong>입니다(compose 는 <code>--profile async</code>). 또한 <code>POST /orders</code> 는
 <code>PENDING</code> 을 즉시 반환하며, 최종 결과(CONFIRMED/CANCELLED)는 <strong>조회로 확인</strong>합니다(결과적 일관성).</p>
@@ -651,7 +660,7 @@ NetworkPolicy·<code>runAsNonRoot</code> 같은 보안 기본값 · Grafana 경�
     <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
   </footer>
 </main>
-<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-17--cicd-전체-플랫폼이-kubernetes-위에서-돈다">현재 상태: Phase 17 — CI/CD (전체 플랫폼이 Kubernetes 위에서 돈다)</a></li>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#현재-상태-phase-19-완료--gitops-argo-cd가-git을-보고-스스로-배포한다">현재 상태: Phase 19 완료 — GitOps (Argo CD가 Git을 보고 스스로 배포한다)</a></li>
 <li class="toc-h2"><a href="#단계별-진행--문서">단계별 진행 &amp; 문서</a></li>
 <li class="toc-h2"><a href="#사전-준비-1회">사전 준비 (1회)</a></li>
 <li class="toc-h2"><a href="#실행--검증">실행 &amp; 검증</a></li>
@@ -659,6 +668,6 @@ NetworkPolicy·<code>runAsNonRoot</code> 같은 보안 기본값 · Grafana 경�
 <li class="toc-h3"><a href="#b-kuberneteskind--phase-16-의-결과물-13-파드">B) Kubernetes(kind) — Phase 16 의 결과물 (13 파드)</a></li>
 <li class="toc-h3"><a href="#빌드--테스트">빌드 &amp; 테스트</a></li>
 <li class="toc-h3"><a href="#스모크-ab-어느-쪽이든-주소가-같습니다">스모크 (A·B 어느 쪽이든 주소가 같습니다)</a></li>
-<li class="toc-h2"><a href="#다음-phase-18--캡스톤-선택확장">다음: Phase 18 — 캡스톤 (선택·확장)</a></li></ul></nav></aside>
+<li class="toc-h2"><a href="#다음은">다음은?</a></li></ul></nav></aside>
 </body>
 </html>

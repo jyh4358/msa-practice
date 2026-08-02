@@ -58,8 +58,10 @@ class PaymentCommandService implements PaymentCommandUseCase {
         Optional<ProcessedCommandPort.PriorOutcome> prior = processedCommandPort.findOutcome(commandKey);
         if (prior.isPresent()) {
             // ★ 이중 청구 방지 — 다시 청구하지 않고, 조정자가 기다리는 응답만 다시 보낸다.
+            //   paymentId 는 저장해 둔 값을 그대로 싣는다. null 로 보내면 조정자가 confirm 도
+            //   고아 결제 보상도 못 해서 "청구됐는데 환불 불가" 상태가 된다(감사에서 발견된 결함).
             publishSagaReplyPort.reply(new SagaReply(command.sagaId(), command.orderId(),
-                    prior.get().kind(), null, command.amount(), prior.get().reason(), now));
+                    prior.get().kind(), prior.get().paymentId(), command.amount(), prior.get().reason(), now));
             log.info("[커맨드] 중복 ChargePayment — 재청구 없이 리플라이 재전송 sagaId={} kind={}",
                     command.sagaId(), prior.get().kind());
             return;
@@ -73,7 +75,7 @@ class PaymentCommandService implements PaymentCommandUseCase {
             publishPaymentEventPort.paymentCharged(new PaymentChargedEvent(
                     command.orderId(), captured.getId(), captured.getAmount(), now));
             processedCommandPort.record(commandKey, command.sagaId(), command.orderId(),
-                    SagaReply.Kind.PAYMENT_CHARGED, null);
+                    SagaReply.Kind.PAYMENT_CHARGED, captured.getId(), null);
 
             log.info("[커맨드] 결제 성공 sagaId={} orderId={} paymentId={} amount={}",
                     command.sagaId(), command.orderId(), captured.getId(), captured.getAmount());
@@ -85,7 +87,7 @@ class PaymentCommandService implements PaymentCommandUseCase {
             publishPaymentEventPort.paymentDeclined(new PaymentDeclinedEvent(
                     command.orderId(), command.amount(), e.getMessage(), now));
             processedCommandPort.record(commandKey, command.sagaId(), command.orderId(),
-                    SagaReply.Kind.PAYMENT_DECLINED, e.getMessage());
+                    SagaReply.Kind.PAYMENT_DECLINED, null, e.getMessage());
 
             log.warn("[커맨드] 결제 거절 → 거절 리플라이 sagaId={} orderId={} amount={} reason={}",
                     command.sagaId(), command.orderId(), command.amount(), e.getMessage());
@@ -107,7 +109,7 @@ class PaymentCommandService implements PaymentCommandUseCase {
         Optional<ProcessedCommandPort.PriorOutcome> prior = processedCommandPort.findOutcome(commandKey);
         if (prior.isPresent()) {
             publishSagaReplyPort.reply(new SagaReply(command.sagaId(), command.orderId(),
-                    prior.get().kind(), command.paymentId(), null, prior.get().reason(), now));
+                    prior.get().kind(), prior.get().paymentId(), null, prior.get().reason(), now));
             log.info("[커맨드] 중복 RefundPayment — 재환불 없이 리플라이 재전송 sagaId={}", command.sagaId());
             return;
         }
@@ -137,6 +139,6 @@ class PaymentCommandService implements PaymentCommandUseCase {
         publishSagaReplyPort.reply(new SagaReply(command.sagaId(), command.orderId(),
                 SagaReply.Kind.PAYMENT_REFUNDED, command.paymentId(), null, reason, now));
         processedCommandPort.record(commandKey, command.sagaId(), command.orderId(),
-                SagaReply.Kind.PAYMENT_REFUNDED, reason);
+                SagaReply.Kind.PAYMENT_REFUNDED, command.paymentId(), reason);
     }
 }

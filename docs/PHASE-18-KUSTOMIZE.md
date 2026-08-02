@@ -695,9 +695,9 @@ else                                          sha256() { shasum -a 256; }; fi
 | 4 | **Secret 이 여전히 base64 일 뿐** | DB 비밀번호가 git 에 평문으로 있다(dev 값) | External Secrets Operator · Vault · SOPS |
 | 5 | RSA 키가 **머신마다 다름** | `.secrets/` 가 gitignore 라 노트북과 CI 의 키가 다르다 | 위와 같음(비밀 관리 시스템) |
 | 6 | overlay 가 **2개뿐** | local·ci. staging/prod 가 없다 | 실제 환경이 생길 때 추가 |
-| 7 | 컨테이너가 **root 로 실행** | `runAsNonRoot`·`readOnlyRootFilesystem` 없음 | 보안 기본값 강화(Pod Security Standards) |
-| 8 | **NetworkPolicy 없음** | 모든 파드가 서로 자유롭게 통신 | NetworkPolicy · 서비스 메시 |
-| 9 | **HPA 없음** | metrics-server 가 없어 자동 스케일 불가 | metrics-server + HPA |
+| 7 | 컨테이너가 **root 로 실행** | `runAsNonRoot`·`readOnlyRootFilesystem` 없음 | 보안 기본값 강화(Pod Security Standards) → [BACKLOG.md](BACKLOG.md) |
+| 8 | **NetworkPolicy 없음** | 모든 파드가 서로 자유롭게 통신 | NetworkPolicy · 서비스 메시 → [BACKLOG.md](BACKLOG.md) |
+| 9 | **HPA 없음** | metrics-server 가 없어 자동 스케일 불가 | metrics-server + HPA → [BACKLOG.md](BACKLOG.md) |
 | 10 | DB·Kafka 가 **Deployment** | StatefulSet 이 아니다. PVC 는 local-path, 단일 노드, 단일 브로커 | 운영으로 간다면 StatefulSet/오퍼레이터 |
 | 11 | 이미지 **취약점 스캔·서명 없음** | Trivy·cosign·SBOM 미적용 | CI 에 잡 추가(가성비 좋음) |
 | 12 | CI 스모크가 **행복 경로 하나** | 실패 경로(재고 부족→보상)는 CI 에서 안 돈다 | 스모크 시나리오 확장 |

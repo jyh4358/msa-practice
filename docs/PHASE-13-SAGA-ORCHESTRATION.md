@@ -385,6 +385,7 @@ Phase 12에서는 order와 inventory가 `PaymentDeclined` 를 **동시에** 듣�
 | **보상 자체의 실패** | 재고 해제가 계속 실패하면 sweep이 3회 후 취소로 종료 — 재고는 잠긴 채 남는다 | **[Phase 14](PHASE-14-RESILIENCE.md)**(DLQ·outbox 격리) + 운영 알림/수동 개입 |
 | **커맨드 토픽 공유** | inventory·payment가 같은 `saga-commands` 를 구독해 남의 커맨드도 받아 무시한다(낭비) | 운영: 서비스별 커맨드 토픽 분리 |
 | **두 모드 동시 사용 불가** | `saga.mode` 는 상호배타(동시에 켜면 이중 처리) | 설계상 — 비교 학습용 토글 |
+| **재전송 리플라이의 `paymentId` 유실** | sweep이 재촉해 커맨드가 중복 도착하면, 저장된 결과로 리플라이를 재전송하는 과정에서 `paymentId`가 채워지지 않은 채 나가 `confirm`이 실패했다 → 고아 결제가 생겨도 보상(환불)이 걸리지 않는다("청구됐는데 환불 불가") | ✅ **감사(2026-08-02)에서 해결** — `processed_commands`에 `payment_id` 컬럼을 추가해 저장해 뒀다가 재전송 리플라이에 그대로 실어 보낸다. [AUDIT-2026-08.md](AUDIT-2026-08.md) |
 
 ---
 

@@ -157,6 +157,9 @@ Phase 4 에서 애플리케이션 라이브러리(Eureka client)가 하던 일�
 
 > 파일 번호는 16b 에서 서비스가 늘며 재정렬됐다(`40-` → `31-`). 또한 16b 부터 ConfigMap 은
 > 매니페스트에 인라인으로 있지 않고 `deploy/config/` 의 파일에서 생성된다 — §11 참고.
+>
+> ⚠️ **Phase 18에서 `deploy/k8s/base/` 로 이동**하며 위 숫자 접두사(`00-`·`10-`·`20-`·`30-`…)가 전부 사라졌다.
+> 위 표는 그 시점의 경로를 보여주는 **역사 기록**이며, 현재 경로는 [PHASE-18-KUSTOMIZE.md](PHASE-18-KUSTOMIZE.md) 참고.
 
 ### 애플리케이션 코드 변경 (전체)
 
@@ -548,7 +551,7 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 | 4 | **auth-service 를 복제할 수 없다** | RS256 키쌍을 기동 시 메모리에 생성 → 파드마다 키가 다르다. replicas 2 면 산발적 401 | **Phase 16b**(키를 Secret 으로) |
 | 5 | **`kubectl apply -f` 를 7번 친다** | 순서·중복·환경별 차이를 사람이 관리한다. 값 하나 바꾸려면 YAML 을 직접 고친다 | Phase 18(Helm/Kustomize) |
 | 6 | **이미지 배포가 수동**(`kind load`) | 사람이 빌드하고 사람이 밀어 넣는다. 어느 커밋이 떠 있는지 추적 불가 | **Phase 17**(CI/CD + 레지스트리) |
-| 7 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·NetworkPolicy 등 보안 기본값이 없다 | Phase 18 |
+| 7 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·NetworkPolicy 등 보안 기본값이 없다 | → [BACKLOG.md](BACKLOG.md) |
 | 8 | **PVC 가 `local-path`** | 노드의 로컬 디렉터리다. 노드가 죽으면 데이터도 죽고, 멀티노드에선 파드가 그 노드에 묶인다 | 학습 범위 밖(운영은 CSI 스토리지) |
 | 9 | **DB 가 Deployment** | 원래 StatefulSet 이 맞다(안정적 이름·순서·파드별 볼륨). `Recreate` 로 우회 중 | 학습 범위 밖 |
 | 10 | **기동 시 CrashLoopBackOff 3회** | 정상 동작이지만 운영에선 알람이 울린다. 앱이 DB 연결을 재시도하는 게 낫다 | Phase 18(Flyway `connectRetries`) |
@@ -1109,12 +1112,12 @@ Phase 6 에서 라우트가 config-repo 로 옮겨갔을 때 "테스트가 Confi
 | 1 | **`kubectl apply -f` + 셸 스크립트로 배포** | 환경별 차이(dev/stage/prod)를 표현할 방법이 없다. `apply.sh` 가 명령형이라 선언성이 깨진다 | Phase 18 (Helm/Kustomize) |
 | 2 | **이미지 배포가 수동**(`kind load`) | 어느 커밋이 떠 있는지 추적 불가. 롤백도 수동 | **Phase 17** (CI/CD + 레지스트리) |
 | 3 | **Secret 이 암호화가 아니다** | base64 일 뿐이고 etcd 에도 평문. dev 비밀번호가 리포지토리에 있다 | Phase 18 (External Secrets/SOPS) |
-| 4 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·`seccompProfile` 없음 | Phase 18 |
-| 5 | **NetworkPolicy 가 없다** | 모든 파드가 모든 파드에 접근 가능. DB 도 클러스터 안에서 무방비 | Phase 18 |
+| 4 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·`seccompProfile` 없음 | → [BACKLOG.md](BACKLOG.md) |
+| 5 | **NetworkPolicy 가 없다** | 모든 파드가 모든 파드에 접근 가능. DB 도 클러스터 안에서 무방비 | → [BACKLOG.md](BACKLOG.md) |
 | 6 | **DB·Kafka 가 Deployment** | StatefulSet 이 정석(안정적 신원·순서·파드별 볼륨). 지금은 `Recreate` 로 우회 | 학습 범위 밖 |
 | 7 | **PVC 가 `local-path`** | 노드 로컬 디렉터리. 노드가 죽으면 데이터도 죽는다 | 학습 범위 밖(운영은 CSI) |
 | 8 | **단일 노드** | 진짜 스케줄링·안티어피니티·노드 장애를 볼 수 없다 | 학습 범위 밖 |
-| 9 | **`kubectl top`·HPA 불가** | metrics-server 미설치 → 자동 스케일을 실습할 수 없다 | Phase 18 |
+| 9 | **`kubectl top`·HPA 불가** | metrics-server 미설치 → 자동 스케일을 실습할 수 없다 | → [BACKLOG.md](BACKLOG.md) |
 | 10 | **ConfigMap 반영이 최대 ~70초** | "바꿨는데 왜 안 바뀌지"의 흔한 원인 | 구조적 특성(rollout restart 로 우회) |
 | 11 | **Kafka 단일 브로커·replication 1** | 브로커가 죽으면 이벤트 유실. ISR·리더 선출을 볼 수 없다 | 학습 범위 밖 |
 | 12 | **격리된 outbox 8건이 남아 있다** | 실제 유실분. 재처리(replay) 도구가 없다 | 운영 과제 — Phase 18 후보 |

@@ -32,7 +32,10 @@ class GatewayRoutesTest {
 
         assertThat(routes)
                 .extracting(RouteDefinition::getId)
-                .contains("auth-route", "orders-route", "inventory-route", "payments-route", "order-views-route");
+                .contains("auth-route", "orders-route", "inventory-route", "order-views-route")
+                // ★ 감사(2026-08-02) 회귀 가드: 결제는 Saga(Kafka)로만 구동된다 — 외부 라우트가
+                //   되살아나면 Saga·멱등성·보상을 우회하는 뒷문이 다시 열린다.
+                .doesNotContain("payments-route");
 
         // Phase 16b 회귀 가드: 디스커버리가 플랫폼으로 넘어갔으므로 라우트 uri 는 평범한 http URL 이어야 한다.
         // 누군가 lb:// 를 되살리면(= 앱이 다시 인스턴스를 고르려 들면) 여기서 깨진다.

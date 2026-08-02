@@ -26,6 +26,7 @@ class ProcessedCommandPersistenceAdapter implements ProcessedCommandPort {
 
     @Override
     public void record(UUID commandKey, UUID sagaId, UUID orderId, SagaReply.Kind kind, String reason) {
-        repository.save(new ProcessedCommand(commandKey, sagaId, orderId, kind.name(), reason, Instant.now()));
+        // 재고 리플라이에는 결제 id 개념이 없다 → payment_id 는 항상 null.
+        repository.save(new ProcessedCommand(commandKey, sagaId, orderId, kind.name(), null, reason, Instant.now()));
     }
 }

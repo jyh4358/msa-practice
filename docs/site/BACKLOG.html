@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BACKLOG (남은 주제) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li class="active"><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="backlog--남은-주제-단일-진실-공급원">BACKLOG — 남은 주제 (단일 진실 공급원)</h1>
+<blockquote>
+<p><strong>왜 이 파일이 필요한가.</strong> 이 프로젝트의 각 <code>PHASE-*.md</code>는 §8 &quot;알려진 한계 → 해결 Phase&quot; 표로
+각 한계가 <strong>어느 Phase에서 해결되는지</strong> 약속해 왔습니다. 그런데 2026-08-02 감사(<a href="AUDIT-2026-08.html">AUDIT-2026-08.md</a>)
+과정에서 <strong>Phase 18이 계획했던 &quot;캡스톤&quot;이 아니라 Kustomize/Helm으로, Phase 19가 GitOps로 재번호매김</strong>된
+사실이 확정되면서, 여러 문서에 흩어져 있던 &quot;→ Phase 18&quot; 같은 약속이 <strong>가리키는 대상을 잃었습니다</strong>.
+그 무효화된 항목들을 전부 여기 한곳으로 모으고, 각 문서에는 이 파일을 가리키는 화살표만 남겼습니다.
+우선순위·&quot;왜 지금 안 했나&quot;는 이 프로젝트가 <strong>학습 목적</strong>이라는 전제 위에서 매겨졌습니다 —
+실무 프로덕션이라면 순서가 달라질 항목이 많습니다(특히 보안 항목).</p>
+</blockquote>
+<hr>
+<h2 id="우선순위-표">우선순위 표</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>우선순위</th>
+<th>항목</th>
+<th>왜 필요한가</th>
+<th>유래</th>
+<th>왜 지금 안 했나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>P1(보안)</td>
+<td><strong>보안·운영 하드닝</strong> — <code>runAsNonRoot</code>/Pod Security Standards, NetworkPolicy, Dockerfile <code>USER</code></td>
+<td>모든 컨테이너가 root로 돌고 파드 간 통신이 전부 열려 있다 — 클러스터 하나가 뚫리면 전체가 뚫린다</td>
+<td><a href="PHASE-16-KUBERNETES.html">PHASE-16-KUBERNETES.md §8</a>, <a href="PHASE-18-KUSTOMIZE.html">PHASE-18-KUSTOMIZE.md §8</a></td>
+<td>로컬 kind 학습 클러스터라 실제 공격 표면이 없음 — 우선순위가 CI/Saga/GitOps 같은 &quot;동작하는 기능&quot;에 밀림</td>
+</tr>
+<tr>
+<td>2</td>
+<td>P1(보안)</td>
+<td><strong>issuer/audience 검증 + 서비스 신원</strong>(mTLS 또는 SPIFFE)</td>
+<td>JWT는 서명·만료만 검증한다. 서비스 간 호출이 사용자 토큰 재전파에만 의존해 서비스 자체 신원이 없다</td>
+<td><a href="SECURITY.html">SECURITY.md §8</a></td>
+<td>mTLS/SPIFFE는 서비스 메시 수준 인프라가 필요해 학습 곡선이 크게 뜀 — 별도 Phase급 주제</td>
+</tr>
+<tr>
+<td>3</td>
+<td>P1(보안)</td>
+<td><strong>Sealed Secrets 또는 External Secrets Operator</strong></td>
+<td>DB 비밀번호·RSA 개인키가 Git에 평문(dev 값) 또는 머신별 로컬 파일로만 존재</td>
+<td><a href="PHASE-19-GITOPS.html">PHASE-19-GITOPS.md §8</a></td>
+<td>GitOps(Argo CD)가 Git만 렌더하는 특성상 시크릿 관리 도구 도입이 별도 인프라(Vault 등) 결정을 요구함</td>
+</tr>
+<tr>
+<td>4</td>
+<td>P2(운영)</td>
+<td><strong>metrics-server + HPA + 간단한 부하 테스트</strong></td>
+<td><code>kubectl top</code>도 자동 스케일도 불가능 — 스케일 전략을 실측한 적이 없다</td>
+<td><a href="PHASE-16-KUBERNETES.html">PHASE-16-KUBERNETES.md §8</a></td>
+<td>kind 단일 노드에서 HPA 실습 가치가 제한적(스케일할 여유 리소스가 애초에 적음)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>P3(플랫폼)</td>
+<td><strong>스키마 레지스트리·API 버저닝</strong></td>
+<td>이벤트 스키마 진화 규칙(tolerant reader)이 테스트로만 강제되고, 동기 API에 <code>/api/v1</code> 같은 버전이 없음</td>
+<td><a href="PHASE-15-CONTRACTS.html">PHASE-15-CONTRACTS.md §8</a></td>
+<td>소비자를 전부 우리가 통제 중이라 당장 깨질 위험이 낮음. Apicurio 컨테이너는 RAM 예산이 가장 빡빡한 Phase 16 직전에 추가하기 부담스러웠음</td>
+</tr>
+<tr>
+<td>6</td>
+<td>P1(공급망)</td>
+<td><strong>이미지 스캔(Trivy)·서명(cosign)</strong>, CI 액션 SHA 고정, kustomize 체크섬 검증</td>
+<td>빌드 이미지의 CVE를 아무도 보지 않고, 이 이미지가 이 파이프라인에서 나왔음을 증명할 수 없다</td>
+<td><a href="PHASE-17-CICD.html">PHASE-17-CICD.md §8</a> + 감사</td>
+<td>가성비는 좋지만(구현 자체는 간단) Saga/GitOps 등 핵심 학습 목표에 밀려 후순위로 이연됨</td>
+</tr>
+<tr>
+<td>7</td>
+<td>P2(운영 검증)</td>
+<td><strong><code>git revert</code> 롤백 실측</strong></td>
+<td>GitOps의 핵심 약속인 &quot;Git을 되돌리면 클러스터도 되돌아간다&quot;를 이론상으로만 알고 실제로 해 본 적이 없다</td>
+<td><a href="PHASE-19-GITOPS.html">PHASE-19-GITOPS.md §8-8</a>, REVIEW-PART-D가 미실측을 인정</td>
+<td>정상 동작할 것으로 예상되고(selfHeal과 원리가 같음) 다른 검증 항목이 더 급했음</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-감사2026-08-02에서-발견된-미수정-결함-코드">8. 감사(2026-08-02)에서 발견된 미수정 결함 (코드)</h2>
+<p>이번 감사에서 발견됐지만 <strong>이번 라운드엔 고치지 않고</strong> 이연한 코드 결함입니다. H1(paymentId 유실)·H2(코레오그래피 순서 역전)·IDOR 등 <strong>이미 고친 것</strong>은 <a href="AUDIT-2026-08.html">AUDIT-2026-08.md</a> 참고 — 아래는 그 감사에서 &quot;발견했지만 범위 밖&quot;으로 분류한 것들입니다.</p>
+<table>
+<thead>
+<tr>
+<th>결함</th>
+<th>왜 필요한가(리스크)</th>
+<th>왜 지금 안 했나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>payments.order_id</code> UNIQUE 제약 복원</td>
+<td>제약이 없으면 한 주문에 결제가 여러 건 쌓일 수 있는 여지가 남는다</td>
+<td>현재 애플리케이션 로직(멱등 가드)이 사실상 막고 있어 실사고 이력 없음 — DB 레벨 이중 방어는 다음 마이그레이션 라운드로</td>
+</tr>
+<tr>
+<td><code>OutboxRelay</code>·<code>SagaTimeoutSweeper</code>에 <code>FOR UPDATE SKIP LOCKED</code></td>
+<td>지금은 단일 replica 전제 — replica를 늘리면 두 인스턴스가 같은 row를 동시에 집어 중복 처리 위험</td>
+<td>현재 배포가 각 서비스 1 replica라 실제로는 안 터짐. 다중 replica로 갈 때 반드시 먼저 처리해야 할 선행 조건</td>
+</tr>
+<tr>
+<td>inventory-service 멱등 체크·부수효과를 payment 방식으로 트랜잭션 통합</td>
+<td>payment-service는 멱등 체크와 부수효과가 한 트랜잭션인데 inventory는 아직 분리돼 있어 경합 시 이중 처리 여지가 상대적으로 큼</td>
+<td>지금까지 실제 경합으로 터진 적이 없어 우선순위가 낮게 매겨짐</td>
+</tr>
+<tr>
+<td><code>/order-views/{id}</code> 소유권 검사</td>
+<td><code>GET /orders/{id}</code>는 이번 감사로 소유권 검사가 들어갔지만, 읽기 모델(CQRS) 쪽 단건 조회는 아직 같은 검사가 없음</td>
+<td>IDOR 폐쇄 작업이 쓰기 모델(order-service) 위주였고, 읽기 모델은 다음 라운드로 이연</td>
+</tr>
+<tr>
+<td><code>GET /orders</code> 페이지네이션</td>
+<td>주문이 많아지면 목록 조회가 무한정 커진다</td>
+<td>데모 데이터 규모에서는 체감되지 않아 후순위</td>
+</tr>
+<tr>
+<td>outbox/<code>processed_messages</code> 보존 정책</td>
+<td>두 테이블 모두 완료된 row를 정리하는 장치가 없어 무한정 커진다</td>
+<td>각 Phase 문서(10·12·13)의 §8에서 이미 &quot;운영 과제&quot;로 명시된 항목 — 새로 발견된 게 아니라 재확인</td>
+</tr>
+<tr>
+<td><code>.dockerignore</code>·베이스 이미지 digest 고정</td>
+<td>빌드 컨텍스트에 불필요한 파일이 섞이고, 베이스 이미지 태그가 플로팅돼 재현성이 흔들린다</td>
+<td>지금까지 빌드 재현성 문제로 실패한 적이 없어 체감 우선순위가 낮음</td>
+</tr>
+<tr>
+<td><code>preStop</code> sleep 훅</td>
+<td>롤링 업데이트 시 종료 중인 파드로 트래픽이 잠깐 더 들어갈 수 있다(무중단이 완벽하지 않음)</td>
+<td>실측(Phase 16/18)상 롤링 업데이트가 이미 무중단으로 확인됐고, 훅은 그 마진을 더 넓히는 수준이라 급하지 않음</td>
+</tr>
+<tr>
+<td><code>overlays/ci</code>의 <code>latest</code> + <code>IfNotPresent</code> 조합</td>
+<td>태그가 고정돼 있지 않으면 이론상 오래된 이미지를 캐시에서 재사용할 수 있다</td>
+<td>CI가 매번 새 커밋 SHA 태그로 빌드해 실질 위험이 낮음(관성적으로 남은 설정)</td>
+</tr>
+<tr>
+<td>격리(quarantine)된 outbox 행 재처리 도구</td>
+<td>Phase 14가 <code>attempts</code> 상한으로 outbox row를 격리는 하지만, 격리된 뒤 재투입하는 도구가 없어 사람이 수동 개입해야 한다</td>
+<td>각 Phase 문서에서 이미 &quot;운영 도구 영역&quot;으로 남긴 항목 — DLQ 재투입 도구(PHASE-13/14 §8)와 같은 갈래</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>관련: <a href="README.html">README.md</a> 인덱스 · <a href="AUDIT-2026-08.html">AUDIT-2026-08.md</a>(이 백로그를 만든 감사) · 각 <code>PHASE-*.md</code> §8(원래 &quot;해결 Phase&quot; 약속이 적혀 있던 자리, 지금은 여기로 화살표만 남음).</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#우선순위-표">우선순위 표</a></li>
+<li class="toc-h2"><a href="#8-감사2026-08-02에서-발견된-미수정-결함-코드">8. 감사(2026-08-02)에서 발견된 미수정 결함 (코드)</a></li></ul></nav></aside>
+</body>
+</html>

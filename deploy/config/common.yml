@@ -19,7 +19,7 @@
 services:
   auth: http://auth-service:9000
   order: http://order-service:8080
-  payment: http://payment-service:8081
+  # payment 주소 없음 — 결제는 Saga(Kafka)로만 구동, 게이트웨이 라우트 제거(감사 2026-08-02)
   inventory: http://inventory-service:8082
   orderQuery: http://order-query-service:8083
 

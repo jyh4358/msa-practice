@@ -373,7 +373,7 @@ code.hljs {
 <body>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li class="active"><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li class="active"><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="phase-12--saga-코레오그래피--보상-분산-트랜잭션-없이-일관성">Phase 12 — Saga: 코레오그래피 + 보상 (분산 트랜잭션 없이 일관성)</h1>
@@ -474,8 +474,9 @@ outbox에 저장해 두면 <strong>나중에 다른 스레드에서</strong> 트
     <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
 }
 <span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">confirm</span><span class="hljs-params">(UUID paymentId)</span> {
-    <span class="hljs-keyword">if</span> (status == OrderStatus.CONFIRMED) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;                 <span class="hljs-comment">// 재배달</span>
-    <span class="hljs-keyword">if</span> (status != OrderStatus.INVENTORY_RESERVED) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;        <span class="hljs-comment">// PENDING/CANCELLED → 확정 안 함</span>
+    <span class="hljs-keyword">if</span> (paymentId == <span class="hljs-literal">null</span>) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;                                          <span class="hljs-comment">// 결제 id 없는 지시는 무시</span>
+    <span class="hljs-keyword">if</span> (status != OrderStatus.PENDING &amp;&amp; status != OrderStatus.INVENTORY_RESERVED)
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;                                                             <span class="hljs-comment">// CONFIRMED(재배달)/CANCELLED(경합) → 유지</span>
     <span class="hljs-built_in">this</span>.paymentId = paymentId; <span class="hljs-built_in">this</span>.status = OrderStatus.CONFIRMED; <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
 }
 <span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">cancel</span><span class="hljs-params">()</span> {
@@ -484,6 +485,15 @@ outbox에 저장해 두면 <strong>나중에 다른 스레드에서</strong> 트
 }
 </code></pre><p><strong>핵심: 예외를 던지지 않고 <code>false</code>를 반환한다.</strong> at-least-once 배달에서 재배달은 <strong>정상</strong>이므로,
 도메인이 &quot;이번엔 할 일이 없다&quot;고 조용히 답해야 한다. 예외로 처리하면 소비자가 무한 재시도에 빠진다.</p>
+<blockquote>
+<p>⚠️ <strong><code>confirm</code>이 <code>PENDING</code>에서도 확정한다(단조 전이) — 감사 2026-08-02.</strong> 처음 이 Phase를 만들 때는
+<code>INVENTORY_RESERVED</code>에서만 확정을 허용했다. 그런데 코레오그래피에서는 <code>InventoryReserved</code>와 <code>PaymentCharged</code>를
+<strong>서로 다른 리스너 컨테이너</strong>가 받으므로 처리 순서가 보장되지 않는다 — <code>PaymentCharged</code>가 먼저 도착하면
+그 시점의 주문은 아직 <code>PENDING</code>이라 확정 지시가 조용히 무시되고, 주문은 &quot;결제는 됐는데 영영 미확정&quot;으로 남았다.
+지금은 §4.9의 읽기 모델(<code>OrderViewStatus.rank</code>)과 같은 원리로 <strong>쓰기 모델도 단조 전이</strong>로 방어한다 — 뒤 단계
+사건(<code>PaymentCharged</code>)은 앞 단계를 건너뛰어 도착해도 받아들이고, 늦게 온 <code>InventoryReserved</code>는
+<code>markInventoryReserved</code>가 (이미 <code>PENDING</code>이 아니므로) 무시한다.</p>
+</blockquote>
 <h3 id="42-order의-saga-반응--공통-골격">4.2 order의 Saga 반응 — 공통 골격</h3>
 <pre><code class="hljs language-java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">handle</span><span class="hljs-params">(UUID messageId, UUID orderId, String eventName,
                     Predicate&lt;Order&gt; transition, Consumer&lt;Order&gt; onTransitioned)</span> {
@@ -575,6 +585,11 @@ mongoTemplate.updateFirst(
 순진하게 덮어쓰면 <code>CONFIRMED</code> → <code>INVENTORY_RESERVED</code> 로 <strong>거꾸로</strong> 갈 수 있다.
 상태에 순위를 주고 <strong>전진만</strong> 허용하면 도착 순서와 무관하게 최종 상태가 같아진다(리플레이 결정성도 유지).
 같은 이유로 <code>OrderPlaced</code> 재배달이 상태를 되돌리지 않도록, 본문은 <code>$set</code>·상태는 <code>$setOnInsert</code> 로 나눴다.</p>
+<blockquote>
+<p><strong>쓰기 모델(<code>Order.confirm</code>)도 같은 원리 적용(감사 2026-08-02).</strong> 여기서는 순위를 Mongo 쿼리 조건으로 걸었지만,
+§4.1의 <code>confirm</code>은 같은 아이디어를 도메인 메서드 안의 상태 체크로 구현한다 — 접근 방식은 다르지만
+&quot;뒤 단계 사건은 앞 단계를 건너뛰어도 받아들이고, 앞 단계 사건이 늦게 오면 무시한다&quot;는 원리는 동일하다.</p>
+</blockquote>
 <hr>
 <h2 id="5-요청-하나가-흐르는-순서-해피패스">5. 요청 하나가 흐르는 순서 (해피패스)</h2>
 <ol>
@@ -604,7 +619,9 @@ mongoTemplate.updateFirst(
 </ul>
 </li>
 <li><strong>왜 예외 대신 <code>false</code>/이벤트인가:</strong> at-least-once 배달에서 재배달·순서뒤바뀜은 <strong>정상 상황</strong>이다.
-이를 예외로 다루면 무한 재시도가 되고, 브로커가 같은 메시지를 계속 되돌려준다.</li>
+이를 예외로 다루면 무한 재시도가 되고, 브로커가 같은 메시지를 계속 되돌려준다.
+(<code>confirm</code>이 <code>PENDING</code>도 허용하는 단조 전이로 바뀐 것도 같은 맥락 — 순서뒤바뀜을 예외가 아니라
+정상 입력으로 다룬다. 감사 2026-08-02, §4.9 참고.)</li>
 <li><strong><code>@EntityScan</code> 함정(실제로 걸림):</strong> 공유 라이브러리의 <code>@Configuration</code> 에 <code>@EntityScan</code> 을 넣으면
 Boot의 기본 스캔(앱 패키지)을 <strong>대체</strong>해 버려 그 서비스 자신의 엔티티가 사라진다.
 그래서 스캔 범위는 각 서비스가 <strong>자기 패키지 + outbox</strong> 를 함께 명시한다.</li>
@@ -709,6 +726,11 @@ after : stock=98, payments=1, statuses=CONFIRMED,CANCELLED,CANCELLED   ← 완�
 <td><strong><code>--profile async</code> 필수</strong></td>
 <td>Kafka 없이는 주문이 <code>PENDING</code> 에서 멈춘다</td>
 <td>설계상(이벤트 기반의 본질)</td>
+</tr>
+<tr>
+<td><strong>코레오그래피 <code>PaymentCharged</code> 선행 도착 시 주문 영구 미확정</strong></td>
+<td>서로 다른 리스너 컨테이너가 두 이벤트를 처리해 순서가 뒤바뀌면, 확정 지시가 <code>PENDING</code>에서 무시돼 주문이 &quot;결제됐는데 미확정&quot;으로 영영 남았다</td>
+<td>✅ <strong>감사(2026-08-02)에서 단조 전이로 해결</strong> — <code>confirm</code>이 <code>PENDING</code>에서도 확정을 허용(§4.1·§4.9)</td>
 </tr>
 </tbody></table>
 <hr>

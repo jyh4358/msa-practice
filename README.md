@@ -3,7 +3,7 @@
 [![CI](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml/badge.svg)](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml)
 
 Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만들며 트레이드오프를 배우는** 학습 프로젝트.
-전체 로드맵(18단계)은 **[`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md)**,
+전체 로드맵(Phase 0~19)은 **[`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md)**,
 설치·실행 상세(트러블슈팅 포함)는 **[`docs/SETUP.md`](./docs/SETUP.md)**,
 서비스 내부 아키텍처(**헥사고날**) 컨벤션은 **[`docs/HEXAGONAL.md`](./docs/HEXAGONAL.md)** 참고.
 
@@ -13,10 +13,12 @@ Spring Cloud로 마이크로서비스 아키텍처를 **한 단계씩 직접 만
 
 ---
 
-## 현재 상태: Phase 17 — CI/CD (전체 플랫폼이 Kubernetes 위에서 돈다)
+## 현재 상태: Phase 19 완료 — GitOps (Argo CD가 Git을 보고 스스로 배포한다)
 
-**6개 서비스**가 주문→재고→결제 **Saga**로 협력하고, 그 전체가 **로컬 Kubernetes(kind)** 에서 돕니다.
-push 하면 **GitHub Actions** 가 빌드·테스트·멀티아치 이미지·**CI 안 kind 스모크 배포**까지 자동으로 검증합니다.
+**6개 런타임 서비스**(도메인 3: order·payment·inventory + gateway + auth + order-query)가
+주문→재고→결제 **Saga**로 협력하고, 그 전체가 **로컬 Kubernetes(kind)** 위에서 **Argo CD**가 Git 상태를 보고 스스로 배포·복구합니다.
+push 하면 **GitHub Actions** 가 빌드·테스트·멀티아치 이미지·**CI 안 kind 스모크 배포**까지 자동으로 검증하고,
+통과한 이미지 태그를 `overlays/gitops/`에 커밋하면 Argo CD가 그 상태로 동기화합니다.
 
 > ⚠️ **Phase 16b 에서 두 서비스가 사라졌습니다** — `discovery-service`(Eureka)와 `config-service`(Config Server).
 > 그 일을 이제 **플랫폼이** 합니다: 디스커버리는 **DNS**(compose 네트워크 / k8s Service), 설정은 **파일**(ConfigMap·바인드마운트).
@@ -64,6 +66,8 @@ push 하면 **GitHub Actions** 가 빌드·테스트·멀티아치 이미지·**
 | **17** | **CI/CD**(GitHub Actions·jar 1회 빌드·**네이티브 러너 2개 멀티아치**·GHCR `:커밋SHA`·CI 안에서 kind 스모크 배포) | [PHASE-17-CICD.md](./docs/PHASE-17-CICD.md) |
 | **18** | **선언적 배포**(Kustomize base/overlay·**설정 변경 → 자동 롤아웃**(해시 접미사)·CI의 `sed` 제거·ingress-nginx를 **Helm 릴리스**로) | [PHASE-18-KUSTOMIZE.md](./docs/PHASE-18-KUSTOMIZE.md) |
 | **19** | **GitOps**(Argo CD가 Git을 보고 스스로 배포·**CI→Git 승격 루프**·`selfHeal`로 드리프트 복원·`prune`으로 Phase 18 한계 해결) | [PHASE-19-GITOPS.md](./docs/PHASE-19-GITOPS.md) |
+| — | **남은 주제**(Phase 재번호매김으로 무효화된 "해결 Phase" 약속을 모은 단일 목록) | [BACKLOG.md](./docs/BACKLOG.md) |
+| — | **감사 기록**(2026-08-02, 로드맵/구현/인프라/보안 4개 축) | [AUDIT-2026-08.md](./docs/AUDIT-2026-08.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 
@@ -154,13 +158,10 @@ curl -s localhost:8000/inventory/22222222-2222-2222-2222-222222222222 -H "Author
 
 ---
 
-## 다음: Phase 18 — 캡스톤 (선택·확장)
+## 다음은?
 
-Phase 0~17 을 마쳤습니다. 남은 18단계는 **필수가 아니라 고르는** 단계입니다:
-서비스 추가(shipping·catalog) · **Boot 4.1 + Spring Cloud 2025.1(Oakwood) 이전** ·
-**Helm/Kustomize** 리팩터 · Debezium CDC 로 outbox 릴레이 대체 · gRPC · metrics-server+HPA ·
-NetworkPolicy·`runAsNonRoot` 같은 보안 기본값 · Grafana 경보.
-자세한 목록은 [`MSA-LEARNING-PLAN.md`](./MSA-LEARNING-PLAN.md).
+**Phase 0~19 완료.** 남은 주제는 필수가 아니라 고르는 확장 과제입니다 —
+목록·우선순위·"왜 지금 안 했나"는 **[`docs/BACKLOG.md`](./docs/BACKLOG.md)** 참고.
 
 > ⚠️ **Phase 12부터 주문 흐름은 Kafka 가 필수**입니다(compose 는 `--profile async`). 또한 `POST /orders` 는
 > `PENDING` 을 즉시 반환하며, 최종 결과(CONFIRMED/CANCELLED)는 **조회로 확인**합니다(결과적 일관성).

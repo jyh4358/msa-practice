@@ -28,8 +28,12 @@ spec:
             - { name: otlp-grpc, containerPort: 4317 }
             - { name: otlp-http, containerPort: 4318 }
           env:
-            - { name: GF_AUTH_ANONYMOUS_ENABLED, value: "true" }    # 익명 접근(개발 편의)
-            - { name: GF_AUTH_ANONYMOUS_ORG_ROLE, value: "Admin" }
+            # 익명 접근은 유지하되(개발 편의) 역할은 Viewer 로 제한한다.
+            # ★ 감사(2026-08-02) 수정: /grafana Ingress 는 gateway 의 JWT 검증을 거치지 않으므로,
+            #   Admin 이면 Ingress 에 닿는 누구나 데이터소스·대시보드를 수정할 수 있었다.
+            #   편집이 필요하면 kubectl port-forward 후 admin 계정으로 로그인한다.
+            - { name: GF_AUTH_ANONYMOUS_ENABLED, value: "true" }
+            - { name: GF_AUTH_ANONYMOUS_ORG_ROLE, value: "Viewer" }
             - { name: GF_SERVER_ROOT_URL, value: "%(protocol)s://%(domain)s/grafana/" }
             - { name: GF_SERVER_SERVE_FROM_SUB_PATH, value: "true" }
           readinessProbe:

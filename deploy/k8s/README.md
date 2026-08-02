@@ -68,7 +68,7 @@ Spring Boot 는 `optional:file:./config/*/` 를 기본 탐색 경로로 갖고, 
 | `argocd-application.yaml` | "이 Git 경로와 이 네임스페이스가 같아야 한다" 선언(prune·selfHeal) |
 | `overlays/gitops/` | **Argo CD 가 추적하는 유일한 경로.** CI 봇이 이미지 태그를 여기에 커밋한다 |
 | `ingress-nginx-values.yaml` | ingress-nginx 차트 값(kind 용 hostPort·nodeSelector·toleration) |
-| `base/kustomization.yaml` | 네임스페이스 변환기 · 공통 라벨 · 리소스 목록 · auth 키 `secretGenerator` |
+| `base/kustomization.yaml` | 네임스페이스 변환기 · 공통 라벨 · 리소스 목록 |
 | `base/namespace.yaml` | 네임스페이스 `shopsaga` |
 | `base/db-secrets.yaml` | DB 자격증명 (dev 값) |
 | `base/{order,payment,inventory}-db.yaml` · `order-query-mongo.yaml` | PVC + Deployment + Service |
@@ -79,8 +79,12 @@ Spring Boot 는 `optional:file:./config/*/` 를 기본 탐색 경로로 갖고, 
 | `overlays/local/` | 내 노트북용 — order-service 를 NodePort 30080 으로도 노출(게이트웨이 우회 디버깅) |
 | `overlays/ci/` | CI 용 — 이미지를 GHCR 참조로 교체(`images:` 변환기) |
 
-> `base/.secrets/` 는 `.gitignore` 대상이다. auth-service 의 RSA 개인키가 여기 생기고,
-> `secretGenerator` 가 그걸 읽어 Secret 을 만든다. **없으면 렌더가 실패한다** — 그게 의도다.
+> `base/.secrets/` 는 `.gitignore` 대상이다. auth-service 의 RSA 개인키가 여기 생긴다.
+> Phase 18까지는 `secretGenerator` 가 이 파일을 읽어 Secret 을 만들었지만, **Phase 19(GitOps)에서 그 방식을 걷어냈다** —
+> Argo CD 는 **Git 을 클론해서 렌더**하므로 `.gitignore` 된 개인키를 애초에 읽을 수 없기 때문이다.
+> 지금은 `./deploy/k8s/bootstrap-secrets.sh` 가 **클러스터 사전 조건**으로 키를 만들고 `kubectl` 로 Secret
+> `auth-jwt-key` 를 직접 주입한다(멱등). Argo CD 는 이 Secret 이 이미 있다고 **전제**만 하고, Git 은 나머지
+> 매니페스트만 렌더한다. → `docs/PHASE-19-GITOPS.md`.
 
 ## 전체 실행
 

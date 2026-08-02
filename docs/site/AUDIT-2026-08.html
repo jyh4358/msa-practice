@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>감사 기록 (2026-08-02) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li class="active"><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="감사-기록--2026-08-02">감사 기록 — 2026-08-02</h1>
+<blockquote>
+<p>이 프로젝트는 각 Phase 문서 §8에 &quot;알려진 한계&quot;를 정직하게 적어 온 전통이 있습니다. 이 문서는 같은 정신으로,
+<strong>완성 선언 이후에 진행한 감사</strong>에서 무엇을 발견했고 무엇을 고쳤는지(그리고 무엇을 안 고쳤는지) 남깁니다.</p>
+</blockquote>
+<hr>
+<h2 id="1-감사-개요">1. 감사 개요</h2>
+<p><strong>날짜:</strong> 2026-08-02. <strong>대상:</strong> Phase 0<del>19 전체(당시 &quot;Phase 0</del>17 완료, Phase 18/19는 재번호매김 후 완료&quot; 상태).
+<strong>축 4개:</strong></p>
+<ol>
+<li><strong>로드맵 정합성</strong> — <code>MSA-LEARNING-PLAN.md</code>(계획)와 실제 구현·문서 사이의 어긋남(Phase 18 재번호매김, Keycloak→auth-service 직접구현, Config Server native+삭제 등).</li>
+<li><strong>구현(코드) 정합성</strong> — Saga 상태기계·커맨드 리플라이 등 도메인 로직이 §8에 적힌 대로 실제로 방어되는지.</li>
+<li><strong>인프라</strong> — k8s/Kustomize/GitOps 매니페스트, CI 워크플로의 하드닝 상태.</li>
+<li><strong>보안</strong> — 인가 경로(IDOR 등)와 공개 저장소의 이력에 민감정보가 없는지.</li>
+</ol>
+<p>이 문서는 ②·③·④에서 <strong>실제로 코드/설정을 고친 것</strong>(§2)과 ①·②·③에서 <strong>발견했지만 이번 라운드엔 고치지 않고 이연한 것</strong>(§3)을 정리합니다. 로드맵 정합성(①) 자체의 문서 정정은 <code>MSA-LEARNING-PLAN.md</code> 상단의 &quot;실제 구축 결과&quot; 주석과 <a href="BACKLOG.html">BACKLOG.md</a>로 반영했습니다.</p>
+<hr>
+<h2 id="2-발견--수정">2. 발견 → 수정</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>발견</th>
+<th>어떤 시나리오에서 터지나</th>
+<th>어떻게 고쳤나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>H1</strong></td>
+<td><strong>결제 리플라이의 <code>paymentId</code> 유실.</strong> <code>processed_commands</code>는 커맨드가 중복 도착했을 때 &quot;이미 처리했다&quot;는 사실만 기억하고, 그 결과였던 <code>paymentId</code>는 저장하지 않았다.</td>
+<td><code>SagaTimeoutSweeper</code>가 응답이 늦다고 판단해 <code>ChargePayment</code> 커맨드를 <strong>재전송</strong>한다 → payment-service는 이미 처리한 커맨드임을 알아채고 <strong>저장된 결과로 리플라이를 재생</strong>하지만, <code>paymentId</code>가 없으니 <strong><code>null</code>로 응답</strong>한다 → order의 <code>Order.confirm(null)</code>이 (당시엔) 예외를 던지거나 조용히 실패해 확정에 실패한다 → 조정자는 계속 실패로 보고 다시 재촉하다 결국 <strong><code>giveUp</code>으로 Saga를 종료</strong>한다 → 하지만 결제는 이미 <strong>실제로 청구된 상태</strong>라 고아 결제가 남는데, 정상 리플라이 경로가 막혀 있었으므로 Phase 14의 고아 결제 보상 경로(§PHASE-14 §4.8)도 올바른 <code>paymentId</code>를 받지 못해 <strong>&quot;청구는 됐는데 확정도 환불도 안 되는&quot;</strong> 상태에 빠질 수 있었다.</td>
+<td><code>processed_commands</code>에 <code>payment_id</code> 컬럼 추가(<code>payment</code> V5·<code>inventory</code> V5·<code>order</code> V9 마이그레이션). <code>PaymentCommandService</code>가 중복 커맨드의 리플라이를 재전송할 때 <strong>저장해 둔 <code>paymentId</code>를 그대로 실어 보낸다</strong>. 방어적으로 <code>Order.confirm(null)</code>도 예외 대신 <strong><code>false</code>를 반환</strong>하도록 정리(다른 멱등 가드들과 일관된 방식). 테스트 단언 추가.</td>
+</tr>
+<tr>
+<td><strong>H2</strong></td>
+<td><strong>코레오그래피 순서 역전 시 주문 영구 미확정.</strong> <code>Order.confirm</code>이 <code>INVENTORY_RESERVED</code>에서만 확정을 허용했다.</td>
+<td>코레오그래피 모드에서 <code>InventoryReserved</code>와 <code>PaymentCharged</code>는 <strong>서로 다른 리스너 컨테이너</strong>가 처리하므로 도착 순서가 보장되지 않는다. <code>PaymentCharged</code>가 먼저 도착하면 그 시점 주문은 아직 <code>PENDING</code>이라 확정 지시가 조용히 무시되고, 뒤늦게 <code>InventoryReserved</code>가 와도 이미 지나간 <code>PaymentCharged</code>는 다시 오지 않으므로 주문은 **&quot;결제됐는데 영영 미확정&quot;**으로 남는다.</td>
+<td><code>Order.confirm</code>을 <strong>단조(monotonic) 전이</strong>로 변경 — <code>PENDING</code>에서도 <code>PaymentCharged</code>를 받아들인다(읽기 모델 <code>OrderViewStatus.rank</code>와 같은 원리). 늦게 온 <code>InventoryReserved</code>는 <code>markInventoryReserved</code>가 (이미 <code>PENDING</code>이 아니므로) 무시한다. → <a href="PHASE-12-SAGA.html">PHASE-12-SAGA.md</a> §4.1·§4.9.</td>
+</tr>
+<tr>
+<td><strong>IDOR</strong></td>
+<td><strong>인가 경로 2건.</strong> ① 게이트웨이에 <code>payments-route</code>가 살아 있어, 인증만 된 사용자면 <code>POST /payments</code>를 직접 호출해 Saga·멱등성·보상을 전부 우회할 수 있었다. ② <code>POST /orders</code>의 <code>customerId</code>를 클라이언트가 요청 본문으로 지정할 수 있어 남의 이름으로 주문을 만들 수 있었고, <code>GET /orders/{id}</code>에도 소유권 검사가 없어 아무 인증 사용자나 남의 주문을 조회할 수 있었다.</td>
+<td>유효한 JWT만 있으면(역할 무관) 임의 결제 생성 또는 타인 주문 열람/생성이 가능한 상태 — 전형적 IDOR(A01: Broken Access Control).</td>
+<td>게이트웨이 <code>payments-route</code> <strong>삭제</strong>(결제는 Saga/Kafka 커맨드로만 구동 — payment-service 자체 JWT 검증은 유지, defense in depth). <code>POST /orders</code>의 <code>customerId</code>는 <strong>요청 몸통이 아니라 JWT subject에서 유도</strong>(<code>CustomerIds.fromSubject</code> — 이름 기반 UUID(v3), 몸통의 <code>customerId</code>는 무시 — 기존 스크립트 호환 유지). <code>GET /orders/{id}</code>는 <strong>본인 또는 ADMIN만</strong> 허용(아니면 403 <code>AccessDeniedException</code>).</td>
+</tr>
+<tr>
+<td><strong>CI</strong></td>
+<td><strong>CI 워크플로 토큰 권한이 저장소 기본값에 의존.</strong></td>
+<td><code>permissions</code>를 명시하지 않은 잡은 저장소 설정의 기본 <code>GITHUB_TOKEN</code> 권한(때로 read/write)을 상속한다. <code>./gradlew build</code>가 실행하는 서드파티 코드(Gradle 플러그인·Testcontainers)가 이론상 <code>main</code>에 push할 수 있는 경로가 열려 있었고, Argo CD의 <code>selfHeal</code>이 <code>main</code>을 그대로 신뢰하므로 이는 곧 클러스터 장악 경로로 이어질 수 있었다.</td>
+<td>워크플로 최상단에 <code>permissions: contents: read</code> 추가(기본값을 읽기 전용으로 못 박음). push하지 않는 잡의 checkout에 <code>persist-credentials: false</code> 추가(그 잡 안에서 git 자격증명이 애초에 남지 않게).</td>
+</tr>
+<tr>
+<td><strong>Grafana</strong></td>
+<td><strong>Grafana 익명 접근이 Admin 권한.</strong></td>
+<td>k8s(<code>deploy/k8s/base/otel-lgtm.yaml</code>)의 <code>GF_AUTH_ANONYMOUS_ORG_ROLE</code>이 <code>Admin</code>이라, Ingress로 노출되면 로그인 없이 누구나 대시보드·데이터소스 설정을 바꿀 수 있었다.</td>
+<td>k8s의 익명 역할을 <code>Admin</code> → **<code>Viewer</code>**로 낮춤(<code>base/otel-lgtm.yaml</code>). ⚠️ compose(<code>deploy/compose/compose.yml</code>)는 로컬 전용이라 범위 밖으로 두고 <code>Admin</code>을 유지했다 — 필요하면 별도로 낮출 것.</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-수정하지-않고-backlog로-보낸-것">3. 수정하지 않고 BACKLOG로 보낸 것</h2>
+<p>이번 감사에서 발견했지만 이번 라운드엔 고치지 않은 항목은 전부 <a href="BACKLOG.html">BACKLOG.md</a>에 모았습니다:</p>
+<ul>
+<li>보안·운영 하드닝(<code>runAsNonRoot</code>/Pod Security, NetworkPolicy, Dockerfile <code>USER</code>) — <a href="BACKLOG.html">BACKLOG.md #1</a></li>
+<li>issuer/audience 검증 + 서비스 신원(mTLS/SPIFFE) — <a href="BACKLOG.html">BACKLOG.md #2</a></li>
+<li>Sealed Secrets 또는 External Secrets Operator — <a href="BACKLOG.html">BACKLOG.md #3</a></li>
+<li>metrics-server + HPA + 부하 테스트 — <a href="BACKLOG.html">BACKLOG.md #4</a></li>
+<li>스키마 레지스트리·API 버저닝 — <a href="BACKLOG.html">BACKLOG.md #5</a></li>
+<li>이미지 스캔(Trivy)·서명(cosign), CI 액션 SHA 고정, kustomize 체크섬 검증 — <a href="BACKLOG.html">BACKLOG.md #6</a></li>
+<li><code>git revert</code> 롤백 실측 — <a href="BACKLOG.html">BACKLOG.md #7</a></li>
+<li>그 밖에 감사에서 발견된 미수정 코드 결함 10건(payments.order_id UNIQUE 제약, <code>FOR UPDATE SKIP LOCKED</code>, outbox/processed_messages 보존정책 등) — <a href="BACKLOG.html">BACKLOG.md §8</a></li>
+</ul>
+<hr>
+<h2 id="4-보안-스캔-결론-공개-저장소">4. 보안 스캔 결론 (공개 저장소)</h2>
+<p>이 저장소는 <code>github.com/jyh4358/msa-practice</code>로 <strong>공개</strong>돼 있어, 전체 커밋 이력을 별도로 스캔했습니다.</p>
+<ul>
+<li><strong>실 자격증명·PII: 전체 이력에서 0건.</strong> DB 비밀번호·RSA 키 등은 전부 학습용 dev 값이며 실서비스 자격증명이 아니다.</li>
+<li><strong><code>.secrets/</code>·<code>.env</code> 커밋 이력: 0건.</strong> 둘 다 처음부터 <code>.gitignore</code> 대상이었고, 이력을 뒤져도 실수로 커밋된 적이 없다.</li>
+<li>커밋 author/committer 이메일의 오타(<code>gamil.com</code>)를 <code>git filter-repo --mailmap</code>으로 정정 — 이건 민감정보가 아니라 <strong>기여 그래프 연결</strong>(GitHub이 커밋을 계정에 매칭) 목적의 이력 재작성이었다(→ <a href="PHASE-COMMIT-MAP.html">PHASE-COMMIT-MAP.md</a> 상단 경고 참고).</li>
+</ul>
+<blockquote>
+<p><strong>교훈: &quot;비밀이 커밋되면 리라이트가 아니라 로테이션.&quot;</strong> 이번 재작성은 민감정보 제거가 목적이 아니었지만, 만약 그랬다면
+<code>git filter-repo</code>로 이력에서 지우는 것만으로는 부족하다 — 그 커밋을 참조하는 포크·클론·이미 받아 간 <code>git fetch</code>가 있다면
+&quot;고아 커밋&quot;은 <strong>GitHub 서버 쪽에도 한동안 남는다</strong>(reflog·GC 유예기간). 유출된 비밀의 유일하게 확실한 대응은
+**그 비밀 자체를 무효화(로테이션)**하는 것이다 — 이력 재작성은 위생 조치일 뿐, 보안 조치가 아니다.</p>
+</blockquote>
+<hr>
+<h2 id="5-api-변화-요지">5. API 변화 요지</h2>
+<p>이번 감사로 바뀐 외부 API 동작(§2 IDOR 항목의 결과):</p>
+<ul>
+<li><strong><code>POST /orders</code>의 <code>customerId</code> 몸통 필드는 이제 무시된다.</strong> 실제 고객 id는 항상 <strong>JWT subject에서 유도</strong>된다
+(<code>CustomerIds.fromSubject</code>). 요청 본문에 <code>customerId</code>를 넣어도 무해하게 무시되므로 기존 클라이언트/스크립트는
+그대로 동작한다(하위 호환 유지) — 다만 그 값이 <strong>더 이상 신뢰되지 않는다</strong>는 점은 통합 대상이라면 알아 둬야 한다.</li>
+<li><strong><code>GET /orders/{id}</code>가 403을 반환할 수 있다.</strong> 요청자가 그 주문의 소유자가 아니고 ADMIN도 아니면
+<code>AccessDeniedException</code> → 403. 이전에는 인증만 됐으면 아무 주문이나 조회할 수 있었다.</li>
+<li><strong>게이트웨이에서 <code>/payments</code> 라우트가 사라졌다.</strong> <code>POST :8000/payments</code>(또는 <code>/payments/**</code>)는 더 이상
+게이트웨이를 통해 도달할 수 없다(404 또는 라우트 없음). 결제는 오직 Saga(Kafka 커맨드)로만 일어난다.
+payment-service를 클러스터/컴포즈 내부에서 직접 호출하는 것은 여전히 가능하지만(그 경로엔 자체 JWT 검증이 있다),
+공개 게이트웨이로는 노출되지 않는다.</li>
+</ul>
+<hr>
+<p><em>관련: <a href="BACKLOG.html">BACKLOG.md</a>(이 감사가 이연한 항목의 단일 목록) · <a href="README.html">README.md</a> 인덱스 ·
+<a href="SECURITY.html">SECURITY.md</a>·<a href="PHASE-12-SAGA.html">PHASE-12-SAGA.md</a>·<a href="PHASE-13-SAGA-ORCHESTRATION.html">PHASE-13-SAGA-ORCHESTRATION.md</a>·
+<a href="PHASE-14-RESILIENCE.html">PHASE-14-RESILIENCE.md</a>(이번 수정이 반영된 개별 Phase 문서) ·
+<a href="PHASE-COMMIT-MAP.html">PHASE-COMMIT-MAP.md</a>(이력 재작성 경고).</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#1-감사-개요">1. 감사 개요</a></li>
+<li class="toc-h2"><a href="#2-발견--수정">2. 발견 → 수정</a></li>
+<li class="toc-h2"><a href="#3-수정하지-않고-backlog로-보낸-것">3. 수정하지 않고 BACKLOG로 보낸 것</a></li>
+<li class="toc-h2"><a href="#4-보안-스캔-결론-공개-저장소">4. 보안 스캔 결론 (공개 저장소)</a></li>
+<li class="toc-h2"><a href="#5-api-변화-요지">5. API 변화 요지</a></li></ul></nav></aside>
+</body>
+</html>

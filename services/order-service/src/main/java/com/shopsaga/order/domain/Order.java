@@ -25,6 +25,10 @@ import java.util.UUID;
  *
  * <p>전이 메서드는 모두 <b>멱등</b>하다 — 같은 이벤트가 두 번 배달돼도(at-least-once) 예외를 던지지 않고
  * 아무 일도 하지 않는다. 분산 환경에서 재배달은 정상이므로, 도메인이 이를 견뎌야 한다.
+ *
+ * <p>또한 전이는 <b>단조(monotonic)</b>다 — 이벤트가 인과 순서와 다르게 <b>도착</b>해도(코레오그래피에서
+ * PaymentCharged 가 InventoryReserved 를 앞지르는 경합) 뒤 단계 사건이면 받아들이고, 앞 단계 사건이
+ * 늦게 오면 무시한다. 읽기 모델의 {@code OrderViewStatus.rank} 와 같은 원리다. → {@link #confirm}
  */
 @Getter
 public class Order {
@@ -83,20 +87,25 @@ public class Order {
     }
 
     /**
-     * Saga 2단계 성공: 결제가 됐다 → 주문 확정. 재고 예약을 거친 주문만 확정할 수 있다.
+     * Saga 2단계 성공: 결제가 됐다 → 주문 확정.
      *
-     * @return 실제로 확정했으면 true, 이미 확정/취소됐으면 false(멱등)
+     * <p><b>PENDING 에서도 확정한다(단조 전이).</b> PaymentCharged 는 인과적으로 InventoryReserved
+     * <b>뒤</b>의 사건이다(결제는 재고 예약 성공 후에만 일어난다). 그런데 코레오그래피에서는 두 이벤트를
+     * <b>서로 다른 리스너 컨테이너</b>가 받으므로 처리 순서는 보장되지 않는다 — PaymentCharged 가 먼저
+     * 도착했다고 무시해 버리면, 그 전이는 영영 사라지고 주문은 "결제됐는데 미확정"으로 남는다(감사에서
+     * 발견된 결함). 읽기 모델(OrderViewStatus.rank)과 같은 원리로, 뒤 단계 사건은 앞 단계를 건너뛰어
+     * 도착해도 받아들인다. 늦게 온 InventoryReserved 는 markInventoryReserved 가 무시한다.
+     *
+     * @return 실제로 확정했으면 true, 이미 확정/취소됐거나 paymentId 가 없으면 false(멱등)
      */
     public boolean confirm(UUID paymentId) {
         if (paymentId == null) {
-            throw new IllegalArgumentException("paymentId must not be null");
-        }
-        if (status == OrderStatus.CONFIRMED) {
-            return false;   // 재배달 → 이미 확정
-        }
-        if (status != OrderStatus.INVENTORY_RESERVED) {
-            // PENDING(재고 예약 이벤트를 아직 못 봄) 또는 CANCELLED — 확정하지 않는다.
+            // 결제 id 없는 확정 지시는 무시한다. 예외를 던지면 트랜잭션 롤백 → 재시도 → DLT 로
+            // 파티션을 오염시키므로, 다른 가드들과 같이 "전이 안 함(false)"으로 다룬다.
             return false;
+        }
+        if (status != OrderStatus.PENDING && status != OrderStatus.INVENTORY_RESERVED) {
+            return false;   // CONFIRMED(재배달) 또는 CANCELLED(경합) — 종료 상태 유지
         }
         if (items.isEmpty()) {
             throw new IllegalStateException("cannot confirm an empty order");

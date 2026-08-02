@@ -15,7 +15,11 @@ public interface ProcessedCommandPort {
 
     Optional<PriorOutcome> findOutcome(UUID commandKey);
 
-    void record(UUID commandKey, UUID sagaId, UUID orderId, SagaReply.Kind kind, String reason);
+    void record(UUID commandKey, UUID sagaId, UUID orderId, SagaReply.Kind kind, UUID paymentId, String reason);
 
-    record PriorOutcome(SagaReply.Kind kind, String reason) {}
+    /**
+     * 이전 처리 결과. {@code paymentId} 까지 보관한다 — 재전송 리플라이는 원본과 <b>같은 내용</b>이어야 하며,
+     * paymentId 가 빠지면 조정자의 주문 확정({@code confirm})과 고아 결제 보상이 모두 불가능해진다.
+     */
+    record PriorOutcome(SagaReply.Kind kind, UUID paymentId, String reason) {}
 }
