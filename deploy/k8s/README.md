@@ -1,4 +1,16 @@
-# deploy/k8s — 로컬 Kubernetes(kind) 배포 (Phase 16 · 18)
+# deploy/k8s — 로컬 Kubernetes(kind) 배포 (Phase 16 · 18 · 19)
+
+> ## ⚠️ Phase 19 이후: 배포는 Argo CD 가 한다
+> Argo CD 를 설치했다면(`install-argocd.sh`) **`apply.sh` 를 쓰지 말 것.**
+> `selfHeal` 이 켜져 있어 여기서 적용한 변경은 **6초쯤 뒤 Git 상태로 되돌아간다**(실측).
+> 바꾸려면 Git 을 바꾼다 — 그게 이 방식의 요점이자 불편함이다.
+>
+> ```bash
+> ./deploy/k8s/install-argocd.sh                                  # 최초 1회
+> kubectl port-forward svc/argocd-server -n argocd 8081:80        # UI
+> kubectl get application shopsaga -n argocd -o wide              # 상태
+> ```
+> 자세한 설명: [`docs/PHASE-19-GITOPS.md`](../../docs/PHASE-19-GITOPS.md)
 
 Phase 7~15 의 compose 스택을 **같은 이미지 그대로** 쿠버네티스로 옮긴 것이다.
 자세한 설명은 [`docs/PHASE-16-KUBERNETES.md`](../../docs/PHASE-16-KUBERNETES.md),
@@ -49,8 +61,12 @@ Spring Boot 는 `optional:file:./config/*/` 를 기본 탐색 경로로 갖고, 
 |---|---|
 | `kind-cluster.yaml` | kind 클러스터 정의(단일 노드 + 포트 매핑 30080·8000 + `ingress-ready` 노드 라벨) |
 | `build-and-load.sh` | bootJar → 도커 이미지 → `kind load` (레지스트리 없이) |
-| `apply.sh` | 부트스트랩 + ingress-nginx(Helm) + `kubectl apply -k` |
-| `bootstrap-secrets.sh` | auth RSA 키를 `base/.secrets/` 에 생성(멱등). **렌더에도 필요**하므로 분리돼 있다 |
+| `apply.sh` | 부트스트랩 + ingress-nginx(Helm) + `kubectl apply -k` (Argo CD 없이 쓰는 경로) |
+| `bootstrap-secrets.sh` | auth RSA 키 생성 + Secret `auth-jwt-key` 를 kubectl 로 주입(멱등) |
+| `install-argocd.sh` | Argo CD(Helm) 설치 + Application 등록 — Phase 19 |
+| `argocd-values.yaml` | Argo CD 차트 값(파드 7→4 로 축소, UI 는 port-forward) |
+| `argocd-application.yaml` | "이 Git 경로와 이 네임스페이스가 같아야 한다" 선언(prune·selfHeal) |
+| `overlays/gitops/` | **Argo CD 가 추적하는 유일한 경로.** CI 봇이 이미지 태그를 여기에 커밋한다 |
 | `ingress-nginx-values.yaml` | ingress-nginx 차트 값(kind 용 hostPort·nodeSelector·toleration) |
 | `base/kustomization.yaml` | 네임스페이스 변환기 · 공통 라벨 · 리소스 목록 · auth 키 `secretGenerator` |
 | `base/namespace.yaml` | 네임스페이스 `shopsaga` |
@@ -176,6 +192,11 @@ colima stop                                   # VM 까지 (12GB 즉시 회수)
 | `helm upgrade` 가 소유권 오류로 실패 | 같은 리소스를 전에 `kubectl apply` 로 깔았다(Helm 이 모름) | 옛 설치분을 지우고(ns + ClusterRole/Binding + IngressClass + webhook) 다시 |
 | ingress-nginx 파드가 영원히 `Pending` | 노드에 `ingress-ready=true` 라벨이 없다 | 새 `kind-cluster.yaml` 로 클러스터 재생성, 또는 `kubectl label node --all ingress-ready=true` |
 | 안 바꿨는데 Secret 이 매번 `configured` | `stringData`↔`data` 변환 + 생성기의 base64 줄바꿈 (표시상 문제) | `kubectl diff -k` 로 실제 차이 없음을 확인 — 무시해도 된다 |
+| Argo CD 가 `Synced` 인데 `Progressing` 에서 안 벗어남 | Git 에 없는 **전제**가 빠졌다(대표적으로 `auth-jwt-key` Secret) | `kubectl get events -n shopsaga` 로 확인 후 `./deploy/k8s/bootstrap-secrets.sh` |
+| kubectl 로 바꾼 게 몇 초 뒤 되돌아감 | `selfHeal: true` — 정상 동작이다 | Git 을 바꿀 것. 정말 필요하면 selfHeal 을 잠시 끈다 |
+| 옛 해시 ConfigMap 이 prune 안 됨 | Argo CD **이전**에 만들어져 `tracking-id` 가 없다 | 1회 수동 삭제(전환 시점에만 생기는 일) |
+| `git push` 가 rejected | CI 봇이 `main` 에 커밋해 로컬이 뒤처졌다 | `git pull --rebase` 후 push |
+| Helm 값을 줬는데 안 먹음 | **Helm 은 존재하지 않는 키를 조용히 무시한다** | `helm template …` 으로 렌더 결과를 눈으로 확인 |
 | 파드는 Ready 인데 502 | Service 의 `selector` 가 파드 라벨과 불일치 | `kubectl get endpointslices -n shopsaga` 가 비어 있는지 확인 |
 | Kafka 클라이언트가 붙었다 끊김 | `advertised.listeners` 가 Service 이름과 다름 | `PLAINTEXT://kafka:19092` 로 일치시킬 것 |
 | mongo 파드 running 인데 포트 안 열림 | Apple Silicon 에서 amd64 변이를 받음(AVX 없음) | `docker pull --platform linux/arm64 mongo:8` 후 재적재 |

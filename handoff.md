@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-08-02, Phase 18 완료 · 커밋 이메일 이력 재작성)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-02, Phase 19(GitOps) 완료)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -11,7 +11,7 @@
 - 아키텍처: **헥사고날**(domain / application(port.in·out) / adapter(in.web·in.event·out.persistence·out.messaging)). 상세 `docs/HEXAGONAL.md`.
 - 컨테이너 런타임: **Colima**(arm64). `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`.
 
-## 지금까지 완료 (Phase 0~18)
+## 지금까지 완료 (Phase 0~19)
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
 5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED·트레이스↔로그) ·
 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · 12 Saga 코레오그래피+보상 · 13 Saga 오케스트레이션 ·
@@ -23,10 +23,12 @@
   ★ 2차 실행이 **캐시로 빨라지자** ingress webhook 경쟁이 드러나 실패 → 수정 → 3차 통과. 그 경위가 `docs/PHASE-17-CICD.md` §7-⑦.
 **18 선언적 배포**(Kustomize `base/`+`overlays/{local,ci}` · 생성기 해시로 **설정 변경 → 자동 롤아웃** ·
   CI 의 `sed` → `kustomize edit set image` · ingress-nginx 를 **Helm 릴리스**(차트 4.13.9)로 · `apply.sh --config` 삭제).
+**19 GitOps**(Argo CD 차트 10.2.2/v3.4.6 · `overlays/gitops` 를 추적 · CI 가 이미지 태그를 Git 에 커밋(승격) ·
+  `selfHeal` 6초 복원 · `prune` 으로 Phase 18 한계 #2 해결 · **비밀은 렌더 밖으로**(secretGenerator 제거)).
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
-- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(**26p**, 더블클릭 — `cd docs/tools && npm run build` 로 재생성). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
+- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(**27p**, 더블클릭 — `cd docs/tools && npm run build` 로 재생성). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
 
 ## 서비스 (13 컨테이너 / 13 파드 — Phase 16b 에서 discovery·config 삭제)
 | 서비스 | 포트 | 프로파일 | 역할 |
@@ -61,7 +63,11 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- **Phase 18 커밋 완료**: `72ab3f7`(기능) · `2486e00`(커밋 지도 행). 그 위에 이메일 정정 커밋이 얹힌다.
+- **Phase 19 커밋·푸시 완료**: `894e12d`(GitOps 도입) · `46e0c69`(설정 변경으로 prune 실증).
+  그 사이 `36e64d3` 은 **CI 봇 커밋**이다(이미지 태그 승격).
+- ⚠️⚠️ **CI 봇이 `main` 에 커밋한다** — CI 가 한 번 돌 때마다 로컬이 뒤처진다.
+  `git push` 가 rejected 되면 당황하지 말고 **`git pull --rebase` 후 push**. (upstream 추적 설정해 둠)
+- **Phase 18 커밋**: `72ab3f7`(기능) · `2486e00`(커밋 지도 행).
 - ⚠️⚠️ **2026-08-02 이력 재작성함.** 커밋 이메일 오타(`jyh4358@gamil.com` — gmail 아님)로 GitHub 이
   31개 커밋을 계정에 연결하지 못해 **기여 그래프(잔디)에 안 잡히고 있었다.**
   `git filter-repo --mailmap` 으로 전부 `97331219+jyh4358@users.noreply.github.com` 로 교체.
@@ -74,8 +80,10 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
   (global 에 설정돼 있음. 로컬 override 는 없음.)
 - **커밋·푸시 모두 사용자가 명시 요청할 때만.**
 - ⚠️ 다음 Phase 커밋 때 `docs/PHASE-COMMIT-MAP.md` 에 새 행 추가할 것.
-- ⚠️ `deploy/k8s/base/.secrets/` 는 **gitignore** — auth RSA 개인키가 여기 산다. `apply.sh` 가 없으면 만든다.
-  clone 직후에는 없으므로 `kubectl kustomize` 가 실패한다(정상 동작).
+- ⚠️ `deploy/k8s/base/.secrets/` 는 **gitignore** — auth RSA 개인키가 여기 산다.
+  `bootstrap-secrets.sh` 가 없으면 만들고, **kubectl 로 Secret `auth-jwt-key` 까지 넣는다.**
+  Phase 19 에서 secretGenerator 를 걷어냈으므로(Argo CD 가 Git 밖 파일을 못 읽는다)
+  이 Secret 이 없으면 **Argo CD 가 `Synced` 인데 `Progressing` 에서 안 벗어난다** — 겪었던 함정이다.
 - ⚠️ **`.github/workflows/` 를 건드리는 커밋은 토큰에 `workflow` + `Contents: Read and write` 필요**
   (없으면 `remote rejected` / 403). 현재 토큰엔 둘 다 있다.
   ⚠️ `gh auth setup-git` 을 실행하면 git 자격증명 헬퍼가 gh 로 바뀌고 `credential.usehttppath` 가 생겨
@@ -83,18 +91,22 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
 ### 사용자에게 아직 답을 못 받은 것 2개 (급하지 않음)
-- `docs/site/` HTML **26p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
+- `docs/site/` HTML **27p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
 - `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
 
-## 지금 이 순간의 상태 (2026-08-02, Phase 18 완료 직후)
-- **모두 정지 상태.** kind 노드 `docker stop` + `colima stop` 완료.
-  **클러스터 정의·PVC·이미지 전부 보존** — 재개는 아래 "재개 절차".
-  ingress-nginx 는 이제 **Helm 릴리스**다(`helm list -n ingress-nginx` 로 조회·`helm uninstall` 로 제거).
+## 지금 이 순간의 상태 (2026-08-02, Phase 19 완료 직후)
+- **돌아가는 중.** Colima + kind 노드 실행, shopsaga 13파드, **argocd 4파드**.
+  Argo CD 가 `overlays/gitops` 를 추적하며 `sync=Synced health=Healthy rev=46e0c69`.
+  → 정지: `docker stop shopsaga-control-plane && colima stop`
+- ⚠️ **이제 `apply.sh` 를 쓰지 말 것.** Argo CD 의 `selfHeal` 이 6초 만에 되돌린다(실측).
+  바꾸려면 Git 을 바꾼다. (`apply.sh` 는 경고를 출력하지만 막지는 않는다.)
+  ingress-nginx·Argo CD 는 **Helm 릴리스**다(`helm list -A`).
 - **Colima 12GB·6CPU**(Phase 16a 에서 증설). compose 와 kind 는 RAM·**포트(8000)** 모두 충돌 → **동시 금지**.
 - 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` **v4.2.3** · `k9s` · `gh` v2.97.0(**로그인 완료**, API 5000/hr).
 - 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
-- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 최신 `35adcfc` **전부 success**.
-  잡 5개: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크. 전체 ~4m30s.
+- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 최신 `46e0c69` **전부 success**.
+  잡 **6개**: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크 → **gitops 승격**.
+  마지막 잡이 `overlays/gitops` 에 이미지 태그를 커밋한다. `paths-ignore` 로 재트리거를 막는다.
   ★ Phase 18 첫 push(`df93958`)는 **스모크가 실패**했다 — 렌더 검증 단계가 `apply.sh` 보다 먼저인데
   `.secrets/`(gitignore)를 만드는 게 `apply.sh` 안에 있었다. `bootstrap-secrets.sh` 분리로 해결.
   경위는 `docs/PHASE-18-KUSTOMIZE.md` §7-⑨. 같이 드러난 `shasum`(macOS)→`sha256sum`(리눅스) 이식성 버그도 수정.
@@ -106,9 +118,14 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 ```bash
 colima start                                   # VM (12GB·6CPU 설정 유지)
 export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
-docker start shopsaga-control-plane            # kind 노드 → 13파드 자동 재생성(~2분)
+docker start shopsaga-control-plane            # kind 노드 → 13파드 + argocd 4파드 자동 재생성(~2분)
 kubectl get pods -n shopsaga -w
 curl -s localhost:8000/actuator/health         # Ingress → gateway, 200 기대
+
+# Phase 19 — Argo CD 상태 / UI
+kubectl get application shopsaga -n argocd -o wide
+kubectl port-forward svc/argocd-server -n argocd 8081:80    # http://localhost:8081
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 ⚠️ 노드 재기동 직후엔 CoreDNS·컨트롤러가 뜰 때까지 파드가 0개로 보인다 — 기다리면 controller-manager 가 만든다.
 
@@ -174,12 +191,17 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 19 이후 (계속 **고르는** 단계)
-로드맵의 필수 구간은 Phase 18 로 끝났다. 아래는 후보이고, 무엇을 할지 사용자와 먼저 정할 것.
+## 다음 단계 — Phase 20 이후 (계속 **고르는** 단계)
+로드맵의 필수 구간은 Phase 18 로 끝났고, Phase 19(GitOps)까지 했다. 아래는 후보이고, 먼저 정할 것.
 
-**권장 1순위 — GitOps(Argo CD).** 이유: Phase 18 이 선언적 배포를 깔아 놨으므로 **지금이 제일 싸다.**
-Argo CD 는 Kustomize 오버레이를 네이티브로 읽는다(`overlays/local` 을 그대로 가리키면 된다).
-동시에 Phase 18 한계표의 **#1(배포 수동)과 #2(옛 해시 리소스 prune 안 됨)를 한꺼번에** 해결한다.
+**권장 1순위 — Sealed Secrets (또는 External Secrets Operator).**
+이유: Phase 19 가 **일부러 되돌린 것**을 되찾는 작업이라 맥락이 가장 신선하다.
+Argo CD 가 Git 밖 파일을 못 읽어 `secretGenerator` 를 걷어냈고, 그래서
+**키를 갈아도 파드가 자동으로 안 갈린다**(Phase 19 한계 #3). 암호문을 Git 에 두면
+생성기를 다시 쓸 수 있고, DB 비밀번호 평문 문제(#4)도 같이 해결된다.
+
+**권장 2순위 — `git revert` 롤백 실측.** Phase 19 한계 #8 — 롤백이 된다고 **주장만** 하고
+검증하지 않았다. 커밋 하나 되돌려 Argo CD 가 옛 이미지로 되돌리는지 재보는 건 30분이면 된다.
 
 **그 외 후보**
 - 보안 기본값 — `runAsNonRoot`/`readOnlyRootFilesystem` · NetworkPolicy · Pod Security Standards
@@ -191,8 +213,9 @@ Argo CD 는 Kustomize 오버레이를 네이티브로 읽는다(`overlays/local`
 - **격리된 outbox 8건 재처리 도구** — Phase 16b 사고의 실제 유실분(로컬 PVC 에 아직 남아 있다)
 - CI 스모크에 **실패 경로**(재고 부족 → 보상 → CANCELLED) 추가 — 지금은 행복 경로 하나뿐
 
-### Phase 16·17·18 이 남긴 것 (각 문서 §8 에 전체 표)
-- **배포 수동**(CD 없음) · **옛 해시 ConfigMap 이 prune 안 됨** · 중간 태그(`:sha-arch`) 누적
+### Phase 16~19 가 남긴 것 (각 문서 §8 에 전체 표)
+- ~~배포 수동~~ · ~~옛 해시 ConfigMap prune 안 됨~~ **→ Phase 19 에서 해결** · 중간 태그(`:sha-arch`) 누적
+- **키 교체 시 자동 롤아웃 없음**(Phase 19 가 되돌린 것) · Argo CD UI 는 port-forward 로만 · 폴링 60초
 - Secret 은 base64 일 뿐(git 에 평문 dev 값) · RSA 키가 머신마다 다름 · 컨테이너 root 실행 · NetworkPolicy 없음
 - DB·Kafka 가 Deployment(StatefulSet 아님) · PVC 가 local-path · 단일 노드 · Kafka 단일 브로커
 - metrics-server 없음(HPA 불가) · 취약점 스캔·서명·SBOM 없음 · overlay 가 local·ci 둘뿐
@@ -201,6 +224,8 @@ Argo CD 는 Kustomize 오버레이를 네이티브로 읽는다(`overlays/local`
 
 > ✅ Phase 18 이 **해결한** 것: 명령형 ConfigMap 생성 · CI 의 `sed` · 원격 URL 로 ingress 설치 ·
 > `--config` 수동 롤아웃(→ 자동) · 매니페스트에 흩어진 `namespace` 34곳.
+> ✅ Phase 19 가 **해결한** 것: 배포 수동(→ Argo CD) · prune · 드리프트 복원(selfHeal) ·
+> CI 가 클러스터 자격증명을 갖던 문제(이제 CI 는 Git 에만 쓴다).
 
 ## 매 Phase 작업 흐름 (사용자 선호 — 지켜야 함)
 1. 리서치(버전 특이점) → 2. 설계(큰 결정은 AskUserQuestion) → 3. 구현 →
@@ -297,3 +322,16 @@ Argo CD 는 Kustomize 오버레이를 네이티브로 읽는다(`overlays/local`
 - **[Testcontainers] 로컬 테스트에 `DOCKER_HOST` 가 필요하다** — 없으면
   `Could not find a valid Docker environment`. `export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`
   와 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`.
+- **[Argo CD] `Synced` 인데 `Progressing` 에서 안 벗어나면 "Git 에 없는 전제"를 의심한다.**
+  대표적으로 `auth-jwt-key` Secret — Argo CD 는 Git 에 있는 것만 만든다. `kubectl get events -n shopsaga` 로 확인.
+- **[Argo CD] prune 은 자기가 만든 것만 지운다**(`argocd.argoproj.io/tracking-id` 어노테이션 기준).
+  Argo CD 도입 **이전**에 `kubectl apply` 로 만든 고아는 그대로 남는다 → 전환 시 1회 수동 정리.
+- **[Argo CD] selfHeal 은 변경을 '막지' 않는다.** `kubectl scale` 은 성공하고, 6초 뒤 되돌아간다.
+  정말 막으려면 RBAC 으로 사람의 쓰기 권한을 빼야 한다.
+- **[Argo CD] 서브경로(/argocd) 노출은 업스트림 이슈로 깨진다**(#15750·#9660·#14857).
+  `basehref` 가 index.html 에 반영되지 않아 자산이 `/assets/…` 로 새어 나간다 → **port-forward 를 쓸 것.**
+- **[Helm] 존재하지 않는 values 키를 줘도 조용히 무시된다**(스키마 강제가 없다).
+  `applicationSet.enabled: false` 가 그래서 안 먹었다 → 남의 차트는 **`helm template` 으로 렌더를 확인**할 것.
+- **[Helm] 차트 기본값 `global.domain` 이 Ingress 에 host 규칙을 심는다** — `localhost` 로는 안 닿게 된다.
+- **[GitOps] CI 봇이 main 에 커밋하므로 로컬 push 가 rejected 된다** → `git pull --rebase` 후 push.
+  봇 커밋 무한 루프는 `paths-ignore` 로 막는다(봇은 `overlays/gitops/**` 만 건드린다).

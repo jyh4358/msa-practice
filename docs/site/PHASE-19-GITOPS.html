@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 19 · GitOps · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li class="active"><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-19--gitops-argo-cd--cigit-승격-루프--self-heal--prune">Phase 19 — GitOps (Argo CD · CI→Git 승격 루프 · self-heal · prune)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> Phase 17 의 CI 는 &quot;이 커밋은 배포해도 된다&quot;를 <strong>증명</strong>했고,
+Phase 18 의 Kustomize 는 배포될 것을 <strong>선언</strong>으로 만들었다.
+그런데 <code>kubectl apply</code> 를 누르는 건 여전히 <strong>나</strong>였다.
+이 단계에서 그 손마저 없앤다 — 클러스터 안의 Argo CD 가 Git 을 보고 <strong>스스로</strong> 맞춘다.</p>
+</blockquote>
+<p>초심자(쿠버네티스와 CI 는 앞 단계에서 했고 GitOps 는 처음) 기준으로
+<strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li><strong>Argo CD</strong>(차트 10.2.2 / v3.4.6)를 Helm 으로 설치했다. dex·notifications 를 끄고
+applicationSet 을 <code>replicas: 0</code> 으로 두어 <strong>파드 7 → 4</strong> 로 줄였다.</li>
+<li><strong><code>deploy/k8s/overlays/gitops</code></strong> 를 새로 만들었다. Argo CD 가 보는 <strong>유일한</strong> 경로다.</li>
+<li><strong>CI 에 <code>gitops 승격</code> 잡을 추가</strong>했다 — 스모크가 통과하면 <code>kustomize edit set image</code> 로
+이미지 태그를 그 오버레이에 <strong>커밋·push</strong> 한다. 그러면 Argo CD 가 알아서 배포한다.
+<code>paths-ignore</code> 로 봇 커밋이 CI 를 다시 부르지 않게 막았다(무한 루프 방지).</li>
+<li><strong><code>prune: true</code> 가 Phase 18 의 한계 #2 를 해결했다</strong> — 설정을 고칠 때마다 쌓이던
+옛 해시 ConfigMap 을 Argo CD 가 치운다(§7-④ 에 실측).</li>
+<li><strong><code>selfHeal: true</code></strong> — <code>kubectl</code> 로 손댄 것을 <strong>6초</strong> 만에 Git 상태로 되돌린다(§7-③).</li>
+<li>⚠️ <strong>secretGenerator 를 걷어내야 했다.</strong> Argo CD 는 Git 을 클론해 렌더하므로
+<code>.gitignore</code> 된 개인키를 읽을 수 없다. 서명 키는 <code>bootstrap-secrets.sh</code> 가 넣는
+<strong>클러스터 사전 조건</strong>이 됐다 — 그 대가로 키 교체 시 자동 롤아웃을 잃었다(§8-3).</li>
+</ul>
+<p><strong>바뀌지 않은 것:</strong> 애플리케이션 코드 0줄. base 매니페스트도 그대로다.</p>
+<hr>
+<h2 id="1-왜--ci-까지-했는데-뭐가-부족한가">1. 왜 — CI 까지 했는데 뭐가 부족한가</h2>
+<p>Phase 17 이 끝났을 때 파이프라인은 이랬다.</p>
+<pre><code>push → 빌드·테스트 → 이미지 → GHCR → (CI 안에서) kind 에 배포해 스모크
+</code></pre><p>마지막 칸이 함정이다. <strong>CI 가 배포한 건 &quot;일회용 kind&quot;</strong> 였다. 진짜 클러스터에는
+내가 <code>./deploy/k8s/apply.sh</code> 를 쳐서 반영했다. 여기서 네 가지가 새어 나온다.</p>
+<p><strong>① 클러스터의 실제 상태를 아무도 기록하지 않는다.</strong>
+Git 은 &quot;무엇을 배포해야 하는지&quot;를 알지만, &quot;무엇이 배포<strong>됐는지</strong>&quot;는 모른다.
+누가 급해서 <code>kubectl edit</code> 로 replicas 를 바꿔 놨다면? 그건 어디에도 안 남는다.
+<strong>설정 드리프트</strong>(configuration drift)라고 부르는 이 현상이 운영 사고의 단골 원인이다.</p>
+<p><strong>② 배포가 사람의 기억에 의존한다.</strong>
+&quot;설정 바꿨으니 apply 해야지&quot;를 잊으면 Git 과 클러스터가 조용히 갈라진다.
+Phase 18 이 <code>--config</code> 플래그를 없앤 것도 같은 종류의 문제였다.</p>
+<p><strong>③ CI 가 클러스터 자격증명을 갖게 된다.</strong>
+진짜 클러스터에 CI 가 배포하려면 러너에 kubeconfig 를 줘야 한다.
+러너는 인터넷에 있고, 워크플로는 PR 로 수정될 수 있으며, 서드파티 액션도 돈다.
+<strong>&quot;클러스터를 지울 수 있는 권한&quot;이 그 안에 있다는 뜻</strong>이다.</p>
+<p><strong>④ 롤백이 어렵다.</strong>
+&quot;어제 상태로 되돌려&quot; 를 하려면 어제 이미지 태그를 찾아 매니페스트를 고쳐 다시 apply 해야 한다.</p>
+<h3 id="gitops-가-뒤집는-것-push--pull">GitOps 가 뒤집는 것: push → pull</h3>
+<pre><code>지금까지 (push 방식)        CI 가 클러스터 쪽으로 &#39;밀어 넣는다&#39;
+                            → 자격증명이 바깥에 있어야 한다
+
+GitOps (pull 방식)          클러스터 안의 에이전트가 Git 을 &#39;당겨 온다&#39;
+                            → 자격증명이 안쪽에만 있다. CI 는 클러스터를 모른다
+</code></pre><p>그리고 <strong>&quot;Git 이 곧 배포 상태&quot;</strong> 가 되므로 ①②④가 한꺼번에 풀린다.
+롤백은 <code>git revert</code> 다.</p>
+<hr>
+<h2 id="2-개념--최소-용어">2. 개념 — 최소 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GitOps</strong></td>
+<td>배포 상태를 Git 에 선언해 두고, 클러스터가 그걸 계속 따라가게 하는 운영 방식</td>
+</tr>
+<tr>
+<td><strong>Argo CD</strong></td>
+<td>그 &quot;따라가게 하는&quot; 컨트롤러. 클러스터 안에서 돈다</td>
+</tr>
+<tr>
+<td><strong>Application</strong></td>
+<td>Argo CD 의 CRD. &quot;이 Git 경로와 이 클러스터 네임스페이스가 같아야 한다&quot;는 선언</td>
+</tr>
+<tr>
+<td><strong>sync</strong></td>
+<td>Git 과 클러스터를 맞추는 동작. <code>Synced</code> / <code>OutOfSync</code></td>
+</tr>
+<tr>
+<td><strong>health</strong></td>
+<td>맞춘 결과가 실제로 잘 도는지. <code>Healthy</code> / <code>Progressing</code> / <code>Degraded</code></td>
+</tr>
+<tr>
+<td><strong>drift(드리프트)</strong></td>
+<td>선언과 실제가 갈라진 상태</td>
+</tr>
+<tr>
+<td><strong>selfHeal</strong></td>
+<td>드리프트를 발견하면 Git 쪽으로 되돌리는 옵션</td>
+</tr>
+<tr>
+<td><strong>prune</strong></td>
+<td>Git 에서 사라진 리소스를 클러스터에서도 지우는 옵션</td>
+</tr>
+<tr>
+<td><strong>tracking-id</strong></td>
+<td>Argo CD 가 &quot;이건 내가 만든 것&quot;이라고 표시해 두는 어노테이션</td>
+</tr>
+<tr>
+<td><strong>승격(promotion)</strong></td>
+<td>검증된 산출물을 다음 환경의 선언에 기록하는 일. 여기선 &quot;이미지 태그를 Git 에 쓰기&quot;</td>
+</tr>
+</tbody></table>
+<h3 id="sync--health-헷갈리기-쉬움">sync ≠ health (헷갈리기 쉬움)</h3>
+<pre><code>Synced   + Healthy      정상
+Synced   + Progressing  Git 대로 만들었고, 파드가 아직 뜨는 중
+Synced   + Degraded     Git 대로 만들었는데 그게 안 돈다 ← Git 내용이 틀렸다는 뜻
+OutOfSync               클러스터가 Git 과 다르다(자동 동기화면 곧 맞춰진다)
+</code></pre><p>이번 Phase 에서 실제로 <code>Synced + Progressing</code> 이 10분간 지속되는 걸 겪었다.
+&quot;동기화는 됐는데 안 뜬다&quot; = <strong>매니페스트는 적용됐지만 전제 조건이 없었다</strong>(§7-②).</p>
+<hr>
+<h2 id="3-구성--전체-그림">3. 구성 — 전체 그림</h2>
+<pre><code>   ┌──────────────┐  push
+   │  개발자      │────────────┐
+   └──────────────┘            ▼
+                        ┌─────────────────────────────────────┐
+                        │ GitHub  jyh4358/msa-practice        │
+                        │                                     │
+                        │  deploy/k8s/base/         (공통)     │
+                        │  deploy/config/           (설정)     │
+                        │  deploy/k8s/overlays/gitops/ ◄────┐  │
+                        └──────────┬──────────────────────┼──┘
+                                   │ ① 트리거              │
+                                   ▼                      │
+                        ┌─────────────────────────┐       │
+                        │ GitHub Actions (CI)     │       │
+                        │  빌드·테스트             │       │
+                        │  이미지 → GHCR :&lt;SHA&gt;    │       │
+                        │  kind 스모크             │       │
+                        │  ★ gitops 승격 ─────────┼───────┘ ② 태그를 커밋·push
+                        └─────────────────────────┘         (봇 커밋)
+                                   ┆
+                                   ┆ CI 는 클러스터를 모른다 (자격증명 없음)
+   ═══════════════════════════════ ┆ ═══════════════════════════════════
+                                   ┆
+   내 노트북 (kind)                 ▼ ③ Argo CD 가 60초마다 Git 을 당겨 본다
+   ┌────────────────────────────────────────────────────┐
+   │ ns: argocd                                         │
+   │   application-controller  ← 비교하고 맞춘다          │
+   │   repo-server             ← git clone + kustomize   │
+   │   server (UI/API) · redis                          │
+   │        │ ④ 다르면 apply                             │
+   │        ▼                                           │
+   │ ns: shopsaga   13 파드 (GHCR 이미지)                │
+   └────────────────────────────────────────────────────┘
+</code></pre><h3 id="오버레이가-셋이-된-이유">오버레이가 셋이 된 이유</h3>
+<table>
+<thead>
+<tr>
+<th>오버레이</th>
+<th>누가 쓰나</th>
+<th>이미지</th>
+<th>커밋되나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>local</code></td>
+<td>내가 <code>apply.sh</code> 로</td>
+<td><code>kind load</code> 한 로컬 이미지</td>
+<td>태그 고정</td>
+</tr>
+<tr>
+<td><code>ci</code></td>
+<td>CI 스모크 잡이</td>
+<td>GHCR <code>:&lt;SHA&gt;</code></td>
+<td>❌ 러너에서 고쳐 쓰고 버린다</td>
+</tr>
+<tr>
+<td><strong><code>gitops</code></strong></td>
+<td><strong>Argo CD 가</strong></td>
+<td>GHCR <code>:&lt;SHA&gt;</code></td>
+<td>✅ <strong>봇이 커밋한다</strong></td>
+</tr>
+</tbody></table>
+<p><code>ci</code> 와 <code>gitops</code> 를 합치고 싶어지는데, 합치면 안 된다 —
+&quot;검증하려고 잠깐 바꾼 것&quot;과 &quot;배포하기로 결정한 것&quot;이 구분되지 않는다.</p>
+<hr>
+<h2 id="4-코드--결정적인-부분">4. 코드 — 결정적인 부분</h2>
+<h3 id="-application-명령이-아니라-불변식">① Application: 명령이 아니라 불변식</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/argocd-application.yaml</span>
+<span class="hljs-attr">spec:</span>
+  <span class="hljs-attr">source:</span>
+    <span class="hljs-attr">repoURL:</span> <span class="hljs-string">https://github.com/jyh4358/msa-practice.git</span>
+    <span class="hljs-attr">targetRevision:</span> <span class="hljs-string">main</span>
+    <span class="hljs-attr">path:</span> <span class="hljs-string">deploy/k8s/overlays/gitops</span>     <span class="hljs-comment"># ← kustomization.yaml 이 있으면 알아서 kustomize build</span>
+  <span class="hljs-attr">destination:</span>
+    <span class="hljs-attr">server:</span> <span class="hljs-string">https://kubernetes.default.svc</span>
+    <span class="hljs-attr">namespace:</span> <span class="hljs-string">shopsaga</span>
+  <span class="hljs-attr">syncPolicy:</span>
+    <span class="hljs-attr">automated:</span>
+      <span class="hljs-attr">prune:</span> <span class="hljs-literal">true</span>        <span class="hljs-comment"># Git 에서 사라지면 클러스터에서도 지운다</span>
+      <span class="hljs-attr">selfHeal:</span> <span class="hljs-literal">true</span>     <span class="hljs-comment"># 손으로 바꾼 걸 되돌린다</span>
+</code></pre><p>이 파일에 <strong>&quot;배포하라&quot;는 말이 없다.</strong> &quot;이 둘이 같아야 한다&quot;만 있다.
+컨트롤러는 그 불변식이 깨지면 고친다 — 명령형과 선언형의 차이가 여기서 제일 선명하다.</p>
+<blockquote>
+<p>⚠️ <code>prune</code> 과 <code>selfHeal</code> 은 <strong>기본값이 false</strong> 다. 켜지 않으면
+&quot;만들기만 하고 지우지도 되돌리지도 않는&quot; 반쪽짜리가 된다.</p>
+</blockquote>
+<h3 id="-ci-의-승격-잡--여기가-ci-와-cd-의-경계">② CI 의 승격 잡 — 여기가 CI 와 CD 의 경계</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">gitops:</span>
+  <span class="hljs-attr">needs:</span> <span class="hljs-string">smoke</span>                     <span class="hljs-comment"># 스모크가 통과해야 승격</span>
+  <span class="hljs-attr">if:</span> <span class="hljs-string">github.event_name</span> <span class="hljs-string">==</span> <span class="hljs-string">&#x27;push&#x27;</span> <span class="hljs-string">&amp;&amp;</span> <span class="hljs-string">github.ref</span> <span class="hljs-string">==</span> <span class="hljs-string">&#x27;refs/heads/main&#x27;</span>
+  <span class="hljs-attr">permissions:</span>
+    <span class="hljs-attr">contents:</span> <span class="hljs-string">write</span>                <span class="hljs-comment"># ★ 없으면 push 가 403</span>
+  <span class="hljs-attr">steps:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">working-directory:</span> <span class="hljs-string">deploy/k8s/overlays/gitops</span>
+      <span class="hljs-attr">run:</span> <span class="hljs-string">|
+        for svc in $SERVICES; do
+          kustomize edit set image &quot;shopsaga/${svc}=${IMAGE_BASE}/${svc}:${GITHUB_SHA}&quot;
+        done
+</span>    <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">|
+        git config user.name &quot;github-actions[bot]&quot;
+        if git diff --quiet -- deploy/k8s/overlays/gitops; then
+          echo &quot;이미 최신 태그다&quot;; exit 0        # ← 변경 없으면 commit 이 실패하므로 먼저 확인
+        fi
+        git commit -m &quot;chore(gitops): 이미지 태그를 ${GITHUB_SHA} 로 갱신 [skip ci]&quot;
+        git push</span>
+</code></pre><p><strong>이 잡은 클러스터에 접속하지 않는다.</strong> Git 에 쓰기만 한다.
+그래서 CI 러너에 kubeconfig 가 필요 없다 — §1-③ 이 여기서 해결된다.</p>
+<h3 id="-무한-루프-방지">③ 무한 루프 방지</h3>
+<p>봇이 push 하면 그것도 push 이므로 CI 가 다시 돈다 → 또 커밋 → 끝나지 않는다.</p>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">on:</span>
+  <span class="hljs-attr">push:</span>
+    <span class="hljs-attr">branches:</span> [<span class="hljs-string">main</span>]
+    <span class="hljs-attr">paths-ignore:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">&#x27;deploy/k8s/overlays/gitops/**&#x27;</span>    <span class="hljs-comment"># 봇은 여기만 건드린다</span>
+</code></pre><p><code>paths-ignore</code> 는 변경 파일이 <strong>전부</strong> 패턴에 맞을 때만 건너뛴다.
+사람이 코드와 이 파일을 같이 고치면 CI 는 정상적으로 돈다.
+커밋 메시지의 <code>[skip ci]</code> 는 이중 안전장치다.</p>
+<blockquote>
+<p>⚠️ 대가: 이 파일만 손으로 고쳐 push 하면 CI 가 안 돈다.
+배포는 Argo CD 가 하니 의도한 동작이지만, 알고 있어야 한다.</p>
+</blockquote>
+<h3 id="--secretgenerator-를-걷어내야-했다--이번-phase-에서-가장-아팠던-부분">④ ★ secretGenerator 를 걷어내야 했다 — 이번 Phase 에서 가장 아팠던 부분</h3>
+<p>Phase 18 에서는 이랬다.</p>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># base/kustomization.yaml (Phase 18)</span>
+<span class="hljs-attr">secretGenerator:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">auth-jwt-key</span>
+    <span class="hljs-attr">files:</span> [<span class="hljs-string">private-key=.secrets/auth-jwt-key.pem</span>]   <span class="hljs-comment"># .gitignore 대상</span>
+</code></pre><p><strong>Argo CD 에서는 이게 구조적으로 불가능하다.</strong></p>
+<pre><code>Argo CD repo-server: git clone → kustomize build
+  → .secrets/ 는 Git 에 없다 → 렌더 실패 → 영원히 Degraded
+</code></pre><p>부트스트랩 스크립트를 대신 돌려 줄 수도 없다. Argo CD 는 <strong>임의 스크립트를 실행하지 않는다</strong> —
+그게 GitOps 의 안전성이기도 하다(선언만 읽고 명령은 안 읽는다).</p>
+<p>그래서 서명 키를 <strong>매니페스트 밖의 클러스터 사전 조건</strong>으로 옮겼다.</p>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># deploy/k8s/bootstrap-secrets.sh</span>
+kubectl create secret generic auth-jwt-key -n shopsaga \
+  --from-file=private-key=<span class="hljs-string">&quot;<span class="hljs-variable">$SECRETS</span>/auth-jwt-key.pem&quot;</span> \
+  --from-file=key-id=<span class="hljs-string">&quot;<span class="hljs-variable">$SECRETS</span>/auth-jwt-key-id.txt&quot;</span>
+</code></pre><p><strong>잃은 것</strong>: 해시 접미사가 사라져서 <strong>키를 갈아도 파드가 자동으로 갈리지 않는다.</strong>
+Phase 18 이 얻었던 성질 하나를 되돌린 것이다. 정직하게 한계표(§8-3)에 남긴다.
+제대로 된 답은 <strong>Sealed Secrets / External Secrets Operator</strong> — 암호문을 Git 에 두거나
+외부 저장소에서 받아오면 생성기를 다시 쓸 수 있다.</p>
+<hr>
+<h2 id="5-흐름--커밋-하나가-클러스터에-닿기까지">5. 흐름 — 커밋 하나가 클러스터에 닿기까지</h2>
+<p>실제로 측정한 타임라인이다(§7 의 실측을 시간순으로 정리).</p>
+<pre><code> t=0      나: git push (46e0c69 — deploy/config/common.yml 한 줄 수정)
+ t~4m     CI: 빌드·테스트 → 이미지 6종 → GHCR → kind 스모크 통과
+ t~4m     CI: gitops 승격 잡
+            kustomize edit set image ×6 → 커밋 → push (봇 커밋)
+ t~5m     Argo CD: 폴링(60초 주기)에서 새 리비전 발견 → 자동 sync
+            · configMapGenerator 새 해시 → shopsaga-common-52mkbkthhm 생성
+            · 옛 shopsaga-common-2497kkbgk6 → prune(삭제)
+            · 파드 템플릿이 바뀌었으므로 롤링 업데이트
+ t~7m     13 파드 Ready · Saga CONFIRMED 5초
+</code></pre><p><strong>이 전체 과정에서 내가 친 명령은 <code>git push</code> 하나다.</strong></p>
+<hr>
+<h2 id="6-원리--왜-이렇게-동작하나">6. 원리 — 왜 이렇게 동작하나</h2>
+<h3 id="-prune-은-자기가-만든-것만-지운다">① prune 은 &quot;자기가 만든 것&quot;만 지운다</h3>
+<p>Argo CD 는 자기가 만든 리소스에 표시를 남긴다.</p>
+<pre><code>shopsaga-common-52mkbkthhm  →  argocd.argoproj.io/tracking-id: shopsaga:/ConfigMap:shopsaga/...
+shopsaga-common-49f7g8bmk6  →  (없음)   ← Phase 18 에서 kubectl apply -k 로 만든 것
+</code></pre><p>그래서 Argo CD 를 붙이기 <strong>전에</strong> 생긴 고아는 prune 되지 않는다(§7-④ 실측).
+&quot;Argo CD 를 켰으니 알아서 청소되겠지&quot;가 아니라 <strong>한 번은 손으로 정리해야 한다.</strong></p>
+<p>이건 안전장치이기도 하다 — 남이 만든 리소스를 함부로 지우지 않는다.</p>
+<h3 id="-selfheal-은-되돌리기지-막기가-아니다">② selfHeal 은 &quot;되돌리기&quot;지 &quot;막기&quot;가 아니다</h3>
+<p><code>kubectl scale</code> 은 <strong>성공한다.</strong> 6초 뒤에 Argo CD 가 되돌릴 뿐이다.
+그 사이에 진짜로 파드가 5개로 늘었다가 2개로 줄었다.</p>
+<p>즉 selfHeal 은 변경을 <strong>차단</strong>하지 않는다. 정말 막으려면 RBAC 으로 사람의 쓰기 권한을 빼야 한다.
+GitOps 를 켰다고 클러스터가 잠기는 게 아니다 — <strong>&quot;손댄 게 오래 가지 못한다&quot;</strong> 는 성질일 뿐이다.</p>
+<h3 id="-폴링-vs-webhook">③ 폴링 vs webhook</h3>
+<p>Argo CD 는 기본 180초마다 Git 을 확인한다(우리는 60초로 줄였다).
+즉시 반영하려면 GitHub webhook 을 Argo CD 로 보내야 하는데,
+<strong>내 노트북 클러스터는 인터넷에서 접근할 수 없다.</strong> 그래서 폴링이 유일한 선택이다(§8-5).</p>
+<h3 id="-argo-cd-자신은-gitops-로-관리하지-않는다">④ Argo CD 자신은 GitOps 로 관리하지 않는다</h3>
+<p>Argo CD 가 자기 자신을 관리하게 만들 수도 있다(app-of-apps).
+하지만 그러면 <strong>Argo CD 가 망가졌을 때 그걸 고칠 Argo CD 가 없다.</strong>
+부트스트랩은 클러스터 밖에서(여기선 Helm 으로) 하는 게 안전하다.</p>
+<hr>
+<h2 id="7-검증--실제로-측정한-것">7. 검증 — 실제로 측정한 것</h2>
+<blockquote>
+<p>환경: macOS(Apple Silicon) · Colima 12GB/6CPU · kind v0.32.0 · k8s v1.36.1 ·
+Argo CD 차트 10.2.2 (v3.4.6) · Helm v4.2.3</p>
+</blockquote>
+<h3 id="-설치--파드-7--4">① 설치 — 파드 7 → 4</h3>
+<pre><code>argocd-application-controller-0     1/1 Running
+argocd-repo-server-…                1/1 Running
+argocd-server-…                     1/1 Running
+argocd-redis-…                      1/1 Running
+argocd-applicationset-controller    replicas=0   ← 렌더로 확인
+</code></pre><p>설치 53초. 메모리 여유는 설치 전 7.4GB 였다.</p>
+<h3 id="--첫-동기화가-10분간-progressing--내가-만든-실패">② ★ 첫 동기화가 10분간 Progressing — 내가 만든 실패</h3>
+<p><code>Synced</code> 는 즉시 됐는데 <code>health</code> 가 10분 넘게 <code>Progressing</code> 이었다.</p>
+<pre><code>Warning  Failed   pod/auth-service-…   Error: secret &quot;auth-jwt-key&quot; not found
+</code></pre><p>원인: <strong><code>install-argocd.sh</code> 대신 Application 만 직접 apply 해서 부트스트랩을 건너뛰었다.</strong>
+<code>secretGenerator</code> 를 걷어낸 뒤로 <code>auth-jwt-key</code> 는 스크립트가 만들어야 하는데 그걸 안 했다.</p>
+<p><strong>이게 이번 Phase 의 교훈이 그대로 재현된 사건이다</strong> — Argo CD 는 Git 에 있는 것만 만든다.
+Git 에 없는 전제(비밀)는 <strong>아무도 대신 해 주지 않고, 증상은 &quot;그냥 안 뜬다&quot;로만 나타난다.</strong></p>
+<pre><code>▶ ./deploy/k8s/bootstrap-secrets.sh
+  Secret auth-jwt-key 생성
+  [30s] sync=Synced health=Healthy  파드 13/13 Ready     ← 30초 만에 정상화
+</code></pre><h3 id="-selfheal--kubectl-로-손댄-것이-되돌아온다">③ selfHeal — kubectl 로 손댄 것이 되돌아온다</h3>
+<pre><code>Git 의 auth-service replicas : 2
+$ kubectl scale deploy/auth-service -n shopsaga --replicas=5
+  [1s] replicas=5 sync=Synced
+  [6s] replicas=2 sync=Synced      ← ✔ 6초 만에 복원
+</code></pre><p><code>kubectl scale</code> 은 <strong>성공했다</strong>(실제로 5가 됐다). Argo CD 가 6초 뒤 되돌렸을 뿐이다.</p>
+<h3 id="--prune--phase-18-한계-2-가-해결되는-순간">④ ★ prune — Phase 18 한계 #2 가 해결되는 순간</h3>
+<p><code>deploy/config/common.yml</code> 을 한 줄 고쳐 push 했다(<code>info.phase: 18 → 19</code>).</p>
+<pre><code>  [1s]  rev=36e64d3  shopsaga-common-2497kkbgk6  shopsaga-common-49f7g8bmk6
+  [21s] rev=36e64d3  (동일)
+  [41s] rev=36e64d3  (동일)
+  [62s] rev=46e0c69  shopsaga-common-49f7g8bmk6  shopsaga-common-52mkbkthhm
+                     ↑ 옛것(-2497…)이 사라졌다 ← pruned
+                     ↑ -49f7… 은 남았다 = Argo 이전에 만들어진 고아
+</code></pre><table>
+<thead>
+<tr>
+<th>ConfigMap</th>
+<th>만든 주체</th>
+<th>tracking-id</th>
+<th>prune 됐나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>shopsaga-common-2497kkbgk6</code></td>
+<td>Argo CD</td>
+<td>있음</td>
+<td>✅ 지워짐</td>
+</tr>
+<tr>
+<td><code>shopsaga-common-49f7g8bmk6</code></td>
+<td>Phase 18 의 <code>kubectl apply -k</code></td>
+<td><strong>없음</strong></td>
+<td>❌ 남음(수동 삭제함)</td>
+</tr>
+</tbody></table>
+<p><strong>Phase 18 의 한계 #2 는 &quot;Argo CD 가 관리하는 범위 안에서&quot; 해결된다.</strong>
+전환 시점의 고아는 한 번 손으로 치워야 한다 — 실제로 ConfigMap 2개 + Secret 1개를 지웠다.</p>
+<h3 id="--ci--git--배포-전체-루프">⑤ ★ CI → Git → 배포 전체 루프</h3>
+<p>내가 <code>894e12d</code> 를 push 한 뒤, <strong>아무것도 하지 않고</strong> 관찰한 결과:</p>
+<pre><code>$ git log origin/main --oneline -2
+36e64d3  github-actions[bot]  chore(gitops): 이미지 태그를 894e12d4b62… 로 갱신 [skip ci]
+894e12d  JDong                feat: GitOps 도입 …
+
+$ git show 36e64d3 --stat
+ deploy/k8s/overlays/gitops/kustomization.yaml | 38 ++++++-------    ← 이 파일만
+
+# 그리고 클러스터에 실제로 뜬 이미지:
+ghcr.io/jyh4358/msa-practice/auth-service:894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
+ghcr.io/jyh4358/msa-practice/gateway-service:894e12d4b62…
+… (6종 전부)
+</code></pre><p>Argo CD 의 리비전도 <code>894e12d</code> → <code>36e64d3</code> 으로 <strong>저절로</strong> 넘어갔다(540초 지점에서 관측).
+<code>kubectl apply</code> 를 친 사람은 없다.</p>
+<h3 id="-설정이-파드-안까지-도달했나">⑥ 설정이 파드 안까지 도달했나</h3>
+<pre><code class="hljs language-console"><span class="hljs-meta prompt_">$ </span><span class="language-bash">kubectl <span class="hljs-built_in">exec</span> -n shopsaga &lt;gateway-pod&gt; -- \
+    grep -A4 <span class="hljs-string">&quot;^info:&quot;</span> /application/config/10-common/application.yml</span>
+info:
+  pod: ${POD_NAME:${HOSTNAME:unknown}}
+<span class="hljs-meta prompt_">  # </span><span class="language-bash">Phase 19 부터는 그 적용까지 Argo CD 가 한다 — 나는 Git 만 바꾸고 kubectl 을 치지 않는다.</span>
+  phase: &quot;19&quot;
+<span class="hljs-meta prompt_">
+$ </span><span class="language-bash">kubectl get pod -n shopsaga &lt;gateway-pod&gt; -o jsonpath=<span class="hljs-string">&#x27;{.spec.volumes[0].configMap.name}&#x27;</span></span>
+shopsaga-common-52mkbkthhm
+</code></pre><h3 id="-기능-회귀-없음">⑦ 기능 회귀 없음</h3>
+<pre><code>Ingress → gateway            HTTP 200
+로그인(부트스트랩 키)         토큰 발급 OK
+Saga: PENDING → INVENTORY_RESERVED → CONFIRMED    5초
+Argo CD 최종                 sync=Synced health=Healthy rev=46e0c69
+</code></pre><h3 id="-겪은-결함오진-숨기지-않고-기록">⑧ 겪은 결함·오진 (숨기지 않고 기록)</h3>
+<p><strong>(a) Argo CD 를 <code>/argocd</code> 경로로 노출하려다 실패 — 업스트림 이슈</strong>
+Grafana 처럼 <code>localhost:8000/argocd</code> 로 열고 싶어 <code>server.rootpath</code>·<code>server.basehref</code> 를 켰다.</p>
+<pre><code>파드 env  ARGOCD_SERVER_BASEHREF=/argocd     ← 값은 정확히 전달됨
+rootpath  동작함 (`/` → 404, `/argocd/` → 200)
+그런데    index.html 이 여전히 &lt;base href="/"&gt;
+          → 브라우저가 /assets/… 를 요청 → 그건 gateway 라우트 → 401
+</code></pre><p>Argo CD 의 <strong>알려진 미해결 이슈</strong>다(argoproj/argo-cd #15750 · #9660 · #14857).
+→ 서브경로를 포기하고 <strong>port-forward</strong> 로 바꿨다(Argo CD 공식 시작 가이드도 그렇게 한다).</p>
+<blockquote>
+<p><strong>오진 정정:</strong> 조사 중 <code>/argocd/applications</code> 가 404 라 &quot;딥링크도 깨진다&quot;고 적었는데
+그건 <strong>curl 아티팩트</strong>였다. Argo CD 는 <code>Accept</code> 헤더로 콘텐츠 협상을 해서
+<code>Accept: */*</code>(curl 기본)엔 404, <code>Accept: text/html</code>(브라우저)엔 200 을 준다.
+실제 근거는 base href 하나뿐이다.</p>
+</blockquote>
+<p><strong>(b) <code>applicationSet.enabled: false</code> 가 조용히 무시됐다</strong>
+차트 10.2.2 의 <code>applicationSet:</code> 에는 <strong><code>enabled</code> 키가 없다.</strong>
+그런데 <strong>Helm 은 존재하지 않는 값을 줘도 오류를 내지 않는다</strong>(values 스키마를 강제하지 않는다).
+<code>helm template</code> 으로 렌더해 보지 않았으면 파드가 하나 더 뜨는 걸 몰랐을 것이다.
+→ 남의 차트를 쓸 때는 &quot;값을 줬으니 됐겠지&quot;가 아니라 <strong>렌더 결과를 봐야 한다.</strong>
+→ <code>replicas: 0</code> 으로 해결.</p>
+<p><strong>(c) <code>global.domain</code> 기본값이 Ingress 를 망가뜨릴 뻔했다</strong>
+차트 기본값이 <code>argocd.example.com</code> 이라, <code>server.ingress.hostname: &quot;&quot;</code> 로 둬도
+거기로 폴백해 <code>host: argocd.example.com</code> 규칙이 붙었다. <code>localhost:8000</code> 으로는 영원히 안 닿는다.
+(결국 Ingress 자체를 안 쓰기로 했지만, 렌더 검증에서 미리 잡았다.)</p>
+<p><strong>(d) 봇 커밋 때문에 로컬 push 가 거부된다</strong>
+CI 봇이 <code>main</code> 에 커밋하므로, CI 가 한 번 돌 때마다 <strong>내 로컬 브랜치가 뒤처진다.</strong></p>
+<pre><code>$ git push
+ ! [rejected]  main -&gt; main (fetch first)
+</code></pre><p>→ <code>git pull --rebase</code> 후 push. GitOps 를 켠 대가로 생긴 <strong>일상적인 마찰</strong>이고,
+팀이라면 봇 커밋을 별도 브랜치나 별도 config 저장소로 빼는 이유가 이것이다(§8-6).</p>
+<hr>
+<h2 id="8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>한계</th>
+<th>지금 상태</th>
+<th>어디서 해결되나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Argo CD UI 가 Ingress 에 없다</strong></td>
+<td>port-forward 로만 접근(업스트림 이슈 §7-⑧a)</td>
+<td>이슈 해결 대기 · 또는 전용 호스트명</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>폴링 60초</strong></td>
+<td>즉시 반영 아님</td>
+<td>GitHub webhook — 단 클러스터가 인터넷에 노출돼야 한다</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>키 교체 시 자동 롤아웃 없음</strong></td>
+<td>secretGenerator 를 잃어 해시 접미사가 없다</td>
+<td><strong>Sealed Secrets / External Secrets Operator</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>DB 비밀번호가 Git 에 평문</strong></td>
+<td>dev 값이라 감수</td>
+<td>위와 같음</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>부트스트랩이 여전히 명령형</strong></td>
+<td><code>bootstrap-secrets.sh</code> · ingress-nginx · Argo CD 자신</td>
+<td>클러스터 프로비저닝 도구(Terraform/Crossplane)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>봇 커밋이 main 을 흔든다</strong></td>
+<td>매번 <code>git pull --rebase</code> 필요</td>
+<td>설정 저장소 분리(app repo ↔ config repo)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>환경이 하나뿐</strong></td>
+<td><code>gitops</code> 오버레이 하나 = 사실상 prod</td>
+<td>staging/prod 분리 + ApplicationSet</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>롤백을 안 해 봤다</strong></td>
+<td><code>git revert</code> 로 될 것이나 <strong>미검증</strong></td>
+<td>다음 기회에 실측</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Argo CD 가 <strong>단일 장애점</strong></td>
+<td>죽으면 드리프트가 방치된다</td>
+<td>HA 모드(복제본 증가)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>전환 시점 <strong>고아 리소스</strong></td>
+<td>prune 이 안 건드림(§7-④)</td>
+<td>1회 수동 정리(했음)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>컨테이너 root 실행 · NetworkPolicy 없음</td>
+<td>Phase 18 에서 그대로</td>
+<td>보안 기본값 강화</td>
+</tr>
+<tr>
+<td>12</td>
+<td>이미지 취약점 스캔·서명 없음</td>
+<td></td>
+<td>Trivy · cosign</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어">9. 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>pull 방식 배포</strong></td>
+<td>클러스터가 스스로 당겨 오는 방식. 반대는 CI 가 밀어 넣는 push 방식</td>
+</tr>
+<tr>
+<td><strong>드리프트</strong></td>
+<td>선언(Git)과 실제(클러스터)가 갈라진 상태</td>
+</tr>
+<tr>
+<td><strong>reconciliation(조정)</strong></td>
+<td>선언과 실제를 비교해 맞추는 반복 동작. 쿠버네티스 컨트롤러의 기본 원리</td>
+</tr>
+<tr>
+<td><strong>app-of-apps</strong></td>
+<td>Application 이 다른 Application 들을 만드는 구성. 대규모에서 쓴다</td>
+</tr>
+<tr>
+<td><strong>finalizer</strong></td>
+<td>오브젝트를 지울 때 정리 작업을 보장하는 표시. 없으면 Application 만 지워지고 리소스는 남는다</td>
+</tr>
+<tr>
+<td><strong>ServerSideApply</strong></td>
+<td>필드 소유권을 서버가 추적하는 apply 방식. 큰 매니페스트의 어노테이션 크기 제한을 피한다</td>
+</tr>
+<tr>
+<td><strong>승격(promotion)</strong></td>
+<td>검증된 산출물을 다음 환경 선언에 기록하는 일</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="10-참고">10. 참고</h2>
+<ul>
+<li>Argo CD 공식 — <a href="https://argo-cd.readthedocs.io/">https://argo-cd.readthedocs.io/</a><ul>
+<li>Application 스펙 · sync options · tracking 방식</li>
+</ul>
+</li>
+<li>Argo CD Helm 차트 — <a href="https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd">https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd</a></li>
+<li>서브경로 이슈 — argoproj/argo-cd <a href="https://github.com/argoproj/argo-cd/issues/15750">#15750</a> ·
+<a href="https://github.com/argoproj/argo-cd/issues/9660">#9660</a> ·
+<a href="https://github.com/argoproj/argo-cd/issues/14857">#14857</a></li>
+<li>OpenGitOps 원칙 — <a href="https://opengitops.dev/">https://opengitops.dev/</a></li>
+<li>이 프로젝트: <a href="PHASE-17-CICD.html">Phase 17 — CI/CD</a> · <a href="PHASE-18-KUSTOMIZE.html">Phase 18 — 선언적 배포</a></li>
+<li><code>deploy/k8s/README.md</code> — 실행·정리·함정 표</li>
+</ul>
+<hr>
+<p><em>다음 단계 후보: Sealed Secrets 로 §8-3·4 해결 · <code>git revert</code> 롤백 실측(§8-8) ·
+Trivy/cosign 공급망 보안 · 보안 기본값(runAsNonRoot·NetworkPolicy) · staging/prod 분리.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--ci-까지-했는데-뭐가-부족한가">1. 왜 — CI 까지 했는데 뭐가 부족한가</a></li>
+<li class="toc-h3"><a href="#gitops-가-뒤집는-것-push--pull">GitOps 가 뒤집는 것: push → pull</a></li>
+<li class="toc-h2"><a href="#2-개념--최소-용어">2. 개념 — 최소 용어</a></li>
+<li class="toc-h3"><a href="#sync--health-헷갈리기-쉬움">sync ≠ health (헷갈리기 쉬움)</a></li>
+<li class="toc-h2"><a href="#3-구성--전체-그림">3. 구성 — 전체 그림</a></li>
+<li class="toc-h3"><a href="#오버레이가-셋이-된-이유">오버레이가 셋이 된 이유</a></li>
+<li class="toc-h2"><a href="#4-코드--결정적인-부분">4. 코드 — 결정적인 부분</a></li>
+<li class="toc-h3"><a href="#-application-명령이-아니라-불변식">① Application: 명령이 아니라 불변식</a></li>
+<li class="toc-h3"><a href="#-ci-의-승격-잡--여기가-ci-와-cd-의-경계">② CI 의 승격 잡 — 여기가 CI 와 CD 의 경계</a></li>
+<li class="toc-h3"><a href="#-무한-루프-방지">③ 무한 루프 방지</a></li>
+<li class="toc-h3"><a href="#--secretgenerator-를-걷어내야-했다--이번-phase-에서-가장-아팠던-부분">④ ★ secretGenerator 를 걷어내야 했다 — 이번 Phase 에서 가장 아팠던 부분</a></li>
+<li class="toc-h2"><a href="#5-흐름--커밋-하나가-클러스터에-닿기까지">5. 흐름 — 커밋 하나가 클러스터에 닿기까지</a></li>
+<li class="toc-h2"><a href="#6-원리--왜-이렇게-동작하나">6. 원리 — 왜 이렇게 동작하나</a></li>
+<li class="toc-h3"><a href="#-prune-은-자기가-만든-것만-지운다">① prune 은 &quot;자기가 만든 것&quot;만 지운다</a></li>
+<li class="toc-h3"><a href="#-selfheal-은-되돌리기지-막기가-아니다">② selfHeal 은 &quot;되돌리기&quot;지 &quot;막기&quot;가 아니다</a></li>
+<li class="toc-h3"><a href="#-폴링-vs-webhook">③ 폴링 vs webhook</a></li>
+<li class="toc-h3"><a href="#-argo-cd-자신은-gitops-로-관리하지-않는다">④ Argo CD 자신은 GitOps 로 관리하지 않는다</a></li>
+<li class="toc-h2"><a href="#7-검증--실제로-측정한-것">7. 검증 — 실제로 측정한 것</a></li>
+<li class="toc-h3"><a href="#-설치--파드-7--4">① 설치 — 파드 7 → 4</a></li>
+<li class="toc-h3"><a href="#--첫-동기화가-10분간-progressing--내가-만든-실패">② ★ 첫 동기화가 10분간 Progressing — 내가 만든 실패</a></li>
+<li class="toc-h3"><a href="#-selfheal--kubectl-로-손댄-것이-되돌아온다">③ selfHeal — kubectl 로 손댄 것이 되돌아온다</a></li>
+<li class="toc-h3"><a href="#--prune--phase-18-한계-2-가-해결되는-순간">④ ★ prune — Phase 18 한계 #2 가 해결되는 순간</a></li>
+<li class="toc-h3"><a href="#--ci--git--배포-전체-루프">⑤ ★ CI → Git → 배포 전체 루프</a></li>
+<li class="toc-h3"><a href="#-설정이-파드-안까지-도달했나">⑥ 설정이 파드 안까지 도달했나</a></li>
+<li class="toc-h3"><a href="#-기능-회귀-없음">⑦ 기능 회귀 없음</a></li>
+<li class="toc-h3"><a href="#-겪은-결함오진-숨기지-않고-기록">⑧ 겪은 결함·오진 (숨기지 않고 기록)</a></li>
+<li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
+<li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>
+</body>
+</html>
