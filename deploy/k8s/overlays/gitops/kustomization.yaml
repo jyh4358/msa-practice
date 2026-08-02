@@ -34,27 +34,27 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base
+- ../../base
 
 # ── 이미지: CI 가 커밋 SHA 로 갱신한다 ────────────────────────────────────────
 # 아래 태그는 CI 실행 `35adcfc` 가 GHCR 에 올린 것이다(익명 pull 200 확인).
 # 다음 push 때 CI 가 `kustomize edit set image` 로 이 값을 바꿔 커밋한다.
 images:
-  - name: shopsaga/auth-service
-    newName: ghcr.io/jyh4358/msa-practice/auth-service
-    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
-  - name: shopsaga/order-service
-    newName: ghcr.io/jyh4358/msa-practice/order-service
-    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
-  - name: shopsaga/payment-service
-    newName: ghcr.io/jyh4358/msa-practice/payment-service
-    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
-  - name: shopsaga/inventory-service
-    newName: ghcr.io/jyh4358/msa-practice/inventory-service
-    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
-  - name: shopsaga/order-query-service
-    newName: ghcr.io/jyh4358/msa-practice/order-query-service
-    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
-  - name: shopsaga/gateway-service
-    newName: ghcr.io/jyh4358/msa-practice/gateway-service
-    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
+- name: shopsaga/auth-service
+  newName: ghcr.io/jyh4358/msa-practice/auth-service
+  newTag: 894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
+- name: shopsaga/gateway-service
+  newName: ghcr.io/jyh4358/msa-practice/gateway-service
+  newTag: 894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
+- name: shopsaga/inventory-service
+  newName: ghcr.io/jyh4358/msa-practice/inventory-service
+  newTag: 894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
+- name: shopsaga/order-query-service
+  newName: ghcr.io/jyh4358/msa-practice/order-query-service
+  newTag: 894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
+- name: shopsaga/order-service
+  newName: ghcr.io/jyh4358/msa-practice/order-service
+  newTag: 894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
+- name: shopsaga/payment-service
+  newName: ghcr.io/jyh4358/msa-practice/payment-service
+  newTag: 894e12d4b621637038e2bc4fb1b1ebb0dff09f8f
