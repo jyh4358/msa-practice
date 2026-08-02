@@ -21,6 +21,7 @@
 | 5 | P3(플랫폼) | **스키마 레지스트리·API 버저닝** | 이벤트 스키마 진화 규칙(tolerant reader)이 테스트로만 강제되고, 동기 API에 `/api/v1` 같은 버전이 없음 | [PHASE-15-CONTRACTS.md §8](PHASE-15-CONTRACTS.md) | 소비자를 전부 우리가 통제 중이라 당장 깨질 위험이 낮음. Apicurio 컨테이너는 RAM 예산이 가장 빡빡한 Phase 16 직전에 추가하기 부담스러웠음 |
 | 6 | P1(공급망) | **이미지 스캔(Trivy)·서명(cosign)**, CI 액션 SHA 고정, kustomize 체크섬 검증 | 빌드 이미지의 CVE를 아무도 보지 않고, 이 이미지가 이 파이프라인에서 나왔음을 증명할 수 없다 | [PHASE-17-CICD.md §8](PHASE-17-CICD.md) + 감사 | 가성비는 좋지만(구현 자체는 간단) Saga/GitOps 등 핵심 학습 목표에 밀려 후순위로 이연됨 |
 | 7 | P2(운영 검증) | **`git revert` 롤백 실측** | GitOps의 핵심 약속인 "Git을 되돌리면 클러스터도 되돌아간다"를 이론상으로만 알고 실제로 해 본 적이 없다 | [PHASE-19-GITOPS.md §8-8](PHASE-19-GITOPS.md), REVIEW-PART-D가 미실측을 인정 | 정상 동작할 것으로 예상되고(selfHeal과 원리가 같음) 다른 검증 항목이 더 급했음 |
+| 8 | P3(하드닝) | **게이트웨이 횡단 필터 — CORS·요청 로깅** | 브라우저 클라이언트가 생기면 CORS 정책이, 운영 감사가 필요해지면 엣지 요청 로그가 필수가 된다(레이트리밋은 Phase 14에서 이미 해결) | [PHASE-3-GATEWAY.md §8](PHASE-3-GATEWAY.md) | 현재 클라이언트가 curl/스크립트뿐이라 CORS 수요가 없고, 요청 추적은 Phase 8 트레이싱이 대신하고 있음 |
 
 ---
 

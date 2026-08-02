@@ -366,7 +366,7 @@ curl -s http://localhost:8000/inventory        # → order-service의 재고 조
 | 게이트웨이 = **단일 장애점(SPOF)**, 죽으면 north-south 전부 중단 | 가용성 | 운영 시 다중화(학습 범위 밖) |
 | **east-west(order→payment)는 게이트웨이 미경유** → 이 홉 관측·복원력 별도 필요 | 관측/복원력 | **Phase 8**(트레이싱) · **Phase 14**(복원력) |
 | 하드코딩 host라 **컨테이너에선 틀림**(`localhost`는 컨테이너 자기 자신) | 배포 | **Phase 7** (compose) |
-| 레이트리밋·CORS·요청 로깅 등 횡단 필터 미적용 | 하드닝 | **Phase 15** (플랫폼 강화) |
+| 레이트리밋·CORS·요청 로깅 등 횡단 필터 미적용 | 하드닝 | 레이트리밋은 ✅ **Phase 14**에서 해결(Resilience4j RateLimiter/Bulkhead 글로벌 필터). CORS·요청 로깅은 → [BACKLOG.md](BACKLOG.md) *(과거 "Phase 15" 표기는 오지정 — Phase 15는 계약 테스트·Bus였다)* |
 
 ---
 

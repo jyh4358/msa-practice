@@ -712,11 +712,11 @@ order 동시성 테스트는 JPA/Flyway 프로퍼티 명시로 config-service �
 </thead>
 <tbody><tr>
 <td><code>ENCRYPT_KEY</code>를 env로만 관리(보관소 없음), dev 키를 문서에 노출</td>
-<td><strong>Phase 15</strong>(Vault/KMS 등 시크릿 보관)</td>
+<td>✅ <strong>Phase 16b에서 무의미해짐</strong> — Config Server 자체가 삭제돼 이 키가 열 수 있는 비밀이 없다(<a href="PHASE-16-KUBERNETES.html">PHASE-16</a> §16b). 시크릿 보관소 일반론은 → <a href="BACKLOG.html">BACKLOG.md</a>(Sealed Secrets/ESO) <em>(과거 &quot;Phase 15&quot; 표기는 오지정)</em></td>
 </tr>
 <tr>
 <td><code>/encrypt</code>·<code>/decrypt</code>·설정 조회에 <strong>인증 없음</strong>(누구나 접근)</td>
-<td><strong>Phase 15</strong>(Config Server 보안) / 내부망 한정 <strong>Phase 7</strong></td>
+<td>✅ <strong>Phase 16b에서 무의미해짐</strong> — 해당 엔드포인트가 서버와 함께 사라졌다 <em>(과거 &quot;Phase 15&quot; 표기는 오지정 — Phase 15는 계약 테스트·Bus였다)</em></td>
 </tr>
 <tr>
 <td>config-service <strong>단일 인스턴스 = SPOF</strong>, native(파일) 백엔드</td>

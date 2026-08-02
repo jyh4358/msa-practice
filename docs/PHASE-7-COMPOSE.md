@@ -214,7 +214,7 @@ docker compose -f deploy/compose/compose.yml down            # 정지(-v 붙이�
 |---|---|
 | Compose는 **단일 호스트**(스케일링·셀프힐링·롤아웃 없음) | **Phase 16**(Kubernetes) |
 | 이미지 빌드가 수동(`bootJar` → `up --build`), 태깅/레지스트리 없음 | **Phase 17**(CI/CD) |
-| `.env`의 `ENCRYPT_KEY`·`prefer-ip-address` 등 여전히 학습용 단순화 | **Phase 15**(하드닝) |
+| `.env`의 `ENCRYPT_KEY`·`prefer-ip-address` 등 여전히 학습용 단순화 | ✅ **Phase 16b에서 대부분 무의미해짐** — Config Server·Eureka 삭제로 `ENCRYPT_KEY`도 `prefer-ip-address`도 더는 쓰이지 않는다. 남은 하드닝 일반론은 → [BACKLOG.md](BACKLOG.md) *(과거 "Phase 15" 표기는 오지정)* |
 | 관측성(로그/메트릭/트레이스 수집) 컨테이너 없음 | **Phase 8**(관측성 스택) |
 | (이월) 분산 트랜잭션 고아 결제 | **Phase 10·12** |
 

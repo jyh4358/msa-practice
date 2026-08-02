@@ -253,8 +253,8 @@ order 동시성 테스트는 JPA/Flyway 프로퍼티 명시로 config-service �
 ## 8. 알려진 한계 → 해결 Phase
 | 한계 / 트레이드오프 | 해결 Phase |
 |---|---|
-| `ENCRYPT_KEY`를 env로만 관리(보관소 없음), dev 키를 문서에 노출 | **Phase 15**(Vault/KMS 등 시크릿 보관) |
-| `/encrypt`·`/decrypt`·설정 조회에 **인증 없음**(누구나 접근) | **Phase 15**(Config Server 보안) / 내부망 한정 **Phase 7** |
+| `ENCRYPT_KEY`를 env로만 관리(보관소 없음), dev 키를 문서에 노출 | ✅ **Phase 16b에서 무의미해짐** — Config Server 자체가 삭제돼 이 키가 열 수 있는 비밀이 없다([PHASE-16](PHASE-16-KUBERNETES.md) §16b). 시크릿 보관소 일반론은 → [BACKLOG.md](BACKLOG.md)(Sealed Secrets/ESO) *(과거 "Phase 15" 표기는 오지정)* |
+| `/encrypt`·`/decrypt`·설정 조회에 **인증 없음**(누구나 접근) | ✅ **Phase 16b에서 무의미해짐** — 해당 엔드포인트가 서버와 함께 사라졌다 *(과거 "Phase 15" 표기는 오지정 — Phase 15는 계약 테스트·Bus였다)* |
 | config-service **단일 인스턴스 = SPOF**, native(파일) 백엔드 | **Phase 7**(compose로 컨테이너화) / 운영은 git 백엔드·HA |
 | `optional:` 라 서버 없이도 컨텍스트는 떠서 실패가 늦게 드러남 | (선택) order/payment strict 전환 · **Phase 7** |
 | 다중 인스턴스 일괄 refresh 불가(Bus 없음) | 후속(Spring Cloud Bus) |
