@@ -124,15 +124,18 @@ const marked = new Marked(
 );
 
 // 문서끼리의 .md 링크 → .html 로 변환 (경로 접두사 제거, #앵커 보존)
+// 외부(http) 링크는 새 탭으로 열리게 target/rel 을 붙인다 — 학습 흐름이 끊기지 않게.
 function rewriteMdLinks(html) {
-  return html.replace(/href="([^"]+)"/g, (whole, href) => {
+  return html.replace(/<a href="([^"]+)"/g, (whole, href) => {
     const hashIdx = href.indexOf('#');
     const path = hashIdx === -1 ? href : href.slice(0, hashIdx);
     const anchor = hashIdx === -1 ? '' : href.slice(hashIdx);
-    if (/^[a-z]+:\/\//i.test(path) || path.startsWith('mailto:')) return whole; // 외부 링크 유지
+    if (/^[a-z]+:\/\//i.test(path) || path.startsWith('mailto:')) {
+      return `<a class="ext" target="_blank" rel="noopener" href="${href}"`;
+    }
     if (!/\.md$/i.test(path)) return whole;
     const base = path.split('/').pop().replace(/\.md$/i, '.html');
-    return `href="${base}${anchor}"`;
+    return `<a href="${base}${anchor}"`;
   });
 }
 
@@ -154,16 +157,19 @@ function buildToc(html) {
   return `<nav class="toc"><div class="toc-title">이 문서 목차</div><ul>${lis}</ul></nav>`;
 }
 
-// 좌측 사이드바 (그룹별). currentKey 문서에 active 표시.
+// 좌측 사이드바 (그룹별). currentKey 문서에 active 표시. 상단에 빠른 필터.
 function buildSidebar(currentKey) {
-  let out = '<div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div>';
+  let out = '<div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~19</div></div>';
+  out += '<input class="nav-filter" type="search" placeholder="문서 필터… (예: saga, 재고)" aria-label="문서 필터">';
   for (const group of GROUP_ORDER) {
     const inGroup = DOCS.filter(d => d.group === group);
     if (inGroup.length === 0) continue;
     out += `<div class="nav-group"><div class="nav-group-title">${group}</div><ul>`;
     for (const d of inGroup) {
       const active = d.key === currentKey ? ' class="active"' : '';
-      out += `<li${active}><a href="${d.out}">${d.title}</a></li>`;
+      // data-filter: 제목+설명을 소문자로 — 필터 입력과 매칭
+      const hay = escapeHtml(`${d.title} ${d.desc || ''}`.toLowerCase());
+      out += `<li${active} data-filter="${hay}"><a href="${d.out}">${d.title}</a></li>`;
     }
     out += '</ul></div>';
   }
@@ -171,43 +177,78 @@ function buildSidebar(currentKey) {
 }
 
 // ── 페이지 템플릿 ────────────────────────────────────────────────────────────
-function pageHtml({ title, sidebar, body, toc }) {
+// prev/next: 읽기 순서(=DOCS 배열 순서)상의 이전/다음 문서 — 순차 학습용 하단 내비.
+function pageHtml({ title, sidebar, body, toc, prev, next }) {
+  const pageNav = (prev || next) ? `
+  <nav class="page-nav" aria-label="이전/다음 문서">
+    ${prev ? `<a class="page-nav-item prev" href="${prev.out}"><span class="page-nav-label">← 이전</span><span class="page-nav-title">${prev.title}</span></a>` : '<span class="page-nav-spacer"></span>'}
+    ${next ? `<a class="page-nav-item next" href="${next.out}"><span class="page-nav-label">다음 →</span><span class="page-nav-title">${next.title}</span></a>` : '<span class="page-nav-spacer"></span>'}
+  </nav>` : '';
   return `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title} · ShopSaga 문서</title>
+<script>
+// 테마 초기화 — 렌더 전에 실행해 깜빡임(FOUC) 방지. 저장값 없으면 시스템 설정 따름.
+(function(){try{var t=localStorage.getItem('shopsaga-theme');
+if(t==='dark')document.documentElement.classList.add('theme-dark');
+else if(t==='light')document.documentElement.classList.add('theme-light');}catch(e){}})();
+</script>
 <style>
 ${BASE_CSS}
 ${HLJS_LIGHT_CSS}
+/* 다크 하이라이트 — ① 수동 토글(html.theme-dark) ② 시스템 다크 + 수동 라이트 아님 */
+${scopeCss(HLJS_DARK_CSS, 'html.theme-dark')}
 @media (prefers-color-scheme: dark) {
-${indentDark(HLJS_DARK_CSS)}
+${scopeCss(HLJS_DARK_CSS, 'html:not(.theme-light)')}
 }
 </style>
 </head>
 <body>
+<div class="read-progress" aria-hidden="true"></div>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<button class="theme-toggle" aria-label="라이트/다크 전환" title="라이트/다크 전환">🌓</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
 <aside class="sidebar">${sidebar}</aside>
 <main class="content">
   <article class="markdown-body">
 ${body}
   </article>
+${pageNav}
   <footer class="site-footer">
     <hr>
-    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.
+    단축키: <kbd>←</kbd>/<kbd>→</kbd> 이전·다음 문서</p>
   </footer>
 </main>
 ${toc ? `<aside class="toc-wrap">${toc}</aside>` : ''}
+<button class="back-to-top" aria-label="맨 위로" title="맨 위로">↑</button>
+<script>
+${SITE_JS}
+</script>
 </body>
 </html>
 `;
 }
 
-// hljs 다크 테마를 media query 안에 넣기 위해 각 줄 들여쓰기
-function indentDark(css) {
-  return css.split('\n').map(l => '  ' + l).join('\n');
+// 플랫한 CSS(중첩 @규칙 없는 hljs 테마)의 모든 선택자 앞에 scope 를 붙인다.
+// 수동 다크 토글(html.theme-dark)과 시스템 다크(:not(.theme-light))에 같은 테마를 재사용하기 위함.
+function scopeCss(css, scope) {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, '')            // 주석 제거(파싱 단순화)
+    .split('}')
+    .map(rule => {
+      const idx = rule.indexOf('{');
+      if (idx === -1) return '';
+      const sels = rule.slice(0, idx).trim();
+      const decls = rule.slice(idx + 1);
+      if (!sels || sels.startsWith('@')) return rule + '}';  // @규칙은 그대로(방어)
+      const scoped = sels.split(',').map(s => `${scope} ${s.trim()}`).join(', ');
+      return `${scoped}{${decls}}`;
+    })
+    .join('\n');
 }
 
 // ── 랜딩(index) 본문 ──────────────────────────────────────────────────────────
@@ -215,8 +256,12 @@ function buildIndexBody() {
   let body = `<h1 id="shopsaga-문서">📚 ShopSaga — MSA 핸즈온 학습 문서</h1>
 <p>Spring Cloud로 마이크로서비스를 <strong>한 단계씩 직접 만들며 트레이드오프를 배우는</strong> 학습 프로젝트의 문서 모음입니다.
 왼쪽 사이드바 또는 아래 카드에서 문서를 선택하세요. 각 페이지는 서버 없이 <strong>더블클릭</strong>으로 열립니다.</p>
-<blockquote><p><strong>현재 상태: Phase 7</strong> — 6개 서비스가 중앙 설정·서비스 디스커버리·게이트웨이·JWT 인증 위에서 동작하고,
-<code>docker compose up</code> 한 번으로 전체 스택이 뜹니다.</p></blockquote>`;
+<blockquote><p><strong>현재 상태: Phase 19 완료</strong> — 6개 런타임 서비스(도메인 3 + gateway + auth + query)가
+Kafka Saga·Outbox·CQRS 위에서 동작하고, k8s(kind)에 Kustomize 로 선언 배포되며, CI가 만든 이미지를
+<strong>Argo CD 가 Git 을 보고 스스로 배포</strong>합니다. 남은 주제는 <a href="BACKLOG.html">BACKLOG</a> 참고.</p></blockquote>
+<p class="index-hint">🧭 <strong>처음이라면</strong>: 사이드바의 "Phase 단계별"을 위에서 아래로 순서대로 읽으세요.
+각 문서 하단의 <strong>이전/다음</strong> 버튼(키보드 <kbd>←</kbd>/<kbd>→</kbd>)으로 이어 읽을 수 있고,
+복습은 각 문서 끝의 <strong>복습 포인트</strong>와 "지도·복습" 그룹의 파트별 복습 문서를 이용하세요.</p>`;
 
   for (const group of GROUP_ORDER) {
     const inGroup = DOCS.filter(d => d.group === group && d.key !== 'index');
@@ -241,7 +286,8 @@ function main() {
   mkdirSync(SITE_DIR, { recursive: true });
 
   let built = 0;
-  for (const d of DOCS) {
+  for (let i = 0; i < DOCS.length; i++) {
+    const d = DOCS[i];
     let body, toc;
     if (d.key === 'index') {
       body = buildIndexBody();
@@ -263,6 +309,9 @@ function main() {
       sidebar: buildSidebar(d.key),
       body,
       toc,
+      // 읽기 순서 = DOCS 배열 순서. index 는 프롤로그라 이전 없음.
+      prev: i > 0 ? DOCS[i - 1] : null,
+      next: i < DOCS.length - 1 ? DOCS[i + 1] : null,
     });
     writeFileSync(resolve(SITE_DIR, d.out), page, 'utf8');
     built++;
@@ -282,6 +331,12 @@ try {
 }
 
 // ── 사이트 CSS (내장) ─────────────────────────────────────────────────────────
+// 다크 팔레트 — ① 수동 토글(html.theme-dark) ② 시스템 다크(수동 라이트 아님) 두 곳에서 재사용
+const DARK_VARS = `
+  --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+  --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+  --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;`;
+
 const BASE_CSS = `
 :root{
   --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
@@ -289,11 +344,10 @@ const BASE_CSS = `
   --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
   --sidebar-w:280px; --toc-w:240px;
 }
+html.theme-dark{${DARK_VARS}
+}
 @media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
-    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
-    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  html:not(.theme-light){${DARK_VARS}
   }
 }
 *{box-sizing:border-box;}
@@ -406,6 +460,181 @@ a:hover{text-decoration:underline;}
 /* 푸터 */
 .site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
 .site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+kbd{border:1px solid var(--border); border-bottom-width:2px; border-radius:4px; padding:0 5px;
+  font-size:.85em; background:var(--table-alt); font-family:inherit;}
+
+/* 읽기 진행 바 */
+.read-progress{position:fixed; top:0; left:0; height:3px; width:0; z-index:60;
+  background:var(--accent); transition:width .1s linear;}
+
+/* 테마 토글 */
+.theme-toggle{position:fixed; top:12px; right:12px; z-index:40;
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:17px; cursor:pointer; color:var(--fg);}
+.theme-toggle:hover{border-color:var(--accent);}
+@media (min-width:1201px){ .theme-toggle{right:calc(var(--toc-w) - 52px);} }
+
+/* 사이드바 필터 */
+.nav-filter{width:100%; margin:14px 0 2px; padding:7px 10px; font-size:13px;
+  border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--fg);}
+.nav-filter:focus{outline:none; border-color:var(--accent);}
+.sidebar li.filter-hide, .nav-group.filter-hide{display:none;}
+
+/* 이전/다음 문서 내비 */
+.page-nav{display:flex; gap:14px; margin:36px 0 0;}
+.page-nav-item{flex:1; display:block; border:1px solid var(--border); border-radius:10px;
+  padding:12px 16px; background:var(--sidebar-bg);}
+.page-nav-item:hover{border-color:var(--accent); text-decoration:none;}
+.page-nav-item.next{text-align:right;}
+.page-nav-spacer{flex:1;}
+.page-nav-label{display:block; font-size:12px; color:var(--muted); margin-bottom:3px;}
+.page-nav-title{display:block; font-weight:600; color:var(--fg); font-size:14.5px; line-height:1.4;}
+@media (max-width:640px){ .page-nav{flex-direction:column;} .page-nav-item.next{text-align:left;} .page-nav-spacer{display:none;} }
+
+/* 맨 위로 */
+.back-to-top{position:fixed; right:18px; bottom:18px; z-index:40; width:42px; height:42px;
+  border-radius:50%; border:1px solid var(--border); background:var(--sidebar-bg); color:var(--fg);
+  font-size:18px; cursor:pointer; opacity:0; pointer-events:none; transition:opacity .2s ease;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);}
+.back-to-top.show{opacity:1; pointer-events:auto;}
+.back-to-top:hover{border-color:var(--accent); color:var(--accent);}
+@media (min-width:1201px){ .back-to-top{right:calc(var(--toc-w) + 18px);} }
+
+/* 목차 현재 위치(스크롤스파이) */
+.toc li a.active{color:var(--accent); border-left-color:var(--accent); font-weight:600;}
+
+/* 코드 복사 버튼 */
+.markdown-body pre{position:relative;}
+.copy-btn{position:absolute; top:8px; right:8px; padding:3px 10px; font-size:12px;
+  border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--muted);
+  cursor:pointer; opacity:0; transition:opacity .15s ease;}
+.markdown-body pre:hover .copy-btn{opacity:1;}
+.copy-btn:hover{color:var(--accent); border-color:var(--accent);}
+.copy-btn.done{color:#1a7f37; border-color:#1a7f37; opacity:1;}
+
+/* 제목 앵커(hover 시 §) */
+.heading-anchor{margin-left:6px; font-size:.75em; color:var(--muted); opacity:0; text-decoration:none;}
+h2:hover .heading-anchor, h3:hover .heading-anchor{opacity:1;}
+.heading-anchor:hover{color:var(--accent); text-decoration:none;}
+
+/* 외부 링크 표시 */
+a.ext::after{content:"↗"; font-size:.75em; margin-left:2px; color:var(--muted);}
+
+/* 랜딩 안내문 */
+.index-hint{border:1px dashed var(--border); border-radius:10px; padding:10px 14px;
+  background:var(--sidebar-bg); font-size:14.5px;}
+`;
+
+// ── 페이지 인터랙션 (바닐라 JS, 오프라인 단일 파일 유지) ─────────────────────
+// 주의: 아래 문자열은 페이지에 그대로 내장된다 — 백틱/\${} 사용 금지.
+const SITE_JS = `
+(function(){
+'use strict';
+var html = document.documentElement;
+
+// 1) 테마 토글 — 현재 '보이는' 테마 기준으로 반전, localStorage 저장
+var themeBtn = document.querySelector('.theme-toggle');
+function effectiveDark(){
+  if (html.classList.contains('theme-dark')) return true;
+  if (html.classList.contains('theme-light')) return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+if (themeBtn) themeBtn.addEventListener('click', function(){
+  var toDark = !effectiveDark();
+  html.classList.toggle('theme-dark', toDark);
+  html.classList.toggle('theme-light', !toDark);
+  try { localStorage.setItem('shopsaga-theme', toDark ? 'dark' : 'light'); } catch(e){}
+});
+
+// 2) 읽기 진행 바 + 맨 위로 버튼
+var bar = document.querySelector('.read-progress');
+var topBtn = document.querySelector('.back-to-top');
+function onScroll(){
+  var h = document.documentElement;
+  var max = h.scrollHeight - h.clientHeight;
+  if (bar) bar.style.width = (max > 0 ? (h.scrollTop / max * 100) : 0) + '%';
+  if (topBtn) topBtn.classList.toggle('show', h.scrollTop > 600);
+  spy();
+}
+if (topBtn) topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+// 3) 코드 복사 버튼
+document.querySelectorAll('.markdown-body pre').forEach(function(pre){
+  var code = pre.querySelector('code');
+  if (!code) return;
+  var btn = document.createElement('button');
+  btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = '복사';
+  btn.addEventListener('click', function(){
+    var text = code.innerText;
+    function done(){ btn.textContent = '복사됨 ✓'; btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = '복사'; btn.classList.remove('done'); }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done);
+    } else {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand('copy'); done(); } catch(e){} document.body.removeChild(ta);
+    }
+  });
+  pre.appendChild(btn);
+});
+
+// 4) 목차 스크롤스파이 — 화면 상단을 지난 마지막 제목을 active 로
+var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+var headings = tocLinks.map(function(a){
+  return document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
+}).filter(Boolean);
+function spy(){
+  if (!headings.length) return;
+  var line = 90; // 상단 기준선(px)
+  var current = null;
+  for (var i = 0; i < headings.length; i++) {
+    if (headings[i].getBoundingClientRect().top <= line) current = i; else break;
+  }
+  tocLinks.forEach(function(a, i){ a.classList.toggle('active', i === current); });
+}
+
+// 5) 사이드바 필터 — 제목/설명에 입력어가 포함된 문서만 남김
+var filter = document.querySelector('.nav-filter');
+if (filter) filter.addEventListener('input', function(){
+  var q = filter.value.trim().toLowerCase();
+  document.querySelectorAll('.sidebar .nav-group').forEach(function(g){
+    var any = false;
+    g.querySelectorAll('li').forEach(function(li){
+      var hit = !q || (li.getAttribute('data-filter') || '').indexOf(q) !== -1;
+      li.classList.toggle('filter-hide', !hit);
+      if (hit) any = true;
+    });
+    g.classList.toggle('filter-hide', !any);
+  });
+});
+
+// 6) 사이드바에서 현재 문서가 보이게 스크롤
+var activeLi = document.querySelector('.sidebar li.active');
+if (activeLi && activeLi.scrollIntoView) activeLi.scrollIntoView({ block: 'center' });
+
+// 7) 키보드 ←/→ 로 이전/다음 문서 (입력 중이면 무시)
+document.addEventListener('keydown', function(e){
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  var sel = e.key === 'ArrowLeft' ? '.page-nav-item.prev' : e.key === 'ArrowRight' ? '.page-nav-item.next' : null;
+  if (!sel) return;
+  var link = document.querySelector(sel);
+  if (link) window.location.href = link.getAttribute('href');
+});
+
+// 8) h2/h3 hover 앵커(§) — 특정 절 링크 복사용
+document.querySelectorAll('.markdown-body h2[id], .markdown-body h3[id]').forEach(function(h){
+  var a = document.createElement('a');
+  a.className = 'heading-anchor'; a.href = '#' + h.id; a.textContent = '§';
+  a.setAttribute('aria-label', '이 절 링크');
+  h.appendChild(a);
+});
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+})();
 `;
 
 main();

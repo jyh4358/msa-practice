@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Phase 16 · 로컬 k8s(kind) · ShopSaga 문서</title>
+<script>
+// 테마 초기화 — 렌더 전에 실행해 깜빡임(FOUC) 방지. 저장값 없으면 시스템 설정 따름.
+(function(){try{var t=localStorage.getItem('shopsaga-theme');
+if(t==='dark')document.documentElement.classList.add('theme-dark');
+else if(t==='light')document.documentElement.classList.add('theme-light');}catch(e){}})();
+</script>
 <style>
 
 :root{
@@ -12,11 +18,16 @@
   --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
   --sidebar-w:280px; --toc-w:240px;
 }
+html.theme-dark{
+  --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+  --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+  --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+}
 @media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
-    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
-    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  html:not(.theme-light){
+  --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+  --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+  --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
   }
 }
 *{box-sizing:border-box;}
@@ -129,6 +140,70 @@ a:hover{text-decoration:underline;}
 /* 푸터 */
 .site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
 .site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+kbd{border:1px solid var(--border); border-bottom-width:2px; border-radius:4px; padding:0 5px;
+  font-size:.85em; background:var(--table-alt); font-family:inherit;}
+
+/* 읽기 진행 바 */
+.read-progress{position:fixed; top:0; left:0; height:3px; width:0; z-index:60;
+  background:var(--accent); transition:width .1s linear;}
+
+/* 테마 토글 */
+.theme-toggle{position:fixed; top:12px; right:12px; z-index:40;
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:17px; cursor:pointer; color:var(--fg);}
+.theme-toggle:hover{border-color:var(--accent);}
+@media (min-width:1201px){ .theme-toggle{right:calc(var(--toc-w) - 52px);} }
+
+/* 사이드바 필터 */
+.nav-filter{width:100%; margin:14px 0 2px; padding:7px 10px; font-size:13px;
+  border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--fg);}
+.nav-filter:focus{outline:none; border-color:var(--accent);}
+.sidebar li.filter-hide, .nav-group.filter-hide{display:none;}
+
+/* 이전/다음 문서 내비 */
+.page-nav{display:flex; gap:14px; margin:36px 0 0;}
+.page-nav-item{flex:1; display:block; border:1px solid var(--border); border-radius:10px;
+  padding:12px 16px; background:var(--sidebar-bg);}
+.page-nav-item:hover{border-color:var(--accent); text-decoration:none;}
+.page-nav-item.next{text-align:right;}
+.page-nav-spacer{flex:1;}
+.page-nav-label{display:block; font-size:12px; color:var(--muted); margin-bottom:3px;}
+.page-nav-title{display:block; font-weight:600; color:var(--fg); font-size:14.5px; line-height:1.4;}
+@media (max-width:640px){ .page-nav{flex-direction:column;} .page-nav-item.next{text-align:left;} .page-nav-spacer{display:none;} }
+
+/* 맨 위로 */
+.back-to-top{position:fixed; right:18px; bottom:18px; z-index:40; width:42px; height:42px;
+  border-radius:50%; border:1px solid var(--border); background:var(--sidebar-bg); color:var(--fg);
+  font-size:18px; cursor:pointer; opacity:0; pointer-events:none; transition:opacity .2s ease;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);}
+.back-to-top.show{opacity:1; pointer-events:auto;}
+.back-to-top:hover{border-color:var(--accent); color:var(--accent);}
+@media (min-width:1201px){ .back-to-top{right:calc(var(--toc-w) + 18px);} }
+
+/* 목차 현재 위치(스크롤스파이) */
+.toc li a.active{color:var(--accent); border-left-color:var(--accent); font-weight:600;}
+
+/* 코드 복사 버튼 */
+.markdown-body pre{position:relative;}
+.copy-btn{position:absolute; top:8px; right:8px; padding:3px 10px; font-size:12px;
+  border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--muted);
+  cursor:pointer; opacity:0; transition:opacity .15s ease;}
+.markdown-body pre:hover .copy-btn{opacity:1;}
+.copy-btn:hover{color:var(--accent); border-color:var(--accent);}
+.copy-btn.done{color:#1a7f37; border-color:#1a7f37; opacity:1;}
+
+/* 제목 앵커(hover 시 §) */
+.heading-anchor{margin-left:6px; font-size:.75em; color:var(--muted); opacity:0; text-decoration:none;}
+h2:hover .heading-anchor, h3:hover .heading-anchor{opacity:1;}
+.heading-anchor:hover{color:var(--accent); text-decoration:none;}
+
+/* 외부 링크 표시 */
+a.ext::after{content:"↗"; font-size:.75em; margin-left:2px; color:var(--muted);}
+
+/* 랜딩 안내문 */
+.index-hint{border:1px dashed var(--border); border-radius:10px; padding:10px 14px;
+  background:var(--sidebar-bg); font-size:14.5px;}
 
 pre code.hljs {
   display: block;
@@ -248,132 +323,173 @@ code.hljs {
   /* purposely ignored */
   
 }
-@media (prefers-color-scheme: dark) {
-  pre code.hljs {
-    display: block;
-    overflow-x: auto;
-    padding: 1em
-  }
-  code.hljs {
-    padding: 3px 5px
-  }
-  /*!
-    Theme: GitHub Dark
-    Description: Dark theme as seen on github.com
-    Author: github.com
-    Maintainer: @Hirse
-    Updated: 2021-05-15
+/* 다크 하이라이트 — ① 수동 토글(html.theme-dark) ② 시스템 다크 + 수동 라이트 아님 */
+html.theme-dark pre code.hljs{
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+html.theme-dark code.hljs{
+  padding: 3px 5px
+}
+html.theme-dark .hljs{
+  color: #c9d1d9;
+  background: #0d1117
+}
+html.theme-dark .hljs-doctag, html.theme-dark .hljs-keyword, html.theme-dark .hljs-meta .hljs-keyword, html.theme-dark .hljs-template-tag, html.theme-dark .hljs-template-variable, html.theme-dark .hljs-type, html.theme-dark .hljs-variable.language_{
   
-    Outdated base version: https://github.com/primer/github-syntax-dark
-    Current colors taken from GitHub's CSS
-  */
-  .hljs {
-    color: #c9d1d9;
-    background: #0d1117
-  }
-  .hljs-doctag,
-  .hljs-keyword,
-  .hljs-meta .hljs-keyword,
-  .hljs-template-tag,
-  .hljs-template-variable,
-  .hljs-type,
-  .hljs-variable.language_ {
-    /* prettylights-syntax-keyword */
-    color: #ff7b72
-  }
-  .hljs-title,
-  .hljs-title.class_,
-  .hljs-title.class_.inherited__,
-  .hljs-title.function_ {
-    /* prettylights-syntax-entity */
-    color: #d2a8ff
-  }
-  .hljs-attr,
-  .hljs-attribute,
-  .hljs-literal,
-  .hljs-meta,
-  .hljs-number,
-  .hljs-operator,
-  .hljs-variable,
-  .hljs-selector-attr,
-  .hljs-selector-class,
-  .hljs-selector-id {
-    /* prettylights-syntax-constant */
-    color: #79c0ff
-  }
-  .hljs-regexp,
-  .hljs-string,
-  .hljs-meta .hljs-string {
-    /* prettylights-syntax-string */
-    color: #a5d6ff
-  }
-  .hljs-built_in,
-  .hljs-symbol {
-    /* prettylights-syntax-variable */
-    color: #ffa657
-  }
-  .hljs-comment,
-  .hljs-code,
-  .hljs-formula {
-    /* prettylights-syntax-comment */
-    color: #8b949e
-  }
-  .hljs-name,
-  .hljs-quote,
-  .hljs-selector-tag,
-  .hljs-selector-pseudo {
-    /* prettylights-syntax-entity-tag */
-    color: #7ee787
-  }
-  .hljs-subst {
-    /* prettylights-syntax-storage-modifier-import */
-    color: #c9d1d9
-  }
-  .hljs-section {
-    /* prettylights-syntax-markup-heading */
-    color: #1f6feb;
-    font-weight: bold
-  }
-  .hljs-bullet {
-    /* prettylights-syntax-markup-list */
-    color: #f2cc60
-  }
-  .hljs-emphasis {
-    /* prettylights-syntax-markup-italic */
-    color: #c9d1d9;
-    font-style: italic
-  }
-  .hljs-strong {
-    /* prettylights-syntax-markup-bold */
-    color: #c9d1d9;
-    font-weight: bold
-  }
-  .hljs-addition {
-    /* prettylights-syntax-markup-inserted */
-    color: #aff5b4;
-    background-color: #033a16
-  }
-  .hljs-deletion {
-    /* prettylights-syntax-markup-deleted */
-    color: #ffdcd7;
-    background-color: #67060c
-  }
-  .hljs-char.escape_,
-  .hljs-link,
-  .hljs-params,
-  .hljs-property,
-  .hljs-punctuation,
-  .hljs-tag {
-    /* purposely ignored */
-    
-  }
+  color: #ff7b72
+}
+html.theme-dark .hljs-title, html.theme-dark .hljs-title.class_, html.theme-dark .hljs-title.class_.inherited__, html.theme-dark .hljs-title.function_{
+  
+  color: #d2a8ff
+}
+html.theme-dark .hljs-attr, html.theme-dark .hljs-attribute, html.theme-dark .hljs-literal, html.theme-dark .hljs-meta, html.theme-dark .hljs-number, html.theme-dark .hljs-operator, html.theme-dark .hljs-variable, html.theme-dark .hljs-selector-attr, html.theme-dark .hljs-selector-class, html.theme-dark .hljs-selector-id{
+  
+  color: #79c0ff
+}
+html.theme-dark .hljs-regexp, html.theme-dark .hljs-string, html.theme-dark .hljs-meta .hljs-string{
+  
+  color: #a5d6ff
+}
+html.theme-dark .hljs-built_in, html.theme-dark .hljs-symbol{
+  
+  color: #ffa657
+}
+html.theme-dark .hljs-comment, html.theme-dark .hljs-code, html.theme-dark .hljs-formula{
+  
+  color: #8b949e
+}
+html.theme-dark .hljs-name, html.theme-dark .hljs-quote, html.theme-dark .hljs-selector-tag, html.theme-dark .hljs-selector-pseudo{
+  
+  color: #7ee787
+}
+html.theme-dark .hljs-subst{
+  
+  color: #c9d1d9
+}
+html.theme-dark .hljs-section{
+  
+  color: #1f6feb;
+  font-weight: bold
+}
+html.theme-dark .hljs-bullet{
+  
+  color: #f2cc60
+}
+html.theme-dark .hljs-emphasis{
+  
+  color: #c9d1d9;
+  font-style: italic
+}
+html.theme-dark .hljs-strong{
+  
+  color: #c9d1d9;
+  font-weight: bold
+}
+html.theme-dark .hljs-addition{
+  
+  color: #aff5b4;
+  background-color: #033a16
+}
+html.theme-dark .hljs-deletion{
+  
+  color: #ffdcd7;
+  background-color: #67060c
+}
+html.theme-dark .hljs-char.escape_, html.theme-dark .hljs-link, html.theme-dark .hljs-params, html.theme-dark .hljs-property, html.theme-dark .hljs-punctuation, html.theme-dark .hljs-tag{
+  
+  
+}
+
+@media (prefers-color-scheme: dark) {
+html:not(.theme-light) pre code.hljs{
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+html:not(.theme-light) code.hljs{
+  padding: 3px 5px
+}
+html:not(.theme-light) .hljs{
+  color: #c9d1d9;
+  background: #0d1117
+}
+html:not(.theme-light) .hljs-doctag, html:not(.theme-light) .hljs-keyword, html:not(.theme-light) .hljs-meta .hljs-keyword, html:not(.theme-light) .hljs-template-tag, html:not(.theme-light) .hljs-template-variable, html:not(.theme-light) .hljs-type, html:not(.theme-light) .hljs-variable.language_{
+  
+  color: #ff7b72
+}
+html:not(.theme-light) .hljs-title, html:not(.theme-light) .hljs-title.class_, html:not(.theme-light) .hljs-title.class_.inherited__, html:not(.theme-light) .hljs-title.function_{
+  
+  color: #d2a8ff
+}
+html:not(.theme-light) .hljs-attr, html:not(.theme-light) .hljs-attribute, html:not(.theme-light) .hljs-literal, html:not(.theme-light) .hljs-meta, html:not(.theme-light) .hljs-number, html:not(.theme-light) .hljs-operator, html:not(.theme-light) .hljs-variable, html:not(.theme-light) .hljs-selector-attr, html:not(.theme-light) .hljs-selector-class, html:not(.theme-light) .hljs-selector-id{
+  
+  color: #79c0ff
+}
+html:not(.theme-light) .hljs-regexp, html:not(.theme-light) .hljs-string, html:not(.theme-light) .hljs-meta .hljs-string{
+  
+  color: #a5d6ff
+}
+html:not(.theme-light) .hljs-built_in, html:not(.theme-light) .hljs-symbol{
+  
+  color: #ffa657
+}
+html:not(.theme-light) .hljs-comment, html:not(.theme-light) .hljs-code, html:not(.theme-light) .hljs-formula{
+  
+  color: #8b949e
+}
+html:not(.theme-light) .hljs-name, html:not(.theme-light) .hljs-quote, html:not(.theme-light) .hljs-selector-tag, html:not(.theme-light) .hljs-selector-pseudo{
+  
+  color: #7ee787
+}
+html:not(.theme-light) .hljs-subst{
+  
+  color: #c9d1d9
+}
+html:not(.theme-light) .hljs-section{
+  
+  color: #1f6feb;
+  font-weight: bold
+}
+html:not(.theme-light) .hljs-bullet{
+  
+  color: #f2cc60
+}
+html:not(.theme-light) .hljs-emphasis{
+  
+  color: #c9d1d9;
+  font-style: italic
+}
+html:not(.theme-light) .hljs-strong{
+  
+  color: #c9d1d9;
+  font-weight: bold
+}
+html:not(.theme-light) .hljs-addition{
+  
+  color: #aff5b4;
+  background-color: #033a16
+}
+html:not(.theme-light) .hljs-deletion{
+  
+  color: #ffdcd7;
+  background-color: #67060c
+}
+html:not(.theme-light) .hljs-char.escape_, html:not(.theme-light) .hljs-link, html:not(.theme-light) .hljs-params, html:not(.theme-light) .hljs-property, html:not(.theme-light) .hljs-punctuation, html:not(.theme-light) .hljs-tag{
+  
+  
+}
+
 }
 </style>
 </head>
 <body>
+<div class="read-progress" aria-hidden="true"></div>
 <button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<button class="theme-toggle" aria-label="라이트/다크 전환" title="라이트/다크 전환">🌓</button>
 <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
-<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li class="active"><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~19</div></div><input class="nav-filter" type="search" placeholder="문서 필터… (예: saga, 재고)" aria-label="문서 필터"><div class="nav-group"><div class="nav-group-title">시작</div><ul><li data-filter="홈 · 개요 shopsaga 학습 문서 모음의 시작점"><a href="index.html">홈 · 개요</a></li><li data-filter="readme (프로젝트 개요) 현재 상태·서비스 구성·실행/검증 방법"><a href="README.html">README (프로젝트 개요)</a></li><li data-filter="전체 로드맵 (phase 0~19) phase 0~19 전체 학습 로드맵"><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (Phase 0~19)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li data-filter="헥사고날 아키텍처 컨벤션 포트/어댑터·의존성 방향·querydsl 규약"><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li data-filter="설치·실행 (트러블슈팅) colima·jdk·gradle·자주 겪는 문제"><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li data-filter="phase 0 · 스캐폴드 모노레포·버전 카탈로그·flyway·동작 증명"><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li data-filter="phase 1 · 모놀리스(acid) 단일 트랜잭션·비관적 락·querydsl·헥사고날"><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li data-filter="phase 2 · 결제 분리 payment 분리 + 원격 rest (단일 트랜잭션 소멸)"><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li data-filter="phase 3 · api 게이트웨이 spring cloud gateway 단일 진입점"><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li data-filter="phase 4 · 서비스 디스커버리 eureka 등록/조회·클라이언트 사이드 lb"><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li data-filter="phase 5 · 보안(jwt) rs256 jwt 인증·역할 인가·토큰 전파"><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li data-filter="phase 6 · 중앙 설정 spring cloud config + 시크릿 암호화"><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li data-filter="phase 7 · docker compose 전체 스택 컨테이너 기동·서비스명 dns"><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li data-filter="phase 8 · 관측성 분산 트레이싱·메트릭 (otlp → otel-lgtm)"><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li data-filter="phase 9 · 비동기(kafka) 재고 분리·orderplaced 이벤트·http→kafka 트레이스·리플레이"><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li data-filter="phase 10 · outbox+멱등성 트랜잭셔널 outbox·@scheduled 릴레이·멱등 소비자(effectively-once)"><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li data-filter="phase 11 · cqrs 읽기 모델 이벤트 투영·mongodb 읽기 모델·결정성·리플레이로 재구축"><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li data-filter="phase 12 · saga(보상) 코레오그래피·보상(semantic undo)·주문 상태기계·saga 한 트레이스"><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li data-filter="phase 13 · saga 오케스트레이션 중앙 조정자·saga_instance·타임아웃 sweep·커맨드 멱등·모드 토글"><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li data-filter="phase 14 · 복원력 패턴 resilience4j 5종·게이트웨이 회로차단기·dlq/poison·outbox 격리·고아 결제 보상"><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li data-filter="phase 15 · 강화(계약·bus) spring cloud bus 설정 방송·계약 테스트(동기 api+이벤트)·이벤트 스키마 진화"><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li class="active" data-filter="phase 16 · 로컬 k8s(kind) 16a 클러스터+서비스 이전(probe·configmap/secret) / 16b eureka·config server 삭제·ingress·전체 플랫폼"><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li data-filter="phase 17 · ci/cd github actions·jar 1회 빌드·네이티브 러너 2개 멀티아치·ghcr·ci 안 kind 스모크 배포"><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li data-filter="phase 18 · 선언적 배포 kustomize base/overlay·생성기 해시로 설정 변경 자동 롤아웃·ci의 sed 제거·ingress-nginx를 helm 릴리스로"><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li data-filter="phase 19 · gitops argo cd·ci→git 승격 루프·selfheal로 드리프트 복원·prune·비밀을 렌더 밖으로"><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li data-filter="backlog (남은 주제) phase 재번호매김으로 무효화된 "해결 phase" 약속을 모은 단일 목록"><a href="BACKLOG.html">BACKLOG (남은 주제)</a></li><li data-filter="감사 기록 (2026-08-02) 로드맵/구현/인프라/보안 4개 축 감사 — 발견·수정·이연 기록"><a href="AUDIT-2026-08.html">감사 기록 (2026-08-02)</a></li><li data-filter="phase ↔ 커밋 지도 git 이력으로 단계별 코드 변화 되짚기"><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li data-filter="파트 a 복습 (phase 0~7) 동기 플랫폼 — 큰 그림·자가진단·셀프 퀴즈·재현 체크리스트"><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li data-filter="파트 b 복습 (phase 8~11) 관측성·비동기·outbox·cqrs — 이중 쓰기와 멱등을 중심으로"><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li data-filter="파트 c 복습 (phase 12~15) saga 두 방식 비교·보상·복원력·계약 테스트"><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li data-filter="파트 d 복습 (phase 16~19) k8s·ci/cd·kustomize·gitops — 명령형에서 선언형으로"><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
 <main class="content">
   <article class="markdown-body">
 <h1 id="phase-16--로컬-kubernetes-로-이전-kind">Phase 16 — 로컬 Kubernetes 로 이전 (kind)</h1>
@@ -1015,10 +1131,10 @@ ConfigMap 이름에 해시를 붙여 파드 템플릿 자체를 바꾸는 방법
 <a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a> · <a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox</a></li>
 <li>로드맵: <a href="MSA-LEARNING-PLAN.html"><code>MSA-LEARNING-PLAN.md</code></a> §Phase 16</li>
 <li>공식 문서:<ul>
-<li><a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Kubernetes — Configure Liveness, Readiness and Startup Probes</a></li>
-<li><a href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.kubernetes-probes">Spring Boot — Kubernetes Probes</a></li>
-<li><a href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot — Externalized Configuration (우선순위)</a></li>
-<li><a href="https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster">kind — Loading an Image Into Your Cluster</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Kubernetes — Configure Liveness, Readiness and Startup Probes</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.kubernetes-probes">Spring Boot — Kubernetes Probes</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot — Externalized Configuration (우선순위)</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster">kind — Loading an Image Into Your Cluster</a></li>
 </ul>
 </li>
 </ul>
@@ -1540,19 +1656,25 @@ StatefulSet 의 안정적 신원과 짝을 이룬다.</li>
 → 두 Phase 의 문서는 <strong>&quot;그때는 왜 필요했나&quot;</strong> 의 기록으로 남는다:
 <a href="SERVICE-DISCOVERY.html">Phase 4</a> · <a href="PHASE-6-CONFIG.html">Phase 6</a></li>
 <li>공식 문서:<ul>
-<li><a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes — Ingress</a> ·
-<a href="https://kubernetes.io/docs/concepts/workloads/pods/init-containers/">Init Containers</a></li>
-<li><a href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot — Externalized Configuration (우선순위·<code>config/*/</code>)</a></li>
-<li><a href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.health.groups">Spring Boot — Health Groups</a></li>
-<li><a href="https://kafka.apache.org/documentation/#kraft_config">Apache Kafka — KRaft Configuration</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes — Ingress</a> ·
+<a class="ext" target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/pods/init-containers/">Init Containers</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot — Externalized Configuration (우선순위·<code>config/*/</code>)</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html#actuator.endpoints.health.groups">Spring Boot — Health Groups</a></li>
+<li><a class="ext" target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#kraft_config">Apache Kafka — KRaft Configuration</a></li>
 </ul>
 </li>
 </ul>
 
   </article>
+
+  <nav class="page-nav" aria-label="이전/다음 문서">
+    <a class="page-nav-item prev" href="PHASE-15-CONTRACTS.html"><span class="page-nav-label">← 이전</span><span class="page-nav-title">Phase 15 · 강화(계약·Bus)</span></a>
+    <a class="page-nav-item next" href="PHASE-17-CICD.html"><span class="page-nav-label">다음 →</span><span class="page-nav-title">Phase 17 · CI/CD</span></a>
+  </nav>
   <footer class="site-footer">
     <hr>
-    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.
+    단축키: <kbd>←</kbd>/<kbd>→</kbd> 이전·다음 문서</p>
   </footer>
 </main>
 <aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
@@ -1623,5 +1745,116 @@ StatefulSet 의 안정적 신원과 짝을 이룬다.</li>
 <li class="toc-h2"><a href="#17-phase-16-전체의-한계--어디서-해결되나">17. Phase 16 전체의 한계 → 어디서 해결되나</a></li>
 <li class="toc-h2"><a href="#18-용어-16b-추가분">18. 용어 (16b 추가분)</a></li>
 <li class="toc-h2"><a href="#19-참고-16b">19. 참고 (16b)</a></li></ul></nav></aside>
+<button class="back-to-top" aria-label="맨 위로" title="맨 위로">↑</button>
+<script>
+
+(function(){
+'use strict';
+var html = document.documentElement;
+
+// 1) 테마 토글 — 현재 '보이는' 테마 기준으로 반전, localStorage 저장
+var themeBtn = document.querySelector('.theme-toggle');
+function effectiveDark(){
+  if (html.classList.contains('theme-dark')) return true;
+  if (html.classList.contains('theme-light')) return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+if (themeBtn) themeBtn.addEventListener('click', function(){
+  var toDark = !effectiveDark();
+  html.classList.toggle('theme-dark', toDark);
+  html.classList.toggle('theme-light', !toDark);
+  try { localStorage.setItem('shopsaga-theme', toDark ? 'dark' : 'light'); } catch(e){}
+});
+
+// 2) 읽기 진행 바 + 맨 위로 버튼
+var bar = document.querySelector('.read-progress');
+var topBtn = document.querySelector('.back-to-top');
+function onScroll(){
+  var h = document.documentElement;
+  var max = h.scrollHeight - h.clientHeight;
+  if (bar) bar.style.width = (max > 0 ? (h.scrollTop / max * 100) : 0) + '%';
+  if (topBtn) topBtn.classList.toggle('show', h.scrollTop > 600);
+  spy();
+}
+if (topBtn) topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+// 3) 코드 복사 버튼
+document.querySelectorAll('.markdown-body pre').forEach(function(pre){
+  var code = pre.querySelector('code');
+  if (!code) return;
+  var btn = document.createElement('button');
+  btn.className = 'copy-btn'; btn.type = 'button'; btn.textContent = '복사';
+  btn.addEventListener('click', function(){
+    var text = code.innerText;
+    function done(){ btn.textContent = '복사됨 ✓'; btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = '복사'; btn.classList.remove('done'); }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done);
+    } else {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand('copy'); done(); } catch(e){} document.body.removeChild(ta);
+    }
+  });
+  pre.appendChild(btn);
+});
+
+// 4) 목차 스크롤스파이 — 화면 상단을 지난 마지막 제목을 active 로
+var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+var headings = tocLinks.map(function(a){
+  return document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
+}).filter(Boolean);
+function spy(){
+  if (!headings.length) return;
+  var line = 90; // 상단 기준선(px)
+  var current = null;
+  for (var i = 0; i < headings.length; i++) {
+    if (headings[i].getBoundingClientRect().top <= line) current = i; else break;
+  }
+  tocLinks.forEach(function(a, i){ a.classList.toggle('active', i === current); });
+}
+
+// 5) 사이드바 필터 — 제목/설명에 입력어가 포함된 문서만 남김
+var filter = document.querySelector('.nav-filter');
+if (filter) filter.addEventListener('input', function(){
+  var q = filter.value.trim().toLowerCase();
+  document.querySelectorAll('.sidebar .nav-group').forEach(function(g){
+    var any = false;
+    g.querySelectorAll('li').forEach(function(li){
+      var hit = !q || (li.getAttribute('data-filter') || '').indexOf(q) !== -1;
+      li.classList.toggle('filter-hide', !hit);
+      if (hit) any = true;
+    });
+    g.classList.toggle('filter-hide', !any);
+  });
+});
+
+// 6) 사이드바에서 현재 문서가 보이게 스크롤
+var activeLi = document.querySelector('.sidebar li.active');
+if (activeLi && activeLi.scrollIntoView) activeLi.scrollIntoView({ block: 'center' });
+
+// 7) 키보드 ←/→ 로 이전/다음 문서 (입력 중이면 무시)
+document.addEventListener('keydown', function(e){
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  var sel = e.key === 'ArrowLeft' ? '.page-nav-item.prev' : e.key === 'ArrowRight' ? '.page-nav-item.next' : null;
+  if (!sel) return;
+  var link = document.querySelector(sel);
+  if (link) window.location.href = link.getAttribute('href');
+});
+
+// 8) h2/h3 hover 앵커(§) — 특정 절 링크 복사용
+document.querySelectorAll('.markdown-body h2[id], .markdown-body h3[id]').forEach(function(h){
+  var a = document.createElement('a');
+  a.className = 'heading-anchor'; a.href = '#' + h.id; a.textContent = '§';
+  a.setAttribute('aria-label', '이 절 링크');
+  h.appendChild(a);
+});
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+})();
+
+</script>
 </body>
 </html>
