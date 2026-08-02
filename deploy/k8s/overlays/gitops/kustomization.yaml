@@ -42,19 +42,19 @@ resources:
 images:
 - name: shopsaga/auth-service
   newName: ghcr.io/jyh4358/msa-practice/auth-service
-  newTag: f545004bdb04539496e548670b0cc424f1b72905
+  newTag: 1894a0ef0688b6f4c1024146f87b2a7ff5534f70
 - name: shopsaga/gateway-service
   newName: ghcr.io/jyh4358/msa-practice/gateway-service
-  newTag: f545004bdb04539496e548670b0cc424f1b72905
+  newTag: 1894a0ef0688b6f4c1024146f87b2a7ff5534f70
 - name: shopsaga/inventory-service
   newName: ghcr.io/jyh4358/msa-practice/inventory-service
-  newTag: f545004bdb04539496e548670b0cc424f1b72905
+  newTag: 1894a0ef0688b6f4c1024146f87b2a7ff5534f70
 - name: shopsaga/order-query-service
   newName: ghcr.io/jyh4358/msa-practice/order-query-service
-  newTag: f545004bdb04539496e548670b0cc424f1b72905
+  newTag: 1894a0ef0688b6f4c1024146f87b2a7ff5534f70
 - name: shopsaga/order-service
   newName: ghcr.io/jyh4358/msa-practice/order-service
-  newTag: f545004bdb04539496e548670b0cc424f1b72905
+  newTag: 1894a0ef0688b6f4c1024146f87b2a7ff5534f70
 - name: shopsaga/payment-service
   newName: ghcr.io/jyh4358/msa-practice/payment-service
-  newTag: f545004bdb04539496e548670b0cc424f1b72905
+  newTag: 1894a0ef0688b6f4c1024146f87b2a7ff5534f70
