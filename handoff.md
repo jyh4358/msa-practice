@@ -66,8 +66,10 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
   31개 커밋을 계정에 연결하지 못해 **기여 그래프(잔디)에 안 잡히고 있었다.**
   `git filter-repo --mailmap` 으로 전부 `97331219+jyh4358@users.noreply.github.com` 로 교체.
   → **모든 커밋 해시가 바뀌었다**(내용·날짜·메시지는 그대로). 문서 58곳의 해시 참조는 매핑으로 자동 갱신함.
-  → 원본 이력 백업: `~/shopsaga-backup-20260802/pre-email-rewrite.bundle`(complete history 검증됨).
-  → **force-push 가 필요하다**(origin 은 아직 옛 이력). 포크 0·스타 0·협업자 본인뿐이라 남에게 영향 없음.
+  → force-push 완료. 포크 0·스타 0·협업자 본인뿐이라 남에게 영향 없었음.
+  → GitHub 이 커밋을 계정에 연결한 것 확인(`gh api …/commits/<sha> --jq .author.login` → `jyh4358`).
+     재작성 전에는 전부 `author: null` 이었다.
+  → 원본 이력 번들 백업은 **확인 후 삭제함**. 옛 해시로는 아무것도 복원할 수 없다.
 - ⚠️ 앞으로 커밋 전 확인: `git config user.email` 이 `97331219+jyh4358@users.noreply.github.com` 인지.
   (global 에 설정돼 있음. 로컬 override 는 없음.)
 - **커밋·푸시 모두 사용자가 명시 요청할 때만.**
@@ -85,15 +87,17 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
 
 ## 지금 이 순간의 상태 (2026-08-02, Phase 18 완료 직후)
-- **돌아가는 중.** Colima 기동 + kind 노드 `shopsaga-control-plane` 실행 중, shopsaga 13파드 Ready,
-  ingress-nginx 는 이제 **Helm 릴리스**(`helm list -n ingress-nginx`). compose 는 내려둠.
-  → 정지하려면 `docker stop shopsaga-control-plane && colima stop`.
+- **모두 정지 상태.** kind 노드 `docker stop` + `colima stop` 완료.
+  **클러스터 정의·PVC·이미지 전부 보존** — 재개는 아래 "재개 절차".
+  ingress-nginx 는 이제 **Helm 릴리스**다(`helm list -n ingress-nginx` 로 조회·`helm uninstall` 로 제거).
 - **Colima 12GB·6CPU**(Phase 16a 에서 증설). compose 와 kind 는 RAM·**포트(8000)** 모두 충돌 → **동시 금지**.
 - 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` **v4.2.3** · `k9s` · `gh` v2.97.0(**로그인 완료**, API 5000/hr).
 - 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
-- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 3회 실행(성공·실패·성공).
-  최신 CI 는 재작성 **이전** 해시(`696f8f0`)로 돌았다 — force-push 후 새로 돈다. 잡 5개: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크.
-  캐시 후 전체 **13m43s → ~4m**(빌드 5m41s→1m08s).
+- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 최신 `35adcfc` **전부 success**.
+  잡 5개: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크. 전체 ~4m30s.
+  ★ Phase 18 첫 push(`df93958`)는 **스모크가 실패**했다 — 렌더 검증 단계가 `apply.sh` 보다 먼저인데
+  `.secrets/`(gitignore)를 만드는 게 `apply.sh` 안에 있었다. `bootstrap-secrets.sh` 분리로 해결.
+  경위는 `docs/PHASE-18-KUSTOMIZE.md` §7-⑨. 같이 드러난 `shasum`(macOS)→`sha256sum`(리눅스) 이식성 버그도 수정.
 - **이미지**: `ghcr.io/jyh4358/msa-practice/<service>:<커밋SHA>` 및 `:latest` — **멀티아치(amd64+arm64), 공개**.
   ⚠️ 앞서 "private" 이라 적었던 것은 **오류**였다. 공개 저장소의 Actions 가 push 한 패키지는 저장소 공개 설정을
   물려받는다 → `docker pull` 에 로그인 불필요(익명 6/6 HTTP 200 실측). CI 의 `imagePullSecret` 은 이 구성에선 불필요.
