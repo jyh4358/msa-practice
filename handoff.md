@@ -28,7 +28,10 @@
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
-- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(**27p**, 더블클릭 — `cd docs/tools && npm run build` 로 재생성). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
+- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(**30p**, 더블클릭 — `cd docs/tools && npm run build` 로 재생성). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
+- **복습 자료 4종**: `docs/REVIEW-PART-{A,B,C,D}.md` (0~7 / 8~11 / 12~15 / 16~19).
+  각각 큰그림·단계별회고·개념자가진단·셀프퀴즈(접힘 답)·재현체크리스트·누적한계표.
+  ★ **사용자가 지금 여기를 할 차례다** — 새 기능보다 복습이 우선이라고 함께 판단했다.
 
 ## 서비스 (13 컨테이너 / 13 파드 — Phase 16b 에서 discovery·config 삭제)
 | 서비스 | 포트 | 프로파일 | 역할 |
@@ -91,7 +94,7 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
 ### 사용자에게 아직 답을 못 받은 것 2개 (급하지 않음)
-- `docs/site/` HTML **27p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
+- `docs/site/` HTML **30p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
 - `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
 
 ## 지금 이 순간의 상태 (2026-08-02, Phase 19 완료 직후)
@@ -191,8 +194,16 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 20 이후 (계속 **고르는** 단계)
-로드맵의 필수 구간은 Phase 18 로 끝났고, Phase 19(GitOps)까지 했다. 아래는 후보이고, 먼저 정할 것.
+## 다음 단계 — **복습이 먼저다** (사용자와 합의함)
+
+⚠️ **새 Phase 를 시작하기 전에 사용자가 Phase 0~19 를 복습하기로 했다.**
+`docs/REVIEW-PART-{A,B,C,D}.md` 를 순서대로 풀면서 **막히는 항목**을 찾는 단계다.
+새 기능을 얹으면 복습할 면적만 늘어나므로, 요청이 없는 한 먼저 제안하지 말 것.
+
+복습 중 사용자가 물어볼 만한 것 → 해당 Phase 문서로 안내하고, 필요하면 클러스터를 띄워
+`재현 체크리스트` 를 같이 돌려 볼 것(각 REVIEW 문서 §5).
+
+복습이 끝난 뒤의 후보는 아래와 같다.
 
 **권장 1순위 — Sealed Secrets (또는 External Secrets Operator).**
 이유: Phase 19 가 **일부러 되돌린 것**을 되찾는 작업이라 맥락이 가장 신선하다.
