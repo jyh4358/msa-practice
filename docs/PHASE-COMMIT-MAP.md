@@ -39,8 +39,10 @@
 | **16a** 로컬 k8s(kind) | `d413b1c` | kind 클러스터 · order-service 이전 · ConfigMap/Secret · liveness≠readiness probe · NodePort · 자가치유/스케일 | `deploy/k8s/**` 신규(`kind-cluster.yaml`·`build-and-load.sh`·`00`~`40` 매니페스트·README), 6개 서비스 `SecurityConfig`(probe 하위경로 `/actuator/health/**` permitAll) | [PHASE-16](PHASE-16-KUBERNETES.md) |
 | **16b** 전체 플랫폼 on k8s | `787ab76` | **Eureka·Config Server 삭제** · 설정 3층화(jar·라이브러리·ConfigMap) · compose 동반 이전(15→13) · Ingress · auth 복제본 2 | `services/discovery-service`·`services/config-service`·`config-repo/` **삭제**, `shared/messaging/…/shopsaga-messaging-defaults.yml` 신규, `deploy/config/**` 신규, `deploy/k8s/{21~25,32~35,50-ingress,apply.sh}` 신규, 6개 서비스 `application.yml` 재작성, `InventoryRestConfig`(@LoadBalanced 제거)·`RsaKeyConfig`(키를 Secret 으로), `compose.yml` 재작성, gateway 테스트 사본 삭제+회귀 가드 | [PHASE-16](PHASE-16-KUBERNETES.md) |
 | **17** CI/CD | `9a60530` | GitHub Actions 5잡: 빌드·테스트 → 이미지(amd64·arm64 네이티브) → 매니페스트 병합 → kind 스모크 배포. GHCR `:커밋SHA` 로 추적성 확보 | `.github/workflows/ci.yml` 신규, `README.md`(CI 배지) | [PHASE-17](PHASE-17-CICD.md) |
+| **18** 선언적 배포 | `e75ba35` | Kustomize `base/`+`overlays/{local,ci}` · **생성기 해시로 설정 변경 → 자동 롤아웃**(`--config` 삭제) · CI 의 `sed` → `kustomize edit set image` · ingress-nginx 를 **Helm 릴리스**로 | `deploy/k8s/*.yaml` 15개 → `deploy/k8s/base/`(git mv, 숫자 접두사 제거·`namespace:` 34곳 삭제), `deploy/config/kustomization.yaml` 신규(로드 제한 우회 + compose 와 파일 공유 유지), `deploy/k8s/base/kustomization.yaml` 신규(namespace 변환기·공통 라벨·`secretGenerator`), `deploy/k8s/overlays/{local,ci}/` 신규, `deploy/k8s/ingress-nginx-values.yaml` 신규, `apply.sh` 축소, `kind-cluster.yaml`(ingress-ready 노드 라벨), `.github/workflows/ci.yml`(kustomize 5.8.1 설치·`apply.sh ci`), `.gitignore`(`base/.secrets/`) | [PHASE-18](PHASE-18-KUSTOMIZE.md) |
 
-> _(15 커밋 해시는 자기 자신을 담을 수 없어 다음 커밋에서 기입.)_
+> _(각 Phase 행의 해시는 그 Phase의 **기능 커밋**이다. 문서·HTML 갱신분은 대개 바로 뒤 커밋에 들어간다 —
+> 커밋 해시는 자기 자신을 담을 수 없어 이 표의 행은 항상 다음 커밋에서 기입되기 때문이다.)_
 
 ---
 
