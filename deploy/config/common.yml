@@ -33,7 +33,8 @@ spring:
 info:
   pod: ${POD_NAME:${HOSTNAME:unknown}}
   # 이 값이 바뀌면 ConfigMap 내용 해시가 바뀌고 → 이름이 바뀌고 → 파드가 저절로 갈린다(Phase 18).
-  phase: "18"
+  # Phase 19 부터는 그 적용까지 Argo CD 가 한다 — 나는 Git 만 바꾸고 kubectl 을 치지 않는다.
+  phase: "19"
 
 management:
   info:
