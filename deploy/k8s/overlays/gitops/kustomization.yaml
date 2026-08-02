@@ -1,0 +1,60 @@
+# Phase 19 — overlays/gitops: **Argo CD 가 보는 유일한 진실.**
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 이 파일은 사람이 거의 안 고친다 — CI 가 고친다
+# ─────────────────────────────────────────────────────────────────────────────
+# GitOps 의 핵심 주장은 "클러스터에 무엇이 떠 있는지는 **Git 을 보면 안다**" 이다.
+# 그러려면 배포되는 이미지 태그가 Git 안에 **적혀 있어야** 한다. 그래서 흐름이 이렇게 된다:
+#
+#   개발자 push
+#     → CI: 빌드·테스트 → 이미지 → GHCR :<커밋SHA>
+#     → CI: `kustomize edit set image` 로 **이 파일의 newTag 를 고쳐 커밋·push**
+#     → Argo CD: Git 이 바뀐 걸 보고 자동 sync → 롤링 업데이트
+#
+# 즉 이 파일의 커밋 이력이 곧 **배포 이력**이다. `git log deploy/k8s/overlays/gitops/` 하나로
+# "언제 무엇이 배포됐나"를 볼 수 있다 — Phase 17 에서 "지금 떠 있는 게 어느 커밋인지 모른다"고
+# 했던 문제의 최종적인 답이다.
+#
+# ⚠️ 그래서 이 파일을 손으로 고치고 push 하면 그것도 배포다. 그게 의도다.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# overlays/ci 와 무엇이 다른가 (둘 다 GHCR 를 가리키는데 왜 따로 있나)
+# ─────────────────────────────────────────────────────────────────────────────
+#   overlays/ci     : CI 가 **일회성 스모크**를 돌릴 때 쓰는 임시 오버레이.
+#                     러너 안에서만 `kustomize edit` 로 고쳐 쓰고 **커밋하지 않는다**(버려진다).
+#   overlays/gitops : **커밋되는** 오버레이. 클러스터의 실제 상태를 나타낸다.
+# 하나로 합치면 "검증용으로 잠깐 바꾼 것"과 "배포하기로 한 것"이 구분되지 않는다.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# NodePort 가 없는 이유
+# ─────────────────────────────────────────────────────────────────────────────
+# 게이트웨이 우회 디버깅 경로는 내 노트북에서만 필요하다(overlays/local).
+# 여기는 "배포된 상태"이므로 정상 경로(Ingress → gateway)만 둔다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# ── 이미지: CI 가 커밋 SHA 로 갱신한다 ────────────────────────────────────────
+# 아래 태그는 CI 실행 `35adcfc` 가 GHCR 에 올린 것이다(익명 pull 200 확인).
+# 다음 push 때 CI 가 `kustomize edit set image` 로 이 값을 바꿔 커밋한다.
+images:
+  - name: shopsaga/auth-service
+    newName: ghcr.io/jyh4358/msa-practice/auth-service
+    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
+  - name: shopsaga/order-service
+    newName: ghcr.io/jyh4358/msa-practice/order-service
+    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
+  - name: shopsaga/payment-service
+    newName: ghcr.io/jyh4358/msa-practice/payment-service
+    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
+  - name: shopsaga/inventory-service
+    newName: ghcr.io/jyh4358/msa-practice/inventory-service
+    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
+  - name: shopsaga/order-query-service
+    newName: ghcr.io/jyh4358/msa-practice/order-query-service
+    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6
+  - name: shopsaga/gateway-service
+    newName: ghcr.io/jyh4358/msa-practice/gateway-service
+    newTag: 35adcfc34b0443376abce9821d4dbfbe597046c6

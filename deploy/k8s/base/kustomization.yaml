@@ -60,19 +60,25 @@ resources:
   # 바깥에서 들어오는 문
   - ingress.yaml
 
-# ── auth-service 서명 키 ─────────────────────────────────────────────────────
-# 개인키는 **리포지토리에 커밋하지 않는다**. `deploy/k8s/apply.sh` 가 없으면 그 자리에서 만들고,
-# 있으면 그대로 둔다(새로 만들면 이미 발급된 토큰이 전부 무효가 된다).
-# `.secrets/` 는 .gitignore 대상이라, 부트스트랩 없이 `kubectl kustomize` 하면 여기서 실패한다 —
-# 그게 맞다. "비밀 재료가 없으면 배포도 없다"가 명시적으로 드러나는 편이 낫다.
+# ── auth-service 서명 키가 여기 없는 이유 (Phase 19 에서 옮겼다) ──────────────
+# Phase 18 에서는 여기에 `secretGenerator` 가 있어서 `.secrets/` 의 파일을 읽었다.
+# Phase 19(GitOps)에서 그게 **구조적으로 불가능**해졌다:
 #
-# ★ 여기는 해시 접미사를 **켠 채로** 둔다. 키를 갈면 이름이 바뀌고 → auth 파드가 자동으로 갈린다.
-#   키 교체는 원래 재시작이 필요한 일이므로 이 동작이 정확히 옳다.
+#   Argo CD 는 **Git 저장소를 클론해서 렌더**한다. 내 노트북의 파일 시스템을 볼 수 없다.
+#   그런데 `.secrets/` 는 개인키라서 .gitignore 대상 — 즉 Git 에 없다.
+#   → Argo CD 의 repo-server 에서 `kustomize build` 가 영원히 실패한다.
 #
-# ⚠️ 운영이라면 이 자리는 External Secrets Operator / Vault / SOPS 의 몫이다.
-#   지금은 "개인키가 git 에 없다"까지만 지킨다.
-secretGenerator:
-  - name: auth-jwt-key
-    files:
-      - private-key=.secrets/auth-jwt-key.pem
-      - key-id=.secrets/auth-jwt-key-id.txt
+# 부트스트랩 스크립트를 대신 돌려 줄 수도 없다(Argo CD 는 임의 스크립트를 실행하지 않는다.
+# 그게 GitOps 의 안전성이기도 하다 — 선언만 읽고, 명령은 안 읽는다).
+#
+# 그래서 서명 키는 **매니페스트 밖의 클러스터 사전 조건**으로 옮겼다:
+#   `deploy/k8s/bootstrap-secrets.sh` 가 `kubectl` 로 Secret `auth-jwt-key` 를 만든다.
+#   Deployment 는 그 **고정 이름**을 참조한다(아래 auth-service.yaml).
+#
+# ⚠️ 대가: 해시 접미사가 없으므로 **키를 갈아도 파드가 자동으로 갈리지 않는다.**
+#   교체하려면 `kubectl rollout restart deploy/auth-service -n shopsaga` 를 같이 해야 한다.
+#   이건 Phase 18 이 얻었던 성질을 하나 되돌린 것이고, 정직하게 한계표에 남긴다.
+#   제대로 된 답은 **Sealed Secrets / External Secrets Operator** —
+#   암호문을 Git 에 두거나 외부 저장소에서 받아오면 생성기를 다시 쓸 수 있다.
+#
+# ※ DB 자격증명(db-secrets.yaml)은 평문 dev 값이라 Git 에 있고, 그대로 Argo CD 가 관리한다.

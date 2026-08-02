@@ -30,7 +30,18 @@ OVERLAY="${1:-local}"
 K8S=deploy/k8s
 INGRESS_CHART_VERSION=4.13.9        # controller 1.13.9 — Phase 16b 에서 검증한 1.13 계열
 
-[ -d "$K8S/overlays/$OVERLAY" ] || { echo "✗ 알 수 없는 오버레이: $OVERLAY (local | ci)"; exit 1; }
+[ -d "$K8S/overlays/$OVERLAY" ] || { echo "✗ 알 수 없는 오버레이: $OVERLAY (local | ci | gitops)"; exit 1; }
+
+# ⚠️ Phase 19 — Argo CD 가 이 네임스페이스를 관리 중이면 여기서 적용해 봐야 소용없다.
+#   selfHeal 이 켜져 있으므로 Argo CD 가 60초 안에 Git 상태로 되돌린다.
+#   (혼란을 막기 위해 경고만 하고 계속한다 — "왜 내 변경이 사라지지?" 를 겪기 전에 알려 준다.)
+if kubectl get application shopsaga -n argocd >/dev/null 2>&1; then
+  echo "⚠️  Argo CD 가 shopsaga 를 관리하고 있다."
+  echo "   여기서 적용한 변경은 selfHeal 에 의해 곧 되돌아간다. 바꾸려면 Git 을 바꿀 것."
+  echo "   (정말 손으로 만지려면: kubectl -n argocd patch application shopsaga --type merge \\"
+  echo "      -p '{\"spec\":{\"syncPolicy\":{\"automated\":{\"selfHeal\":false}}}}')"
+  echo ""
+fi
 
 # ── ① 비밀 '재료' — git 에 없는 것만 여기서 만든다 ────────────────────────────
 # 별도 스크립트인 이유: **렌더에도 필요**하기 때문이다. CI 는 배포 전에 `kustomize build` 로

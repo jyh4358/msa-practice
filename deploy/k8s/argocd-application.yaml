@@ -1,0 +1,84 @@
+# Phase 19 — Argo CD 에게 "무엇을 어디에 맞춰 두라"고 알려주는 선언.
+#
+#   kubectl apply -f deploy/k8s/argocd-application.yaml
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 이 오브젝트 하나가 GitOps 의 전부다
+# ─────────────────────────────────────────────────────────────────────────────
+# 여기엔 "배포하라"는 말이 없다. **"이 Git 경로와 이 클러스터가 같아야 한다"** 는 사실만 있다.
+# Argo CD 컨트롤러는 그 둘을 계속 비교하다가 다르면 맞춘다. 명령이 아니라 **불변식**이다.
+#
+#   Phase 17 (CI)      : "이 커밋은 배포 가능하다"를 증명 → 그래도 배포는 사람이
+#   Phase 18 (Kustomize): "배포될 것"을 선언으로 표현     → 그래도 apply 는 사람이
+#   Phase 19 (여기)     : **apply 하는 사람마저 없앤다**
+#
+# ⚠️ 그래서 이제 `./deploy/k8s/apply.sh` 를 쓰면 안 된다(=overlays/local 을 적용하는 명령).
+#   selfHeal 이 켜져 있으므로 Argo CD 가 60초 안에 **되돌려 놓는다.**
+#   손으로 바꾸고 싶으면 Git 을 바꿔야 한다 — 그게 이 방식의 요점이자 불편함이다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shopsaga
+  namespace: argocd          # Application 오브젝트는 Argo CD 네임스페이스에 산다
+  # ⚠️ finalizer 가 없으면 이 Application 을 지워도 **클러스터의 리소스는 남는다.**
+  #   이게 있어야 `kubectl delete application shopsaga` 가 배포된 것까지 정리한다(cascade delete).
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  # ── 무엇을(source) ──────────────────────────────────────────────────────────
+  source:
+    repoURL: https://github.com/jyh4358/msa-practice.git
+    # 공개 저장소라 자격증명이 필요 없다. private 이면 repo secret 을 따로 등록해야 한다.
+    targetRevision: main
+    # ★ Argo CD 는 이 경로에 kustomization.yaml 이 있으면 **알아서 kustomize build** 한다.
+    #   플러그인 설정이 필요 없다 — Kustomize 와 Helm 은 기본 내장이다.
+    path: deploy/k8s/overlays/gitops
+
+  # ── 어디에(destination) ─────────────────────────────────────────────────────
+  destination:
+    # `in-cluster` 는 Argo CD 가 자기가 떠 있는 클러스터를 가리키는 예약 이름이다.
+    server: https://kubernetes.default.svc
+    namespace: shopsaga
+
+  syncPolicy:
+    automated:
+      # ★ prune: Git 에서 사라진 리소스를 클러스터에서도 지운다.
+      #   → **Phase 18 의 한계 #2 가 여기서 해결된다.** 설정을 고칠 때마다 쌓이던
+      #     옛 해시 ConfigMap(shopsaga-common-<옛해시>)을 Argo CD 가 치운다.
+      #   ⚠️ 기본값은 false 다. 켜지 않으면 "만들기만 하고 안 지우는" 반쪽 GitOps 가 된다.
+      prune: true
+
+      # ★ selfHeal: 누가 kubectl 로 클러스터를 바꿔도 Git 상태로 되돌린다.
+      #   이게 "Git 이 단일 진실"을 **강제**하는 장치다. 없으면 그냥 권고에 그친다.
+      selfHeal: true
+
+      # 삭제는 되돌리지 않는다(allowEmpty: false 가 기본).
+      # Git 이 통째로 비면 전부 지우는 사고를 막는다.
+
+    syncOptions:
+      # 네임스페이스가 없으면 만든다. base/namespace.yaml 이 있으므로 사실상 보조 장치.
+      - CreateNamespace=true
+      # 서버사이드 적용 — 큰 CRD/매니페스트에서 last-applied 어노테이션 크기 제한을 피한다.
+      # 덤: Phase 18 §7-⑧ 에서 본 "Secret 이 매번 configured" 류의 잡음도 줄어든다.
+      - ServerSideApply=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+
+  # 차이를 무시할 필드. 여기 없으면 "항상 OutOfSync" 로 보이는 것들이 생긴다.
+  ignoreDifferences:
+    # ⚠️ 우리 Deployment 에는 replicas 가 명시돼 있으므로 Argo 가 관리하는 게 맞다.
+    #   (HPA 를 붙이면 그때는 replicas 를 무시해야 한다 — 지금은 HPA 가 없다.)
+    #
+    # PVC 는 바인딩되면 storageClassName·volumeName 등이 채워지는데 Git 엔 없다.
+    - group: ""
+      kind: PersistentVolumeClaim
+      jsonPointers:
+        - /spec/volumeName
+        - /spec/storageClassName

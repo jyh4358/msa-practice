@@ -22,6 +22,16 @@ name: CI
 on:
   push:
     branches: [main]
+    # ⚠️⚠️ Phase 19 — **무한 루프 방지.**
+    #   이 워크플로의 마지막 잡(gitops)이 이미지 태그를 Git 에 커밋한다. 그 커밋도 push 이므로
+    #   그대로 두면 CI 가 다시 돌고, 또 커밋하고… 끝나지 않는다.
+    #   봇 커밋은 **오직 이 경로만** 건드리므로 여기서 걸러 낸다.
+    #   (paths-ignore 는 변경 파일이 **전부** 패턴에 맞을 때만 건너뛴다. 사람이 코드와 이 파일을
+    #    같이 고치면 CI 는 정상적으로 돈다.)
+    #   ⚠️ 대가: 이 파일만 손으로 고쳐 push 하면 CI 가 안 돈다 — 배포는 Argo CD 가 하므로
+    #     의도한 동작이지만, 알고 있어야 한다.
+    paths-ignore:
+      - 'deploy/k8s/overlays/gitops/**'
   pull_request:
   workflow_dispatch:        # Actions 탭에서 수동 실행
 
@@ -322,3 +332,78 @@ jobs:
             echo "───── $d ─────"
             kubectl logs -n shopsaga deploy/$d --tail=60 --all-containers || true
           done
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 5) GitOps 승격 — 검증된 이미지 태그를 Git 에 커밋한다 (Phase 19)
+  #
+  # 여기가 CI 와 CD 의 **경계**다.
+  #   지금까지(잡 1~4): "이 커밋은 배포해도 된다"를 **증명**했다.
+  #   이 잡: 그 사실을 **Git 에 기록**한다. 배포 자체는 하지 않는다.
+  #   실제 배포: 클러스터 안의 Argo CD 가 Git 을 보고 스스로 한다(우리는 클러스터에 접속조차 안 한다).
+  #
+  # ★ 이 분리가 중요한 이유: CI 러너가 **클러스터 자격증명을 갖지 않아도 된다.**
+  #   Phase 17 의 스모크 잡은 kind 를 러너 안에 만들어서 괜찮았지만, 진짜 운영 클러스터라면
+  #   CI 에 kubeconfig 를 쥐여 주는 것 자체가 큰 공격 표면이다. GitOps 는 그걸 없앤다
+  #   — 자격증명은 클러스터 안쪽(Argo CD)에만 있고, 방향이 pull 이다.
+  # ────────────────────────────────────────────────────────────────────────
+  gitops:
+    name: GitOps 승격 (이미지 태그를 Git 에)
+    needs: smoke              # 스모크가 통과해야 승격한다
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write         # ★ Git 에 push 하려면 필요하다(기본 read 로는 403)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 봇이 push 해야 하므로 자격증명을 남긴다(actions/checkout 기본값이 true).
+          persist-credentials: true
+
+      - name: kustomize 설치
+        run: |
+          set -euo pipefail
+          curl -sSLf "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin kustomize
+
+      - name: overlays/gitops 의 이미지 태그 갱신
+        working-directory: deploy/k8s/overlays/gitops
+        run: |
+          set -euo pipefail
+          for svc in $SERVICES; do
+            kustomize edit set image "shopsaga/${svc}=${IMAGE_BASE}/${svc}:${GITHUB_SHA}"
+          done
+          echo "───── 렌더 결과 ─────"
+          kustomize build . | grep -E '^\s+image: ghcr' | sort -u
+
+      - name: 커밋 & push
+        run: |
+          set -euo pipefail
+          # 커밋 주체를 사람과 구분되게 남긴다 — `git log` 에서 배포 이력이 한눈에 보인다.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 바뀐 게 없으면(같은 커밋을 다시 돌린 경우) 조용히 끝낸다. `git commit` 은
+          # 변경이 없으면 실패하므로 반드시 먼저 확인해야 한다.
+          if git diff --quiet -- deploy/k8s/overlays/gitops; then
+            echo "이미 최신 태그다 — 커밋할 것이 없다"; exit 0
+          fi
+
+          git add deploy/k8s/overlays/gitops
+          git commit -m "chore(gitops): 이미지 태그를 ${GITHUB_SHA} 로 갱신 [skip ci]"
+
+          # ⚠️ 동시 실행 경합 대비. 다른 실행이 먼저 push 했으면 rebase 후 재시도한다.
+          #   (`paths-ignore` 로 루프는 막히지만, 사람이 연달아 push 하면 잡이 겹칠 수 있다.)
+          for attempt in 1 2 3; do
+            if git push; then echo "push 성공"; exit 0; fi
+            echo "push 충돌 — rebase 후 재시도 $attempt/3"
+            git pull --rebase --autostash
+          done
+          echo "✗ push 를 3회 시도했으나 실패"; exit 1
+
+      - name: 요약
+        run: |
+          echo "### GitOps 승격 완료 :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "이미지 태그 \`${GITHUB_SHA}\` 를 \`deploy/k8s/overlays/gitops\` 에 커밋했다." >> $GITHUB_STEP_SUMMARY
+          echo "클러스터의 Argo CD 가 최대 60초 안에 이 변경을 감지해 스스로 배포한다." >> $GITHUB_STEP_SUMMARY

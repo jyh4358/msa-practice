@@ -1,0 +1,102 @@
+# Phase 19 — Argo CD 차트 값(kind 전용).
+#
+# "내 것은 Kustomize, 남의 것은 Helm" — Phase 18 에서 세운 원칙 그대로다.
+# Argo CD 는 내 것이 아니므로(컨트롤러·서버·repo-server·redis·CRD·RBAC 가 한 덩어리) Helm 으로 깐다.
+#
+# ⚠️ 재미있는 재귀: **GitOps 도구 자신은 GitOps 로 관리하지 않는다.**
+#   Argo CD 가 자기 자신을 관리하게 만들 수도 있지만(app-of-apps), 그러면 Argo CD 가 망가졌을 때
+#   그걸 고칠 Argo CD 가 없다. 부트스트랩은 클러스터 밖에서 하는 게 안전하다.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 노트북에서 돌리려고 깎아낸 것
+# ─────────────────────────────────────────────────────────────────────────────
+# 기본 설치는 파드 7개(controller·server·repo-server·redis·dex·applicationSet·notifications)다.
+# 우리에게 필요 없는 셋을 꺼서 4개로 줄인다 — shopsaga 13파드 + ingress-nginx 와 같이 떠야 하므로.
+
+# SSO(OIDC/SAML) 연동용. 우리는 admin 로컬 계정 하나면 된다.
+dex:
+  enabled: false
+
+# Slack/이메일 알림. 없어도 된다.
+notifications:
+  enabled: false
+
+# Git 디렉터리 패턴으로 Application 을 자동 생성하는 컨트롤러.
+# Application 이 하나뿐이니 필요 없다(여러 환경·여러 팀이 되면 그때).
+#
+# ⚠️⚠️ 차트 10.2.2 의 `applicationSet:` 에는 **`enabled` 키가 없다.**
+#   처음에 `applicationSet.enabled: false` 라고 썼는데 **Helm 은 아무 말 없이 무시했다** —
+#   Helm 은 values 스키마를 강제하지 않아서 **존재하지 않는 키를 줘도 오류가 아니다.**
+#   `helm template` 으로 렌더해 보지 않았으면 파드가 하나 더 뜨는 걸 몰랐을 것이다.
+#   → 남의 차트를 쓸 때는 "값을 줬으니 됐겠지"가 아니라 **렌더 결과를 봐야 한다.**
+#   여기서는 replicas 를 0 으로 둔다(Deployment 오브젝트는 생기지만 파드는 안 뜬다 = RAM 0).
+applicationSet:
+  replicas: 0
+
+configs:
+  params:
+    # ★ TLS 종료를 Argo CD 가 하지 않는다. port-forward 로 평문 HTTP 로 붙기 위해 필요하다.
+    #   (이걸 안 켜면 Argo CD 가 자체 TLS 로 응답해서 http:// 로는 못 붙는다.)
+    server.insecure: true
+
+    # 기본 폴링 주기는 180초다. 학습 중에 3분씩 기다리기 답답해서 60초로 줄인다.
+    # ⚠️ 이건 '폴링' 주기일 뿐이다. 즉시 반영을 원하면 GitHub webhook 을 붙여야 하는데,
+    #   내 노트북 클러스터는 인터넷에서 접근 불가라 여기선 폴링이 유일한 선택이다(한계표 참조).
+    timeout.reconciliation: 60s
+
+server:
+  service:
+    type: ClusterIP
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # ⚠️⚠️ UI 는 Ingress 가 아니라 **port-forward** 로 연다. 왜 그렇게 됐는지:
+  # ─────────────────────────────────────────────────────────────────────────
+  #   grafana 처럼 http://localhost:8000/argocd 로 열고 싶어서 처음엔 이렇게 했다:
+  #       configs.params: { server.rootpath: /argocd, server.basehref: /argocd }
+  #       server.ingress: { enabled: true, path: /argocd }
+  #   그런데 **UI 가 깨졌다.** 실측:
+  #       · 서버가 받은 값은 정확했다(파드 env ARGOCD_SERVER_BASEHREF=/argocd,
+  #         `argocd-server --help` 의 --basehref 기본값도 /argocd 로 표시)
+  #       · rootpath 는 동작(`/` → 404, `/argocd/` → 200)
+  #       · 그런데 index.html 이 여전히 `<base href="/">` 로 나온다
+  #         → 브라우저가 자산을 `/assets/...` 로 요청 → 그건 gateway 라우트라 **401**
+  #         (`/argocd/assets/...` 는 200 이므로, 파일이 없는 게 아니라 **주소가 틀린** 것이다)
+  #   Argo CD 의 **알려진 미해결 이슈**다(argoproj/argo-cd #15750 · #9660 · #14857):
+  #   basehref 가 index.html 에 제대로 반영되지 않는다.
+  #
+  #   ※ 조사 중 오진 하나: `/argocd/applications` 가 404 라 "딥링크도 깨진다"고 봤는데
+  #     그건 **curl 아티팩트**였다. Argo CD 는 Accept 헤더로 콘텐츠 협상을 해서
+  #     `Accept: */*`(curl 기본) → 404, `Accept: text/html`(브라우저) → 200 이다.
+  #     실제 근거는 위의 base href 하나뿐이다.
+  #
+  #   → 서브경로를 포기했다. Argo CD 공식 시작 가이드도 port-forward 를 쓴다:
+  #       kubectl port-forward svc/argocd-server -n argocd 8081:80
+  #       open http://localhost:8081     (admin / 아래 명령으로 조회한 비밀번호)
+  #
+  #   ※ 호스트 기반(argocd.local 같은)으로 하면 서브경로가 아니라 루트라 잘 되지만,
+  #     /etc/hosts 를 건드려야 해서 리포지토리만으로 재현되지 않는다. 그래서 안 골랐다.
+  ingress:
+    enabled: false
+
+  resources:
+    requests: { cpu: 25m, memory: 128Mi }
+    limits:   { memory: 256Mi }
+
+# 실제로 sync 를 수행하는 컨트롤러. 넷 중 제일 무겁다.
+controller:
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { memory: 640Mi }
+
+# Git 을 클론해서 `kustomize build` 를 돌리는 곳.
+# ★ 여기가 우리 매니페스트를 렌더한다 — 그래서 `.secrets/`(gitignore)를 읽을 수 없다.
+#   Phase 18 의 secretGenerator 를 걷어내야 했던 이유가 정확히 이것이다.
+repoServer:
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits:   { memory: 512Mi }
+
+redis:
+  resources:
+    requests: { cpu: 25m, memory: 64Mi }
+    limits:   { memory: 192Mi }
