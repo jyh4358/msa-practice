@@ -66,8 +66,11 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- **Phase 19 커밋·푸시 완료**: `894e12d`(GitOps 도입) · `46e0c69`(설정 변경으로 prune 실증).
-  그 사이 `36e64d3` 은 **CI 봇 커밋**이다(이미지 태그 승격).
+- **전부 커밋·푸시 완료.** 작성 시점 HEAD = `751d32c`, 미푸시 0 · 미커밋 0.
+  Phase 19: `894e12d`(GitOps 도입) · `46e0c69`(prune 실증) · `4c6b748`(문서).
+  복습 자료: `0656391`(파트 B·C·D) · `751d32c`(복습 우선 방침).
+  ⚠️ 마지막 push 로 CI 가 돌았으므로 **봇 커밋이 하나 더 생겨 있을 수 있다** →
+  다음 작업 시작 전에 `git pull --rebase` 한 번.
 - ⚠️⚠️ **CI 봇이 `main` 에 커밋한다** — CI 가 한 번 돌 때마다 로컬이 뒤처진다.
   `git push` 가 rejected 되면 당황하지 말고 **`git pull --rebase` 후 push**. (upstream 추적 설정해 둠)
 - **Phase 18 커밋**: `72ab3f7`(기능) · `2486e00`(커밋 지도 행).
@@ -97,10 +100,12 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - `docs/site/` HTML **30p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
 - `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
 
-## 지금 이 순간의 상태 (2026-08-02, Phase 19 완료 직후)
-- **돌아가는 중.** Colima + kind 노드 실행, shopsaga 13파드, **argocd 4파드**.
-  Argo CD 가 `overlays/gitops` 를 추적하며 `sync=Synced health=Healthy rev=46e0c69`.
-  → 정지: `docker stop shopsaga-control-plane && colima stop`
+## 지금 이 순간의 상태 (2026-08-02, Phase 19 완료 + 복습 자료 작성 후)
+- **모두 정지 상태.** kind 노드 `docker stop` + `colima stop` 완료.
+  **클러스터 정의·PVC·이미지·Helm 릴리스(argocd·ingress-nginx) 전부 보존** — 재개는 아래 "재개 절차".
+  마지막으로 확인된 Argo CD 상태: `sync=Synced health=Healthy`.
+- ★ **사용자는 지금 복습 중이다.** 새 Phase 를 먼저 제안하지 말 것(아래 "다음 단계" 참조).
+  복습하다 막히면 질문할 것이고, 그때 해당 Phase 문서로 안내하거나 환경을 띄워 재현 체크리스트를 같이 돌린다.
 - ⚠️ **이제 `apply.sh` 를 쓰지 말 것.** Argo CD 의 `selfHeal` 이 6초 만에 되돌린다(실측).
   바꾸려면 Git 을 바꾼다. (`apply.sh` 는 경고를 출력하지만 막지는 않는다.)
   ingress-nginx·Argo CD 는 **Helm 릴리스**다(`helm list -A`).
