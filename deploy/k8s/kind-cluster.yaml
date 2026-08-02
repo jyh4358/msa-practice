@@ -21,6 +21,12 @@ nodes:
   # 멀티노드로 바꾸면 `kind load docker-image` 가 모든 노드에 이미지를 복사해야 해서 느려지고,
   # 이 Phase 의 교훈(디스커버리·설정·자가치유)은 노드 수와 무관하다.
   - role: control-plane
+    # Phase 18 — ingress-nginx 차트가 `nodeSelector: {ingress-ready: "true"}` 로 이 노드를 고른다.
+    # 16b 에서는 apply.sh 가 `kubectl label node shopsaga-control-plane ingress-ready=true` 로
+    # 나중에 붙였다. 노드 라벨은 **클러스터를 만들 때 정해지는 성질**이므로 여기가 제자리다.
+    # (kubeadmConfigPatches 로 kubelet 인자를 건드릴 필요 없다 — kind 가 labels 를 직접 지원한다.)
+    labels:
+      ingress-ready: "true"
     extraPortMappings:
       # ── 16a: order-service 를 NodePort 로 직접 노출 ──
       # NodePort 는 "모든 노드의 같은 포트"를 연다. 노드가 컨테이너이므로 그 포트를 밖으로 빼줘야 한다.

@@ -1,7 +1,7 @@
-# Phase 16b — order-service (주문 접수 + Saga 조정자)
+# Phase 16b — order-query-service (CQRS 읽기 모델 — Mongo 투영)
 #
 # Phase 16a 와 달라진 점: ConfigMap 이 매니페스트 안에 인라인으로 있지 않다.
-# `deploy/config/{common,order-service}.yml` 로부터 `deploy/k8s/apply.sh` 가 ConfigMap 을 만들어
+# `deploy/config/{common,order-query-service}.yml` 로부터 `deploy/k8s/apply.sh` 가 ConfigMap 을 만들어
 # 두 개의 서브디렉터리로 마운트한다 — **compose 와 완전히 같은 설정 파일**이다.
 #   /application/config/10-common/application.yml   ← 공통(서비스 주소·Kafka·probe·관측성)
 #   /application/config/20-service/application.yml  ← 이 서비스 전용(DB 호스트 등)
@@ -10,16 +10,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-service
-  namespace: shopsaga
-  labels: { app: order-service }
+  name: order-query-service
+  labels: { app: order-query-service }
 spec:
   replicas: 1
   selector:
-    matchLabels: { app: order-service }
+    matchLabels: { app: order-query-service }
   template:
     metadata:
-      labels: { app: order-service }
+      labels: { app: order-query-service }
     spec:
       # ★★ k8s 에는 compose 의 depends_on 이 없다 — 보통은 그게 옳다(죽고 다시 뜨면 되니까).
       # 그런데 **재시도되지 않는 기동 작업**이 하나 있다: Spring 의 KafkaAdmin 은 @Bean 으로 선언한
@@ -37,37 +36,37 @@ spec:
             requests: { memory: 16Mi, cpu: 10m }
             limits:   { memory: 32Mi }
       containers:
-        - name: order-service
-          image: shopsaga/order-service:0.0.1
+        - name: order-query-service
+          image: shopsaga/order-query-service:0.0.1
           # ★ 태그가 latest 면 imagePullPolicy 기본값이 Always 가 되어 kind 에 넣어둔 로컬 이미지를 무시한다.
           imagePullPolicy: IfNotPresent
           ports:
-            - { name: http, containerPort: 8080 }
+            - { name: http, containerPort: 8083 }
           env:
             - { name: JAVA_OPTS, value: "-Xms128m -Xmx320m" }
             # Downward API — 파드가 자기 이름을 환경변수로 받는다(k8s API 호출·권한 불필요).
             - name: POD_NAME
               valueFrom: { fieldRef: { fieldPath: metadata.name } }
-            - name: SPRING_DATASOURCE_USERNAME
-              valueFrom: { secretKeyRef: { name: order-db-credentials, key: username } }
-            - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom: { secretKeyRef: { name: order-db-credentials, key: password } }
+            - name: SPRING_DATA_MONGODB_USERNAME
+              valueFrom: { secretKeyRef: { name: order-query-mongo-credentials, key: username } }
+            - name: SPRING_DATA_MONGODB_PASSWORD
+              valueFrom: { secretKeyRef: { name: order-query-mongo-credentials, key: password } }
           volumeMounts:
             - { name: common-config,  mountPath: /application/config/10-common,  readOnly: true }
             - { name: service-config, mountPath: /application/config/20-service, readOnly: true }
           # ⚠️ timeoutSeconds 기본값은 1초 — readiness 가 DB 를 조회하므로 여유를 준다(flapping 방지).
           startupProbe:
-            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            httpGet: { path: /actuator/health/readiness, port: 8083 }
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 36
           readinessProbe:
-            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            httpGet: { path: /actuator/health/readiness, port: 8083 }
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
           livenessProbe:
-            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            httpGet: { path: /actuator/health/liveness, port: 8083 }
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
@@ -81,16 +80,13 @@ spec:
         - name: common-config
           configMap: { name: shopsaga-common }
         - name: service-config
-          configMap: { name: order-service-config }
+          configMap: { name: order-query-service-config }
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: order-service, namespace: shopsaga }
+metadata: { name: order-query-service }
 spec:
-  # NodePort 를 남겨 둔 이유: 16a 에서 만든 **게이트웨이 우회 디버깅 경로**다.
-  # 정상 트래픽은 Ingress → gateway-service 로 들어온다(50-ingress.yaml).
-  # 둘을 비교하면 "엣지에서 하는 일"(JWT 선검증·회로차단기·과부하 차단)이 눈에 보인다.
-  type: NodePort
-  selector: { app: order-service }
+  type: ClusterIP
+  selector: { app: order-query-service }
   ports:
-    - { name: http, port: 8080, targetPort: 8080, nodePort: 30080 }
+    - { name: http, port: 8083, targetPort: 8083 }

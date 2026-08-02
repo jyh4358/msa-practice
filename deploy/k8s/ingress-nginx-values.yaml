@@ -1,0 +1,82 @@
+# Phase 18 — ingress-nginx 차트 값(kind 전용).
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 왜 여기만 Helm 인가 — "내 것은 Kustomize, 남의 것은 Helm"
+# ─────────────────────────────────────────────────────────────────────────────
+# Kustomize 는 **내가 소유한 완성된 YAML** 을 덧칠하는 데 강하다. 그런데 ingress-nginx 는 내 것이 아니다.
+# Deployment·Service·ServiceAccount·ClusterRole·ClusterRoleBinding·ValidatingWebhookConfiguration·
+# 인증서 발급 Job 까지 수십 개가 한 덩어리로 움직이고, 그 조합은 업스트림이 정한다.
+# 이런 걸 배포하는 표준 포맷이 Helm 차트다(업스트림이 차트로 배포하니 받는 쪽도 Helm 이 자연스럽다).
+#
+# 16b 에서는 이렇게 했다:
+#   kubectl apply -f https://raw.githubusercontent.com/…/controller-v1.13.1/…/kind/deploy.yaml
+# 문제가 셋이었다.
+#   ① 버전이 URL 문자열에 숨는다 — 무엇이 깔렸는지 클러스터에 물어봐야 안다.
+#   ② 값을 바꾸려면 남의 YAML 을 손으로 고쳐야 한다(다음 업그레이드 때 그 수정이 날아간다).
+#   ③ 지우려면 무엇이 깔렸는지 다시 알아내야 한다(`helm uninstall` 같은 게 없다).
+# Helm 은 셋 다 해결한다 — 릴리스로 **설치된 것의 목록**을 기억하기 때문이다:
+#   helm list -n ingress-nginx / helm uninstall / helm upgrade
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# kind 에서만 필요한 설정
+# ─────────────────────────────────────────────────────────────────────────────
+# 클라우드라면 Service type=LoadBalancer 로 두면 클라우드가 L4 로드밸런서를 붙여 준다.
+# kind 에는 그런 게 없다. 대신 노드가 **도커 컨테이너**이고 kind-cluster.yaml 이
+# `컨테이너:80 → 호스트:8000` 을 뚫어 놨으므로, 컨트롤러 파드를 노드의 80 포트에 직접 붙인다(hostPort).
+controller:
+  # ★ 파드가 노드의 80/443 을 그대로 점유한다. 그래서 노드당 하나만 뜰 수 있다(replicaCount: 1).
+  hostPort:
+    enabled: true
+    ports:
+      http: 80
+      https: 443
+
+  # hostPort 로 직접 받으므로 Service 는 클러스터 내부용으로 충분하다.
+  # (LoadBalancer 로 두면 kind 에는 프로비저너가 없어 EXTERNAL-IP 가 영원히 <pending> 이다.)
+  service:
+    type: ClusterIP
+
+  # kind-cluster.yaml 이 컨트롤플레인 노드에 붙여 준 라벨. 단일 노드라 사실상 "여기"라는 뜻.
+  nodeSelector:
+    ingress-ready: "true"
+
+  # ⚠️ 단일 노드 클러스터에서는 컨트롤플레인 노드에 taint 가 걸려 있어 일반 파드가 스케줄되지 않는다.
+  #   (kind 단일 노드는 이 taint 를 빼 주지만, 멀티노드로 바꿔도 동작하도록 명시해 둔다.)
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Equal
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Equal
+      effect: NoSchedule
+
+  # Ingress 오브젝트의 status.loadBalancer 에 실어 줄 주소.
+  # publishService 는 Service 의 LoadBalancer 상태를 읽어 쓰는 기능인데 여기엔 LB 가 없으므로 끄고,
+  # 대신 고정 문자열을 쓴다(안 하면 Ingress 의 ADDRESS 칸이 영원히 빈다 — 동작에는 지장 없다).
+  publishService:
+    enabled: false
+  extraArgs:
+    publish-status-address: localhost
+
+  # ingressClassName 을 안 적은 Ingress 도 주워 담는다. 우리는 base/ingress.yaml 에 명시했지만,
+  # 컨트롤러가 하나뿐인 클러스터에서는 켜 두는 편이 덜 놀란다.
+  watchIngressWithoutClass: true
+
+  replicaCount: 1
+
+  # ⚠️⚠️ Phase 17 에서 CI 를 깨뜨린 그 webhook 이다 — 끄지 않는다.
+  #   Ingress 를 만들 때 컨트롤러의 :443 검증 webhook 이 호출되는데, 컨트롤러 파드가 Ready 가 된
+  #   뒤에도 그 Service 의 EndpointSlice 에 주소가 실리기까지 한 박자가 더 걸린다. 그 사이에
+  #   Ingress 를 apply 하면 `dial tcp …:443: connect: connection refused` 로 실패한다.
+  #   → 끄면 사라지는 문제지만(그러면 잘못된 Ingress 를 만들어도 조용히 무시된다), 그건 회피지 해결이 아니다.
+  #     apply.sh 가 `helm --wait` + 엔드포인트 대기로 순서를 보장한다.
+  admissionWebhooks:
+    enabled: true
+
+  # 노트북 자원을 아낀다(기본값은 요청 100m/90Mi 로 이미 작지만 상한이 없다).
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi

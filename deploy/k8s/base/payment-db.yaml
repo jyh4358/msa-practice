@@ -4,7 +4,7 @@
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: { name: payment-db-data, namespace: shopsaga }
+metadata: { name: payment-db-data }
 spec:
   accessModes: [ReadWriteOnce]
   resources: { requests: { storage: 1Gi } }
@@ -13,7 +13,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payment-db
-  namespace: shopsaga
   labels: { app: payment-db }
 spec:
   replicas: 1
@@ -53,7 +52,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: payment-db, namespace: shopsaga }
+metadata: { name: payment-db }
 spec:
   type: ClusterIP
   selector: { app: payment-db }

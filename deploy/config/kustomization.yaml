@@ -1,0 +1,81 @@
+# Phase 18 — 이 디렉터리는 **설정의 단일 소스**이면서, 동시에 Kustomize 컴포넌트다.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 왜 kustomization.yaml 이 `deploy/k8s/` 가 아니라 여기 있나
+# ─────────────────────────────────────────────────────────────────────────────
+# Kustomize 에는 **로드 제한**(load restrictor)이 있다. 기본값 `LoadRestrictionsRootOnly` 는
+# kustomization.yaml 이 놓인 디렉터리 **바깥의 파일**을 읽는 것을 거부한다:
+#
+#   deploy/k8s/base/kustomization.yaml 에서
+#     configMapGenerator: [{ files: [application.yml=../../config/common.yml] }]
+#   → error: security; file '.../deploy/config/common.yml'
+#            is not in or below '.../deploy/k8s/base'
+#
+# (실제로 이 Phase 를 시작할 때 제일 먼저 부딪힌 벽이다. 공급망 공격 방지가 목적이다 —
+#  남의 kustomization 을 받아 빌드했을 때 내 `~/.ssh/id_rsa` 를 ConfigMap 으로 빨아가지
+#  못하게 한다.)
+#
+# 우회하는 방법은 세 가지인데,
+#   ① `kustomize build --load-restrictor LoadRestrictionsNone` — 별도 바이너리가 필요하고
+#      (kubectl 내장 kustomize 는 이 플래그를 노출하지 않는다) 안전장치를 통째로 끄는 짓이다.
+#   ② deploy/config/ 를 deploy/k8s/base/ 안으로 옮긴다 — compose 가 "k8s 디렉터리"에서
+#      설정을 마운트하게 되어 소유 관계가 뒤집힌다.
+#   ③ **deploy/config/ 를 스스로 kustomization 루트로 만든다** ← 이걸 골랐다.
+#
+# ③ 이면 각 파일이 자기 루트 안에 있으므로 제한에 걸리지 않는다. 그리고 상위에서는
+#   deploy/k8s/base/kustomization.yaml:
+#     resources: [../../config]     # 디렉터리 참조는 '새 루트'라 허용된다
+# 로 끌어다 쓴다. 덤으로 **ConfigMap 을 만드는 규칙이 원본 파일 바로 옆에 있게** 되어
+# "이 디렉터리가 설정의 주인"이라는 사실이 구조로 드러난다.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 이 파일이 없앤 것 — apply.sh 의 명령형 루프
+# ─────────────────────────────────────────────────────────────────────────────
+#   kubectl create configmap shopsaga-common -n shopsaga \
+#     --from-file=application.yml=deploy/config/common.yml \
+#     --dry-run=client -o yaml | kubectl apply -f -
+#   for svc in order-service payment-service ...; do  (같은 것 6번)  done
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ★ 진짜 이득은 '선언적'이 아니라 **이름 뒤에 붙는 해시**다
+# ─────────────────────────────────────────────────────────────────────────────
+# configMapGenerator 는 내용의 해시를 이름에 붙인다:
+#     shopsaga-common → shopsaga-common-9f2h4k8t7d
+# 그리고 Kustomize 의 이름 참조 변환기가 이 ConfigMap 을 **쓰는 쪽**(Deployment 의
+# `volumes[].configMap.name`)까지 같이 고쳐 준다.
+#
+# 그래서 설정 파일을 한 글자만 고쳐도
+#     내용 바뀜 → 해시 바뀜 → ConfigMap 이름 바뀜 → Deployment 의 파드 템플릿이 바뀜
+#     → 롤링 업데이트가 **저절로** 일어난다.
+#
+# Phase 16b 까지는 이게 안 됐다. ConfigMap 을 갱신해도 파드는 예전 설정을 그대로 들고 있어서
+# `apply.sh --config` 가 `kubectl rollout restart` 를 일일이 걸어 줘야 했다.
+# (마운트된 ConfigMap 파일 자체는 kubelet 이 최대 ~70초 뒤 갱신해 주지만, Spring 은 기동 시
+#  한 번 읽고 끝이라 파일이 바뀌어도 반영되지 않는다. 그래서 '재시작'이 유일한 답이었다.)
+#
+# ⚠️ 대가: 옛 해시 ConfigMap 이 클러스터에 남아 쌓인다. `kubectl apply -k` 는 지워 주지 않는다.
+#    정리는 `--prune` 이나 GitOps(Argo CD 의 자동 prune)의 일이다 → 한계표 참조.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  # 공통 설정 — 서비스 주소·Kafka·probe·관측성. compose 도 같은 파일을 바인드 마운트한다.
+  # 컨테이너 안에서는 /application/config/10-common/application.yml 로 보인다.
+  - name: shopsaga-common
+    files:
+      - application.yml=common.yml
+
+  # 서비스별 설정 — DB 호스트 등. /application/config/20-service/application.yml
+  # Spring Boot 는 `file:./config/*/` 하위를 **이름순**으로 읽고 뒤쪽이 이긴다 → 20-service 가 승.
+  - name: order-service-config
+    files: [application.yml=order-service.yml]
+  - name: payment-service-config
+    files: [application.yml=payment-service.yml]
+  - name: inventory-service-config
+    files: [application.yml=inventory-service.yml]
+  - name: order-query-service-config
+    files: [application.yml=order-query-service.yml]
+  - name: gateway-service-config
+    files: [application.yml=gateway-service.yml]
+  - name: auth-service-config
+    files: [application.yml=auth-service.yml]

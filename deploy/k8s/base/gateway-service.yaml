@@ -17,7 +17,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway-service
-  namespace: shopsaga
   labels: { app: gateway-service }
 spec:
   replicas: 1
@@ -72,7 +71,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: gateway-service, namespace: shopsaga }
+metadata: { name: gateway-service }
 spec:
   type: ClusterIP
   selector: { app: gateway-service }

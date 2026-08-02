@@ -1,128 +1,115 @@
 #!/usr/bin/env bash
-# Phase 16b — 전체 플랫폼을 kind 클러스터에 배포한다.
+# Phase 18 — 전체 플랫폼을 kind 클러스터에 배포한다.
 #
-#   ./deploy/k8s/apply.sh              # 설정 생성 + 매니페스트 적용 (+ 필요 시 ingress 설치)
-#   ./deploy/k8s/apply.sh --config     # ConfigMap/Secret 만 다시 만들고 롤아웃
+#   ./deploy/k8s/apply.sh              # = overlays/local (내 노트북)
+#   ./deploy/k8s/apply.sh ci           # = overlays/ci    (GHCR 이미지)
 #
-# 왜 스크립트가 필요한가 — 매니페스트만으로는 안 되는 일이 셋 있다.
-#   ① ConfigMap 을 `deploy/config/*.yml` **파일로부터** 만든다.
-#      YAML 을 매니페스트 안에 인라인으로 복사하면 compose 와 내용이 갈라진다. 파일 하나를 공유한다.
-#   ② auth-service 의 RSA 서명 키를 그 자리에서 생성한다(리포지토리에 개인키를 커밋하지 않기 위해).
-#   ③ ingress-nginx 컨트롤러를 설치한다(Ingress 오브젝트만으로는 아무 일도 일어나지 않는다).
+# ─────────────────────────────────────────────────────────────────────────────
+# 16b 의 이 스크립트와 무엇이 달라졌나
+# ─────────────────────────────────────────────────────────────────────────────
+# 16b 에서는 매니페스트만으로 안 되는 일이 셋이라 이 스크립트가 그걸 명령형으로 때웠다:
+#   ① ConfigMap 7개를 `kubectl create configmap --from-file` 루프로 생성
+#   ② auth-service RSA 키 생성 → `kubectl create secret`
+#   ③ ingress-nginx 를 원격 raw 매니페스트 URL 로 `kubectl apply`
+#   ④ 그리고 ConfigMap 이 바뀌어도 파드가 안 갈리므로 `--config` 플래그로 rollout restart 를 수동 실행
 #
-# ⚠️ Helm/Kustomize 를 쓰면 ①③은 선언적으로 처리된다 — Phase 18 의 과제로 남겨 둔다.
+# 지금은:
+#   ① → deploy/config/kustomization.yaml 의 configMapGenerator (선언적)
+#   ② → base/kustomization.yaml 의 secretGenerator. 여기 남은 건 **키 파일 생성**뿐이다.
+#        (키 자체는 git 에 없어야 하므로 '재료를 준비하는' 이 단계는 명령형으로 남는 게 맞다.
+#         운영이라면 External Secrets Operator / Vault 가 이 자리를 대신한다.)
+#   ③ → Helm 릴리스 (버전이 명시되고, helm list 로 조회되고, helm uninstall 로 지워진다)
+#   ④ → **사라졌다.** 생성기가 내용 해시를 이름에 붙이므로 설정을 고치면 이름이 바뀌고,
+#        파드 템플릿이 바뀌므로 롤링 업데이트가 저절로 일어난다. 그냥 이 스크립트를 다시 돌리면 된다.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."          # 리포지토리 루트
 export DOCKER_HOST="${DOCKER_HOST:-unix://$HOME/.colima/default/docker.sock}"
 
-NS=shopsaga
-CFG=deploy/config
+OVERLAY="${1:-local}"
 K8S=deploy/k8s
-ONLY_CONFIG="${1:-}"
+SECRETS="$K8S/base/.secrets"
+INGRESS_CHART_VERSION=4.13.9        # controller 1.13.9 — Phase 16b 에서 검증한 1.13 계열
 
-kubectl apply -f "$K8S/00-namespace.yaml"
+[ -d "$K8S/overlays/$OVERLAY" ] || { echo "✗ 알 수 없는 오버레이: $OVERLAY (local | ci)"; exit 1; }
 
-# ── ① 설정: deploy/config/*.yml → ConfigMap ────────────────────────────────────
-# compose 는 같은 파일을 바인드 마운트한다. 즉 **설정의 단일 소스**다.
-echo "▶ ConfigMap 생성 (deploy/config/ → 클러스터)"
-kubectl create configmap shopsaga-common -n "$NS" \
-  --from-file=application.yml="$CFG/common.yml" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-for svc in order-service payment-service inventory-service order-query-service gateway-service auth-service; do
-  kubectl create configmap "${svc}-config" -n "$NS" \
-    --from-file=application.yml="$CFG/${svc}.yml" \
-    --dry-run=client -o yaml | kubectl apply -f -
-done
-
-# ── ② 비밀: DB 자격증명(매니페스트) + auth 서명 키(생성) ──────────────────────
-kubectl apply -f "$K8S/10-secrets.yaml"
-
-# RSA 키는 한 번만 만든다. 이미 있으면 그대로 둔다 —
-# 새로 만들면 기존에 발급된 토큰이 전부 무효가 되기 때문이다.
-if ! kubectl get secret auth-jwt-key -n "$NS" >/dev/null 2>&1; then
+# ── ① 비밀 '재료' — git 에 없는 것만 여기서 만든다 ────────────────────────────
+# 키는 한 번만 만든다. 이미 있으면 그대로 둔다 — 새로 만들면 발급된 토큰이 전부 무효가 되기 때문이다.
+if [ ! -f "$SECRETS/auth-jwt-key.pem" ]; then
   echo "▶ auth-service RSA 서명 키 생성 (PKCS#8)"
-  tmp=$(mktemp -d)
-  # ⚠️ PKCS#1(`BEGIN RSA PRIVATE KEY`)이 아니라 PKCS#8 이어야 한다 — RsaKeyConfig 가 PKCS#8 만 읽는다.
-  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$tmp/key.pem" 2>/dev/null
-  kubectl create secret generic auth-jwt-key -n "$NS" \
-    --from-file=private-key="$tmp/key.pem" \
-    --from-literal=key-id="shopsaga-$(date +%Y%m%d)"
-  rm -rf "$tmp"
+  mkdir -p "$SECRETS"
+  # ⚠️ PKCS#1(`BEGIN RSA PRIVATE KEY`)이 아니라 PKCS#8(`BEGIN PRIVATE KEY`)이어야 한다.
+  #    RsaKeyConfig 가 PKCS#8 만 읽는다. `openssl genrsa` 는 PKCS#1 을 내므로 genpkey 를 쓴다.
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$SECRETS/auth-jwt-key.pem" 2>/dev/null
+  # kid 는 공개키 지문에서 파생한다 → 키가 바뀌면 kid 도 반드시 바뀐다(JWKS 캐시가 헷갈리지 않게).
+  # ⚠️ printf 로 쓴다. echo 를 쓰면 끝에 개행이 붙고, 그게 그대로 환경변수 값이 되어 kid 가 어긋난다.
+  printf '%s' "shopsaga-$(openssl pkey -in "$SECRETS/auth-jwt-key.pem" -pubout -outform DER 2>/dev/null \
+            | shasum -a 256 | cut -c1-12)" > "$SECRETS/auth-jwt-key-id.txt"
 else
   echo "▶ auth-jwt-key 이미 존재 — 유지(다시 만들면 기존 토큰이 전부 무효가 된다)"
 fi
 
-if [ "$ONLY_CONFIG" = "--config" ]; then
-  echo "▶ 설정만 갱신 → 롤아웃"
-  # ConfigMap 이 바뀌어도 파드는 저절로 안 바뀐다(Spring 이 이미 읽은 설정을 다시 바인딩하지 않는다).
-  for d in $(kubectl get deploy -n "$NS" -o name | grep -E "service"); do
-    kubectl rollout restart "$d" -n "$NS"
-  done
-  exit 0
+# ── ② 서드파티: ingress-nginx (Helm 릴리스) ──────────────────────────────────
+# 노드 라벨은 kind-cluster.yaml 이 붙인다. 없으면 컨트롤러가 영원히 Pending 이 되는데
+# 그 증상이 원인을 전혀 안 알려주므로, 여기서 먼저 확인하고 명확히 죽는다.
+if [ -z "$(kubectl get nodes -l ingress-ready=true -o name 2>/dev/null)" ]; then
+  echo "✗ ingress-ready=true 라벨이 붙은 노드가 없다."
+  echo "  이 클러스터는 Phase 18 이전의 kind-cluster.yaml 로 만들어졌다. 둘 중 하나를 하라:"
+  echo "    kind delete cluster --name shopsaga && kind create cluster --config $K8S/kind-cluster.yaml"
+  echo "    kubectl label node --all ingress-ready=true --overwrite   # 기존 클러스터를 살리려면"
+  exit 1
 fi
 
-# ── ③ Ingress 컨트롤러 ────────────────────────────────────────────────────────
-if ! kubectl get ns ingress-nginx >/dev/null 2>&1; then
-  echo "▶ ingress-nginx 설치 (kind 전용 매니페스트)"
-  # kind 전용 매니페스트는 컨트롤러를 hostPort 80/443 으로 노출하고
-  # `ingress-ready=true` 라벨이 붙은 노드에만 스케줄한다.
-  kubectl label node shopsaga-control-plane ingress-ready=true --overwrite
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.13.1/deploy/static/provider/kind/deploy.yaml
-  echo "▶ ingress-nginx 준비 대기"
-  kubectl wait --namespace ingress-nginx --for=condition=ready pod \
-    --selector=app.kubernetes.io/component=controller --timeout=180s
+echo "▶ ingress-nginx (Helm chart $INGRESS_CHART_VERSION)"
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
+helm repo update ingress-nginx >/dev/null
+# upgrade --install = 없으면 설치, 있으면 갱신. 같은 명령을 몇 번 돌려도 결과가 같다(멱등).
+# --wait 는 컨트롤러 Deployment 가 Available 이 될 때까지 기다린다.
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx --create-namespace \
+  --version "$INGRESS_CHART_VERSION" \
+  --values "$K8S/ingress-nginx-values.yaml" \
+  --wait --timeout 5m
 
-  # ⚠️⚠️ 파드가 Ready 라고 admission webhook 을 부를 수 있는 건 아니다.
-  #  ingress-nginx 는 Ingress 를 만들 때 검증용 webhook(:443)을 호출하는데,
-  #  그 Service 의 EndpointSlice 에 주소가 실리기까지 한 박자가 더 걸린다. 그 사이에 apply 하면:
-  #    failed calling webhook "validate.nginx.ingress.kubernetes.io":
-  #    dial tcp 10.96.x.x:443: connect: connection refused
-  #  ★ 이건 CI 가 **빨라지자** 드러났다(1차 실행은 이미지 pull 이 느려 우연히 피해 갔다).
-  #    "파드 Ready" 와 "Service 로 트래픽이 간다" 는 다른 사건이다 — Phase 16 §6-③ 의 그 성질이다.
-  echo "▶ admission webhook 엔드포인트 대기"
-  for _ in $(seq 1 60); do
-    addrs=$(kubectl get endpointslices -n ingress-nginx \
-      -l kubernetes.io/service-name=ingress-nginx-controller-admission \
-      -o jsonpath='{.items[*].endpoints[*].addresses[0]}' 2>/dev/null || true)
-    [ -n "$addrs" ] && break
-    sleep 2
-  done
-fi
+# ⚠️⚠️ 파드가 Ready 라고 admission webhook 을 부를 수 있는 건 아니다(Phase 17 에서 CI 가 이걸로 깨졌다).
+#   Ingress 를 만들 때 검증 webhook(:443)이 호출되는데, 그 Service 의 EndpointSlice 에 주소가
+#   실리기까지 한 박자가 더 걸린다. 그 사이에 apply 하면:
+#     failed calling webhook "validate.nginx.ingress.kubernetes.io":
+#     dial tcp 10.96.x.x:443: connect: connection refused
+#   "파드 Ready" 와 "Service 로 트래픽이 간다" 는 다른 사건이다.
+#   ★ 이건 CI 가 **빨라지자** 드러났다(1차 실행은 이미지 pull 이 느려 우연히 피해 갔다).
+echo "▶ admission webhook 엔드포인트 대기"
+for _ in $(seq 1 60); do
+  addrs=$(kubectl get endpointslices -n ingress-nginx \
+    -l kubernetes.io/service-name=ingress-nginx-controller-admission \
+    -o jsonpath='{.items[*].endpoints[*].addresses[0]}' 2>/dev/null || true)
+  [ -n "$addrs" ] && break
+  sleep 2
+done
 
-# ── ④ 인프라 → 앱 → Ingress 순으로 적용 ───────────────────────────────────────
-# k8s 에는 기동 순서 개념이 없다(depends_on 없음). 아래 순서는 사람이 읽기 좋으라고 둔 것일 뿐,
-# 실제로는 앱이 먼저 떠서 CrashLoopBackOff 를 몇 번 돈 뒤 인프라가 준비되면 스스로 회복한다.
-echo "▶ 인프라 적용"
-kubectl apply -f "$K8S/20-order-db.yaml" -f "$K8S/21-payment-db.yaml" \
-              -f "$K8S/22-inventory-db.yaml" -f "$K8S/23-order-query-mongo.yaml" \
-              -f "$K8S/24-kafka.yaml" -f "$K8S/25-otel-lgtm.yaml"
-
-echo "▶ 앱 적용"
-kubectl apply -f "$K8S/30-auth-service.yaml" -f "$K8S/31-order-service.yaml" \
-              -f "$K8S/32-payment-service.yaml" -f "$K8S/33-inventory-service.yaml" \
-              -f "$K8S/34-order-query-service.yaml" -f "$K8S/35-gateway-service.yaml"
-
-# webhook 이 뜨는 타이밍은 위에서 기다려도 완전히 결정적이지 않다(재기동·리더 선출 등).
-# 실패해도 되는 일회성 경쟁이므로 짧게 재시도한다 — 여기서 죽으면 배포 전체가 죽는다.
-echo "▶ Ingress 적용"
-ingress_ok=false
-for attempt in 1 2 3 4 5; do
-  if kubectl apply -f "$K8S/50-ingress.yaml"; then ingress_ok=true; break; fi
-  echo "   webhook 이 아직 준비되지 않았다 — 재시도 $attempt/5"
+# ── ③ 나머지 전부를 한 번에 ──────────────────────────────────────────────────
+# 네임스페이스·설정·비밀·인프라·앱·Ingress 가 전부 이 한 줄에 들어 있다.
+# k8s 에는 기동 순서 개념이 없다(compose 의 depends_on 없음). 순서가 꼭 필요한 한 곳
+# — Kafka 토픽을 기동 시 한 번만 만드는 Spring KafkaAdmin — 만 initContainer 로 막아 뒀다.
+echo "▶ kubectl apply -k $K8S/overlays/$OVERLAY"
+ok=false
+for attempt in 1 2 3; do
+  if kubectl apply -k "$K8S/overlays/$OVERLAY"; then ok=true; break; fi
+  echo "   실패 — webhook 이 아직 준비되지 않았을 수 있다. 재시도 $attempt/3"
   sleep 5
 done
-# ⚠️ 재시도를 다 쓰고도 실패했다면 **반드시 실패로 끝내야 한다**.
-#    조용히 넘어가면 Ingress 없는 클러스터가 '배포 성공'으로 보고되고, 그 뒤 스모크가
-#    엉뚱한 이유(연결 거부)로 깨져 원인 추적이 어려워진다.
-if [ "$ingress_ok" != true ]; then
-  echo "✗ Ingress 적용 실패 — admission webhook 상태를 확인할 것:"
+# ⚠️ 재시도를 다 쓰고도 실패했다면 **반드시 실패로 끝내야 한다**. 조용히 넘어가면
+#    Ingress 없는 클러스터가 '배포 성공'으로 보고되고, 뒤이은 스모크가 엉뚱한 이유로 깨진다.
+if [ "$ok" != true ]; then
+  echo "✗ 적용 실패 — ingress-nginx 상태를 확인할 것:"
   kubectl get pods,endpointslices -n ingress-nginx || true
   exit 1
 fi
 
 echo ""
 echo "✔ 적용 완료. 준비 상태 보기:"
-echo "   kubectl get pods -n $NS -w"
+echo "   kubectl get pods -n shopsaga -w"
 echo "   curl -s localhost:8000/actuator/health     # Ingress → gateway"
+echo ""
+echo "  설정을 고쳤다면(deploy/config/*.yml) 이 스크립트를 다시 돌리기만 하면 된다 —"
+echo "  ConfigMap 이름의 해시가 바뀌면서 롤링 업데이트가 저절로 일어난다."

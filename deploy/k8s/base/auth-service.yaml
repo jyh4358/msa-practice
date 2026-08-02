@@ -12,7 +12,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: auth-service
-  namespace: shopsaga
   labels: { app: auth-service }
 spec:
   replicas: 2          # ★ 키를 공유하므로 이제 가능하다(16a 에서는 1이 상한이었다)
@@ -66,7 +65,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: auth-service, namespace: shopsaga }
+metadata: { name: auth-service }
 spec:
   type: ClusterIP
   selector: { app: auth-service }

@@ -20,7 +20,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: shopsaga
-  namespace: shopsaga
   annotations:
     # 게이트웨이가 자체적으로 라우팅하므로 경로를 다시 쓰지 않는다(/orders 는 /orders 그대로 전달).
     nginx.ingress.kubernetes.io/proxy-body-size: "8m"

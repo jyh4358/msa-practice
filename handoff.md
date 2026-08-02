@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-08-01, Phase 17 완료 시점)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-02, Phase 18 완료 · 미커밋)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -11,7 +11,7 @@
 - 아키텍처: **헥사고날**(domain / application(port.in·out) / adapter(in.web·in.event·out.persistence·out.messaging)). 상세 `docs/HEXAGONAL.md`.
 - 컨테이너 런타임: **Colima**(arm64). `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`.
 
-## 지금까지 완료 (Phase 0~17)
+## 지금까지 완료 (Phase 0~18)
 0 스캐폴드 · 1 모놀리스(ACID·비관적락·QueryDSL) · 2 payment 분리(원격 REST) · 3 게이트웨이 · 4 Eureka ·
 5 보안(RS256 JWT) · 6 중앙설정(Config+`{cipher}`) · 7 Docker Compose · 8 관측성(8a 트레이스+메트릭 / 8b 로그→Loki·RED·트레이스↔로그) ·
 9a 비동기(Kafka) · 10 Outbox+멱등(신뢰성 척추) · 11 CQRS 읽기모델(Mongo) · 12 Saga 코레오그래피+보상 · 13 Saga 오케스트레이션 ·
@@ -20,10 +20,13 @@
 **16a 로컬 k8s(kind)**(클러스터+order-service 이전·ConfigMap/Secret·liveness≠readiness probe·NodePort·자가치유·스케일) ·
 **16b 전체 플랫폼 on k8s**(**Eureka·Config Server 삭제** → 플랫폼 DNS+ConfigMap·Ingress·compose 동반 이전(15→13)·무중단 롤링·auth 복제본 2) ·
 **17 CI/CD**(GitHub Actions 5잡: 빌드·테스트 → 네이티브 러너 2개 멀티아치 이미지 → GHCR `:커밋SHA` → **CI 안 kind 스모크 배포**).
+  ★ 2차 실행이 **캐시로 빨라지자** ingress webhook 경쟁이 드러나 실패 → 수정 → 3차 통과. 그 경위가 `docs/PHASE-17-CICD.md` §7-⑦.
+**18 선언적 배포**(Kustomize `base/`+`overlays/{local,ci}` · 생성기 해시로 **설정 변경 → 자동 롤아웃** ·
+  CI 의 `sed` → `kustomize edit set image` · ingress-nginx 를 **Helm 릴리스**(차트 4.13.9)로 · `apply.sh --config` 삭제).
 
 > ⚠️ **Phase 12부터 주문 흐름은 `--profile async` 필수**(동기 결제 호출 제거 — 전부 Kafka 이벤트).
 > `POST /orders` 는 **`PENDING` 즉시 반환**, 최종 상태(CONFIRMED/CANCELLED)는 **조회로 확인**(결과적 일관성).
-- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(25p, 더블클릭). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
+- 각 Phase 심화문서 `docs/PHASE-*.md`(+`SERVICE-DISCOVERY.md`=P4, `SECURITY.md`=P5). 오프라인 HTML `docs/site/`(**26p**, 더블클릭 — `cd docs/tools && npm run build` 로 재생성). 커밋지도 `docs/PHASE-COMMIT-MAP.md`.
 
 ## 서비스 (13 컨테이너 / 13 파드 — Phase 16b 에서 discovery·config 삭제)
 | 서비스 | 포트 | 프로파일 | 역할 |
@@ -58,33 +61,65 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- HEAD = `9a60530`(Phase 17). P15=`19a4435` · P16a=`d413b1c` · P16b=`787ab76`.
-- ✅ **origin/main 까지 전부 푸시 완료** — 미푸시 커밋 없음. CI 실행 #1 **전부 초록불**.
-- ⚠️ **Phase 17 문서·인덱스 갱신분이 미커밋**: `docs/PHASE-17-CICD.md` 신규 · **README 대폭 갱신**(Phase 13 시점에 멈춰 있던 '현재 상태'·'실행' 섹션을 Phase 17 기준으로 재작성) · 커밋맵 · build-docs · HTML 25p · handoff.
+- **HEAD = `696f8f0`(Phase 17). Phase 18 작업분은 전부 _미커밋_** — 사용자가 요청하면 커밋한다.
+  변경: `deploy/k8s/*.yaml` 15개가 `base/` 로 이동(git mv) · 신규 `deploy/config/kustomization.yaml`,
+  `deploy/k8s/base/kustomization.yaml`, `deploy/k8s/overlays/{local,ci}/`, `deploy/k8s/ingress-nginx-values.yaml` ·
+  수정 `apply.sh`·`kind-cluster.yaml`·`.github/workflows/ci.yml`·`.gitignore`·`deploy/config/common.yml` ·
+  문서 `docs/PHASE-18-KUSTOMIZE.md`(신규)·`README.md`·`deploy/k8s/README.md`·`docs/tools/build-docs.mjs`·`docs/site/`(26p).
+- ⚠️ **커밋 시 `docs/PHASE-COMMIT-MAP.md` 에 Phase 18 행을 추가할 것**(해시는 커밋 후 확인).
+- 최근 커밋: `696f8f0`(ingress webhook 경쟁 수정) · `0252cd4`·`72323ef`·`2fc2b1e`(P17 문서) ·
+  `9a60530`(P17 CI) · `787ab76`(P16b) · `d413b1c`(P16a) · `19a4435`(P15).
 - **커밋·푸시 모두 사용자가 명시 요청할 때만.**
-- ⚠️ **`docs/PHASE-COMMIT-MAP.md` 17행은 `9a60530` 으로 채움 완료.** 다음 Phase 커밋 때 새 행을 추가할 것.
-- ⚠️ **`.github/workflows/` 를 건드리는 커밋은 `workflow` 스코프 토큰이 필요**하다(없으면 push 거부). 현재 토큰엔 추가돼 있다.
+- ⚠️ `docs/PHASE-COMMIT-MAP.md` 는 17행(`9a60530`)까지 채움 완료 → **Phase 18 커밋 때 새 행 추가.**
+- ⚠️ `deploy/k8s/base/.secrets/` 는 **gitignore** — auth RSA 개인키가 여기 산다. `apply.sh` 가 없으면 만든다.
+  clone 직후에는 없으므로 `kubectl kustomize` 가 실패한다(정상 동작).
+- ⚠️ **`.github/workflows/` 를 건드리는 커밋은 토큰에 `workflow` + `Contents: Read and write` 필요**
+  (없으면 `remote rejected` / 403). 현재 토큰엔 둘 다 있다.
+  ⚠️ `gh auth setup-git` 을 실행하면 git 자격증명 헬퍼가 gh 로 바뀌고 `credential.usehttppath` 가 생겨
+  기존 keychain 조회가 깨진다 — 문제가 생기면 그 두 설정을 `git config --global --unset-all` 로 되돌릴 것.
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
-## 지금 이 순간의 상태 (2026-08-01, Phase 17 종료 시점)
-- **kind 클러스터 `shopsaga` 는 정지 상태**(`docker stop shopsaga-control-plane` + `colima stop`).
-  클러스터 정의·PVC·이미지는 **전부 보존**됨 — 재개는 `colima start && docker start shopsaga-control-plane`.
-- **Colima 12GB·6CPU**(Phase 16a 에서 증설). compose 와 kind 는 RAM·포트(8000) 모두 충돌하므로 **동시 금지**.
-- 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` v4.2.3 · `k9s` · **`gh` v2.97.0**(단 `gh auth login` 은 아직 안 함).
-- 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**. CI 에서도 동일하게 통과.
-- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 실행 #1 전부 초록불(13m43s).
-  이미지: `ghcr.io/jyh4358/msa-practice/<service>:<커밋SHA>`(멀티아치) · `:latest`.
-  ⚠️ GHCR 패키지는 **private** 이라 pull 에 인증이 필요하다(CI 는 imagePullSecret 으로 처리).
+### 사용자에게 아직 답을 못 받은 것 2개 (급하지 않음)
+- `docs/site/` HTML **25p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
+- `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
+
+## 지금 이 순간의 상태 (2026-08-02, Phase 18 완료 직후)
+- **돌아가는 중.** Colima 기동 + kind 노드 `shopsaga-control-plane` 실행 중, shopsaga 13파드 Ready,
+  ingress-nginx 는 이제 **Helm 릴리스**(`helm list -n ingress-nginx`). compose 는 내려둠.
+  → 정지하려면 `docker stop shopsaga-control-plane && colima stop`.
+- **Colima 12GB·6CPU**(Phase 16a 에서 증설). compose 와 kind 는 RAM·**포트(8000)** 모두 충돌 → **동시 금지**.
+- 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` **v4.2.3** · `k9s` · `gh` v2.97.0(**로그인 완료**, API 5000/hr).
+- 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
+- **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 3회 실행(성공·실패·성공).
+  최신 `696f8f0` **success**. 잡 5개: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크.
+  캐시 후 전체 **13m43s → ~4m**(빌드 5m41s→1m08s).
+- **이미지**: `ghcr.io/jyh4358/msa-practice/<service>:<커밋SHA>` 및 `:latest` — **멀티아치(amd64+arm64), 공개**.
+  ⚠️ 앞서 "private" 이라 적었던 것은 **오류**였다. 공개 저장소의 Actions 가 push 한 패키지는 저장소 공개 설정을
+  물려받는다 → `docker pull` 에 로그인 불필요(익명 6/6 HTTP 200 실측). CI 의 `imagePullSecret` 은 이 구성에선 불필요.
+
+### 재개 절차 (compact 후 여기부터)
+```bash
+colima start                                   # VM (12GB·6CPU 설정 유지)
+export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+docker start shopsaga-control-plane            # kind 노드 → 13파드 자동 재생성(~2분)
+kubectl get pods -n shopsaga -w
+curl -s localhost:8000/actuator/health         # Ingress → gateway, 200 기대
+```
+⚠️ 노드 재기동 직후엔 CoreDNS·컨트롤러가 뜰 때까지 파드가 0개로 보인다 — 기다리면 controller-manager 가 만든다.
 
 ### 빠른 조작
 ```bash
 export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
 kubectl get pods -n shopsaga                        # 상태
 ./deploy/k8s/build-and-load.sh all                  # 이미지 재빌드 + kind load
-./deploy/k8s/apply.sh                               # 전체 배포(ConfigMap·RSA키·ingress 포함)
-./deploy/k8s/apply.sh --config                      # 설정만 갱신 + 롤아웃
+./deploy/k8s/apply.sh                               # 전체 배포 = overlays/local
+./deploy/k8s/apply.sh ci                            # GHCR 이미지로 배포 = overlays/ci
+kubectl kustomize deploy/k8s/overlays/local         # 적용 전에 최종 YAML 을 눈으로
+kubectl diff      -k deploy/k8s/overlays/local      # 지금 클러스터와의 차이
 kind delete cluster --name shopsaga                 # 통째로 정리
 ```
+> **Phase 18 이후 `--config` 플래그는 없다.** 설정을 고쳤으면 `apply.sh` 를 그냥 다시 돌리면 된다 —
+> ConfigMap 이름의 해시가 바뀌면서 롤링 업데이트가 저절로 일어난다(실측 44초·무중단).
 자세한 실행·스모크·함정표: `deploy/k8s/README.md`. 심화: `docs/PHASE-16-KUBERNETES.md`.
 
 ### 설정이 사는 곳 (Phase 16b 구조 — 꼭 기억)
@@ -93,7 +128,13 @@ kind delete cluster --name shopsaga                 # 통째로 정리
 ② shared/messaging/.../shopsaga-messaging-defaults.yml   공통 메시징(4개 서비스가 classpath import)
 ③ deploy/config/{common,<service>}.yml           환경 오버라이드 — compose 와 k8s 가 **공유**
      → /application/config/{10-common,20-service}/application.yml (뒤가 이김)
+     · compose : 바인드 마운트
+     · k8s     : deploy/config/kustomization.yaml 의 configMapGenerator (Phase 18)
 ```
+⚠️ **`deploy/config/kustomization.yaml` 이 왜 거기 있나**: Kustomize 는 기본적으로 kustomization
+디렉터리 **바깥 파일**을 못 읽는다(`LoadRestrictionsRootOnly`). 그래서 `deploy/config/` 를 스스로
+kustomization 루트로 만들고 `base` 가 `resources: [../../config]` 로 끌어온다. 이 구조를 깨면
+compose 와의 설정 공유가 깨진다 — **옮기지 말 것.**
 
 ## 실행 / 검증 (재현)
 ```bash
@@ -128,18 +169,33 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - ⚠️ **`docker exec` 폴링 루프는 매우 느리다**(호출당 수~수십 초). 검증 루프는 호출 수를 최소화하고 한 번에 여러 값을 조회할 것.
 - gradle/docker/git 명령은 `dangerouslyDisableSandbox: true`로 실행.
 
-## 다음 단계 — Phase 18 (캡스톤 · 선택)
-로드맵 `MSA-LEARNING-PLAN.md` §Phase 18. **필수가 아니라 고르는 단계**다. 후보:
-- **Helm/Kustomize** 리팩터 — `apply.sh` 의 명령형 부분(ConfigMap 생성·이미지 sed)을 선언적으로. Phase 16·17 한계 #1
-- **GitOps**(Argo CD/Flux) — CI 는 "배포 가능함"만 증명한다. 실제 반영은 아직 수동. Phase 17 한계 #2
-- metrics-server + **HPA** · NetworkPolicy · `runAsNonRoot`/`readOnlyRootFilesystem` (보안 기본값)
-- **Boot 4.1 + Spring Cloud 2025.1(Oakwood) 이전** — Jackson 3 · Jakarta EE 11 · Spring Framework 7
-- shipping·catalog 서비스 추가(Saga 참여자 확장) · Debezium CDC 로 outbox 릴레이 대체 · gRPC 엣지
-- 이미지 취약점 스캔(Trivy) · cosign 서명/SBOM · outbox 격리분 재처리 도구
+## 다음 단계 — Phase 19 이후 (계속 **고르는** 단계)
+로드맵의 필수 구간은 Phase 18 로 끝났다. 아래는 후보이고, 무엇을 할지 사용자와 먼저 정할 것.
 
-### Phase 17 이 남긴 것 (문서 §8 에 전체 9항목)
-- 이미지 교체를 `sed` 로(Kustomize 부재) · **CD 없음**(배포는 여전히 수동) · 중간 태그 누적
-- 취약점 스캔·서명·SBOM 없음 · 스모크가 행복 경로 하나 · 도커 레이어 캐시 없음 · 버전 고정(`0.0.1-SNAPSHOT`)
+**권장 1순위 — GitOps(Argo CD).** 이유: Phase 18 이 선언적 배포를 깔아 놨으므로 **지금이 제일 싸다.**
+Argo CD 는 Kustomize 오버레이를 네이티브로 읽는다(`overlays/local` 을 그대로 가리키면 된다).
+동시에 Phase 18 한계표의 **#1(배포 수동)과 #2(옛 해시 리소스 prune 안 됨)를 한꺼번에** 해결한다.
+
+**그 외 후보**
+- 보안 기본값 — `runAsNonRoot`/`readOnlyRootFilesystem` · NetworkPolicy · Pod Security Standards
+- 이미지 취약점 스캔(Trivy) · cosign 서명/SBOM — CI 에 한 잡 추가면 된다(가성비 좋음)
+- metrics-server + **HPA**(오토스케일 실측) — 지금은 metrics-server 가 없어 불가
+- **비밀 관리** — External Secrets Operator / SOPS. 지금 DB 비밀번호가 git 에 평문(dev 값)이다
+- **Boot 4.1 + Spring Cloud 2025.1(Oakwood) 이전** — Jackson 3 · Jakarta EE 11 · Spring Framework 7 (큰 작업)
+- shipping·catalog 서비스 추가(Saga 참여자 확장) · Debezium CDC 로 outbox 릴레이 대체 · gRPC 엣지
+- **격리된 outbox 8건 재처리 도구** — Phase 16b 사고의 실제 유실분(로컬 PVC 에 아직 남아 있다)
+- CI 스모크에 **실패 경로**(재고 부족 → 보상 → CANCELLED) 추가 — 지금은 행복 경로 하나뿐
+
+### Phase 16·17·18 이 남긴 것 (각 문서 §8 에 전체 표)
+- **배포 수동**(CD 없음) · **옛 해시 ConfigMap 이 prune 안 됨** · 중간 태그(`:sha-arch`) 누적
+- Secret 은 base64 일 뿐(git 에 평문 dev 값) · RSA 키가 머신마다 다름 · 컨테이너 root 실행 · NetworkPolicy 없음
+- DB·Kafka 가 Deployment(StatefulSet 아님) · PVC 가 local-path · 단일 노드 · Kafka 단일 브로커
+- metrics-server 없음(HPA 불가) · 취약점 스캔·서명·SBOM 없음 · overlay 가 local·ci 둘뿐
+- CI 스모크가 "행복 경로" 하나 · 도커 레이어 캐시 없음 · 버전 `0.0.1-SNAPSHOT` 고정
+- Helm 버전 스큐(로컬 4.2.3 / CI 3.21.3) · Secret 이 매번 `configured` 로 보임(표시상 문제, §7-⑧)
+
+> ✅ Phase 18 이 **해결한** 것: 명령형 ConfigMap 생성 · CI 의 `sed` · 원격 URL 로 ingress 설치 ·
+> `--config` 수동 롤아웃(→ 자동) · 매니페스트에 흩어진 `namespace` 34곳.
 
 ## 매 Phase 작업 흐름 (사용자 선호 — 지켜야 함)
 1. 리서치(버전 특이점) → 2. 설계(큰 결정은 AskUserQuestion) → 3. 구현 →
@@ -216,3 +272,23 @@ DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLE
 - **[테스트] `src/test/resources/application.yml` 사본은 실제 설정을 가린다.** Phase 6 때 만든 게이트웨이 사본이
   라우트 4개짜리 옛 버전을 검증하고 있었다 — 원본이 5개로 바뀐 걸 몰랐다. 사본을 두면 썩는다.
 - **[zsh] `NS="-n shopsaga"; kubectl get pods $NS` 는 동작하지 않는다** — zsh 는 변수를 단어 분할하지 않아 통째로 한 인자가 된다(`namespaces " shopsaga" not found`).
+  `CF="-f a.yml --profile async"; docker compose $CF ps` 도 같은 이유로 조용히 0건을 낸다. **인자는 리터럴로 쓸 것.**
+- **[awk] `$2 ~ /^([0-9]+)\/\1$/` 같은 역참조는 POSIX awk 에 없다.** `1/1` 판정에 쓰면 항상 거짓이라
+  "파드 0개 Ready" 로 잘못 보인다. 준비 상태는 `kubectl rollout status` 나 `kubectl wait` 로 볼 것.
+- **[Kustomize] kustomization 디렉터리 바깥 파일은 못 읽는다**(`security; file ... is not in or below ...`).
+  그 디렉터리를 스스로 kustomization 루트로 만들고 `resources:` 로 참조하면 통과한다(§Phase 18).
+- **[Kustomize] 생성기(configMapGenerator/secretGenerator)는 이름에 내용 해시를 붙인다** — 이게 설정 변경 시
+  자동 롤아웃을 만든다. 단 **DB 비밀번호처럼 '재시작해도 반영 안 되는' 값은 생성기로 만들지 말 것**
+  (PostgreSQL 은 비밀번호를 PVC 초기화 때 굽는다 → 이름만 바뀌고 인증은 깨진다).
+- **[Kustomize] 공통 라벨에 `includeSelectors: true` 를 쓰면 기존 Deployment 에 apply 가 거부된다**
+  (`spec.selector` 는 불변 필드). 조회용 라벨은 `includeSelectors: false`.
+- **[Helm] `kubectl apply` 로 깐 것을 `helm upgrade --install` 로 덮을 수 없다**(소유권 오류).
+  ns + ClusterRole/Binding + IngressClass + ValidatingWebhookConfiguration 을 먼저 지워야 한다.
+- **[Helm 4] `--wait` 가 불리언이 아니라 전략 플래그다**(`--wait WaitStrategy[=watcher]`, 기본 `hookOnly`).
+  값 없이 `--wait` 만 쓰면 Helm 3 과 같은 뜻이라 호환되지만, `--wait 5m` 처럼 붙이면 Helm 4 가 실패한다.
+- **[Gradle] `./gradlew build` 는 테스트가 up-to-date 면 건너뛴다** — "초록불"이 테스트 증거가 아니다.
+  실제로 세려면 `--rerun-tasks`. 그리고 **계약 테스트는 `build/test-results/contractTest/`** 에 따로 쌓인다
+  (`test/` 만 세면 84, 합치면 **87**).
+- **[Testcontainers] 로컬 테스트에 `DOCKER_HOST` 가 필요하다** — 없으면
+  `Could not find a valid Docker environment`. `export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`
+  와 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`.

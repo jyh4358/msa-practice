@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 18 · 선언적 배포 · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li class="active"><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="phase-18--선언적-배포-kustomize-baseoverlay--helm-릴리스--설정-변경의-자동-전파">Phase 18 — 선언적 배포 (Kustomize base/overlay · Helm 릴리스 · 설정 변경의 자동 전파)</h1>
+<blockquote>
+<p><strong>한 줄 요약:</strong> Phase 16·17 의 한계표에서 <strong>양쪽 모두 1번</strong>으로 적어 둔 것이 이거였다 —
+&quot;배포가 아직 셸 스크립트다.&quot;
+<code>apply.sh</code> 안에는 ConfigMap 을 만드는 <code>for</code> 루프가, CI 안에는 이미지 이름을 바꾸는 <code>sed</code> 가 있었다.
+이 단계에서 그것들을 <strong>선언</strong>으로 바꾼다. 그리고 그 부산물로,
+<strong>설정 파일을 고치면 파드가 저절로 갈리는</strong> 성질을 공짜로 얻는다.</p>
+</blockquote>
+<p>초심자(쿠버네티스 매니페스트는 Phase 16 에서 처음 봤고 Kustomize/Helm 은 처음) 기준으로
+<strong>왜 → 무엇을 → 어떻게</strong> 순서로 설명합니다.</p>
+<hr>
+<h2 id="0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</h2>
+<ul>
+<li>매니페스트 15개를 <code>deploy/k8s/base/</code> 로 옮기고, 환경 차이는 <code>deploy/k8s/overlays/{local,ci}</code> 가 담게 했다.
+배포는 이제 <strong><code>kubectl apply -k</code> 한 줄</strong>이다.</li>
+<li>파일마다 박혀 있던 <code>namespace: shopsaga</code> <strong>34곳</strong>을 지우고 <code>base/kustomization.yaml</code> 의 <strong>한 줄</strong>로 모았다.</li>
+<li><code>apply.sh</code> 의 <code>kubectl create configmap --from-file</code> <strong>7회 루프</strong>를
+<code>deploy/config/kustomization.yaml</code> 의 <code>configMapGenerator</code> 로 바꿨다.
+⚠️ 이때 Kustomize 의 <strong>로드 제한</strong>에 부딪혔고(§4-①), <code>deploy/config/</code> 자체를 kustomization 루트로
+만드는 방식으로 풀었다 — 덕분에 <strong>compose 와 설정 파일을 공유하는 구조가 그대로 유지된다</strong>.</li>
+<li><strong><code>--config</code> 플래그가 사라졌다.</strong> 생성기가 내용 해시를 이름에 붙이므로 설정 변경이 곧 배포 변경이 되고,
+롤링 업데이트가 저절로 일어난다 — 실측 <strong>44초, 무중단, <code>rollout restart</code> 명령 0회</strong>(§7-③).</li>
+<li>CI 의 <code>sed</code> 를 <strong><code>kustomize edit set image</code></strong> 로 바꿨다. sed 는 패턴이 안 맞아도 조용히 성공하지만,
+Kustomize 는 YAML 을 파싱해서 <strong>컨테이너의 image 필드만</strong> 정확히 바꾼다(§7-⑤에 그 증거).</li>
+<li><strong>ingress-nginx 는 Helm 릴리스로</strong> 깔았다(원격 raw 매니페스트 URL → 차트 4.13.9 + values 파일).
+<strong>내 것은 Kustomize, 남의 것은 Helm</strong> — 실무에서 가장 흔한 조합이고, 그 이유가 §1-⑤에 있다.</li>
+<li>노드 라벨 <code>ingress-ready=true</code> 를 <code>kind-cluster.yaml</code> 로 옮겼다(클러스터를 만들 때 정해지는 성질이므로).</li>
+<li>auth-service 의 RSA 개인키는 여전히 git 밖에 있고(<code>base/.secrets/</code>, <code>.gitignore</code>),
+<code>secretGenerator</code> 가 그 파일을 읽는다. <strong>없으면 렌더가 실패한다</strong> — 의도한 동작이다.</li>
+</ul>
+<p><strong>바뀌지 않은 것</strong>(중요): 애플리케이션 코드 한 줄도 건드리지 않았다. 이미지도 그대로다.
+테스트 <strong>87개 전부 통과</strong>(§7-⑦). compose 도 그대로 뜬다(§7-⑥).</p>
+<hr>
+<h2 id="1-왜--셸-스크립트로-배포하면-무엇이-문제인가">1. 왜 — 셸 스크립트로 배포하면 무엇이 문제인가</h2>
+<p>Phase 16b 의 <code>apply.sh</code> 는 잘 동작했다. 그런데 다음 다섯 가지가 걸린다.</p>
+<p><strong>① 무엇이 클러스터에 있는지 파일만 봐서는 모른다.</strong>
+<code>kubectl create configmap … | kubectl apply -f -</code> 는 <strong>실행해 봐야</strong> 결과를 안다.
+매니페스트는 &quot;이렇게 되어 있어야 한다&quot;는 <strong>명세</strong>인데, 셸 스크립트는 &quot;이렇게 해라&quot;는 <strong>절차</strong>다.
+명세는 읽고 비교하고 되돌릴 수 있지만, 절차는 실행 이력을 따라가야 한다.</p>
+<p><strong>② 지우는 방법이 없다.</strong> 만든 것 목록을 아무도 안 갖고 있으니
+<code>kubectl delete namespace</code> 로 통째로 날리는 것 말고는 방법이 없다.</p>
+<p><strong>③ 설정을 고쳐도 파드가 모른다.</strong> ★ 이게 제일 아팠다.
+ConfigMap 을 갱신해도 이미 떠 있는 파드는 <strong>기동할 때 읽은 설정을 그대로 들고 있다.</strong>
+그래서 16b 의 <code>apply.sh</code> 에는 이런 게 붙어 있었다:</p>
+<pre><code class="hljs language-bash"><span class="hljs-keyword">if</span> [ <span class="hljs-string">&quot;<span class="hljs-variable">$ONLY_CONFIG</span>&quot;</span> = <span class="hljs-string">&quot;--config&quot;</span> ]; <span class="hljs-keyword">then</span>
+  <span class="hljs-keyword">for</span> d <span class="hljs-keyword">in</span> $(kubectl get deploy -n <span class="hljs-string">&quot;<span class="hljs-variable">$NS</span>&quot;</span> -o name | grep -E <span class="hljs-string">&quot;service&quot;</span>); <span class="hljs-keyword">do</span>
+    kubectl rollout restart <span class="hljs-string">&quot;<span class="hljs-variable">$d</span>&quot;</span> -n <span class="hljs-string">&quot;<span class="hljs-variable">$NS</span>&quot;</span>      <span class="hljs-comment"># ← 사람이 기억해서 붙여야 하는 절차</span>
+  <span class="hljs-keyword">done</span>
+<span class="hljs-keyword">fi</span>
+</code></pre><p><code>--config</code> 를 안 붙이고 돌리면 <strong>ConfigMap 만 바뀌고 아무 일도 안 일어난다.</strong>
+조용히 틀리는 종류의 실수다.</p>
+<blockquote>
+<p>참고: 마운트된 ConfigMap <strong>파일 자체</strong>는 kubelet 이 최대 ~70초 뒤 갱신해 준다.
+하지만 Spring Boot 는 그 파일을 <strong>기동 시 한 번</strong> 읽고 끝이라 파일이 바뀌어도 반영되지 않는다.
+그래서 결국 &quot;재시작&quot;이 유일한 답이었다.</p>
+</blockquote>
+<p><strong>④ CI 의 <code>sed</code> 는 틀려도 조용하다.</strong></p>
+<pre><code class="hljs language-bash">sed -i <span class="hljs-string">&quot;s|image: shopsaga/<span class="hljs-variable">${svc}</span>:0.0.1|image: <span class="hljs-variable">${IMAGE_BASE}</span>/<span class="hljs-variable">${svc}</span>:<span class="hljs-variable">${GITHUB_SHA}</span>|g&quot;</span> deploy/k8s/*.yaml
+</code></pre><p>문제는 &#39;더럽다&#39;가 아니다. <strong>0건 치환해도 <code>exit 0</code></strong> 이라는 것이다.
+매니페스트에서 들여쓰기를 한 칸 바꾸거나 태그를 <code>0.0.2</code> 로 올리면 패턴이 안 맞는데,
+CI 는 초록불인 채로 <strong>옛 이미지를 배포</strong>한다. 그리고 스모크가 통과해 버리면 아무도 모른다.</p>
+<p><strong>⑤ 남의 소프트웨어를 URL 로 설치하면 관리할 수가 없다.</strong></p>
+<pre><code class="hljs language-bash">kubectl apply -f https://raw.githubusercontent.com/…/controller-v1.13.1/…/kind/deploy.yaml
+</code></pre><p>버전이 <strong>URL 문자열 안에 숨는다</strong>. 무엇이 깔렸는지 알려면 클러스터에 물어봐야 하고,
+값을 바꾸려면 남의 YAML 을 손으로 고쳐야 하고(다음 업그레이드 때 그 수정은 날아간다),
+지우려면 무엇이 깔렸는지 <strong>다시 알아내야</strong> 한다.</p>
+<hr>
+<h2 id="2-개념--최소-용어">2. 개념 — 최소 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Kustomize</strong></td>
+<td>완성된 YAML 을 <strong>덧칠</strong>해 환경별 변형을 만드는 도구. <code>kubectl</code> 에 내장(<code>-k</code>).</td>
+</tr>
+<tr>
+<td><strong>base</strong></td>
+<td>어느 환경에서나 참인 매니페스트 묶음. <strong>그 자체로 배포 가능</strong>해야 한다.</td>
+</tr>
+<tr>
+<td><strong>overlay</strong></td>
+<td>base 를 가져다 그 환경에서만 참인 것을 얹은 것. <code>resources: [../../base]</code></td>
+</tr>
+<tr>
+<td><strong>transformer(변환기)</strong></td>
+<td>모든 리소스에 일괄 적용되는 규칙. <code>namespace:</code>, <code>labels:</code>, <code>images:</code> 등.</td>
+</tr>
+<tr>
+<td><strong>generator(생성기)</strong></td>
+<td>파일·리터럴로부터 ConfigMap/Secret 을 <strong>만들어 내는</strong> 규칙. <strong>이름에 내용 해시가 붙는다.</strong></td>
+</tr>
+<tr>
+<td><strong>name reference transformer</strong></td>
+<td>생성기가 이름을 바꾸면 <strong>그 이름을 참조하는 곳까지</strong> 같이 고쳐 주는 내장 변환기.</td>
+</tr>
+<tr>
+<td><strong>strategic merge patch</strong></td>
+<td>원본과 같은 모양의 YAML 조각을 주면 필드 단위로 병합되는 패치 방식.</td>
+</tr>
+<tr>
+<td><strong>load restrictor</strong></td>
+<td>kustomization 디렉터리 <strong>바깥 파일</strong> 읽기를 막는 안전장치. 기본 <code>LoadRestrictionsRootOnly</code>.</td>
+</tr>
+<tr>
+<td><strong>Helm</strong></td>
+<td>템플릿(<code>{{ .Values.x }}</code>)을 값으로 채워 배포하고, <strong>설치한 것의 목록을 릴리스로 기억</strong>하는 패키지 매니저.</td>
+</tr>
+<tr>
+<td><strong>release(릴리스)</strong></td>
+<td>Helm 이 기억하는 &quot;이 이름으로 이 차트를 이 값으로 깔았다&quot;는 기록. <code>helm list</code> 로 조회.</td>
+</tr>
+</tbody></table>
+<h3 id="kustomize-와-helm-은-경쟁-관계가-아니다">Kustomize 와 Helm 은 경쟁 관계가 아니다</h3>
+<p>둘의 접근이 근본적으로 다르다.</p>
+<pre><code>Helm      : 빈칸 뚫린 템플릿 → 값으로 채운다
+            templates/deployment.yaml 은 그 자체로 유효한 YAML 이 아니다({{ }} 때문에).
+            강점: 파라미터가 많고, 남에게 배포할 때. 릴리스 이력·롤백.
+
+Kustomize : 완성된 YAML → 위에 덧칠한다
+            base/*.yaml 은 kubectl apply -f 로도 그냥 배포된다.
+            강점: 내 것을 내가 관리할 때. diff 가 읽히고, 원본이 항상 유효.
+</code></pre><p>그래서 실무의 표준 답은 <strong>&quot;내 앱은 Kustomize, 서드파티는 Helm&quot;</strong> 이다.
+남이 만든 것(ingress-nginx, Argo CD, cert-manager…)은 대부분 <strong>Helm 차트로 배포되므로</strong>
+받는 쪽도 Helm 을 쓰는 게 자연스럽다. 이번 Phase 가 정확히 그 구성이다.</p>
+<hr>
+<h2 id="3-구성--디렉터리-모양">3. 구성 — 디렉터리 모양</h2>
+<pre><code>deploy/
+├── config/                          ★ 설정의 단일 소스 (compose 와 공유)
+│   ├── kustomization.yaml           ← configMapGenerator 7개. 왜 여기 있는지는 §4-①
+│   ├── common.yml                   ← 서비스 주소·Kafka·probe·관측성
+│   └── {order,payment,…}-service.yml
+│
+└── k8s/
+    ├── kind-cluster.yaml            ← 포트 매핑 + ingress-ready 노드 라벨
+    ├── ingress-nginx-values.yaml    ← Helm 차트 값 (kind 용)
+    ├── build-and-load.sh            ← bootJar → 이미지 → kind load
+    ├── apply.sh                     ← 키 부트스트랩 + helm + apply -k  (59줄, 16b 는 76줄)
+    │
+    ├── base/                        ★ 어느 환경에서나 참인 것
+    │   ├── kustomization.yaml       ← namespace 변환기 · 공통 라벨 · resources · secretGenerator
+    │   ├── .secrets/                ← .gitignore. RSA 개인키(apply.sh 가 생성)
+    │   ├── namespace.yaml
+    │   ├── db-secrets.yaml
+    │   ├── {order,payment,inventory}-db.yaml · order-query-mongo.yaml
+    │   ├── kafka.yaml · otel-lgtm.yaml
+    │   ├── {auth,order,payment,inventory,order-query,gateway}-service.yaml
+    │   └── ingress.yaml
+    │
+    └── overlays/
+        ├── local/kustomization.yaml ← order-service 를 NodePort 30080 으로도 노출(디버깅)
+        └── ci/kustomization.yaml    ← 이미지를 GHCR 참조로 교체
+</code></pre><h3 id="무엇이-base-이고-무엇이-overlay-인가">무엇이 base 이고 무엇이 overlay 인가</h3>
+<p>이 경계를 어디에 그을지가 Kustomize 를 쓸 때 실제로 고민하는 유일한 문제다. 기준은 하나다 —
+<strong>&quot;다른 환경에서도 이게 참인가?&quot;</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>어디에</th>
+<th>왜</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Deployment·Service·probe·리소스 요청</td>
+<td>base</td>
+<td>어디서 돌리든 같다</td>
+</tr>
+<tr>
+<td>Ingress</td>
+<td>base</td>
+<td>경로 규칙은 환경과 무관</td>
+</tr>
+<tr>
+<td>ConfigMap 내용</td>
+<td>base(=<code>../../config</code>)</td>
+<td>compose 와도 공유하는 <strong>하나의</strong> 설정</td>
+</tr>
+<tr>
+<td><strong>NodePort 30080</strong></td>
+<td>overlays/local</td>
+<td>게이트웨이 우회 디버깅용. CI 스모크는 Ingress 만 쓴다</td>
+</tr>
+<tr>
+<td><strong>이미지 출처</strong></td>
+<td>overlays/ci</td>
+<td>로컬은 <code>kind load</code> 한 것, CI 는 GHCR 의 커밋 SHA</td>
+</tr>
+</tbody></table>
+<p>16b 에서는 NodePort 가 base 매니페스트에 있었다. 그때는 &quot;내 노트북 = 유일한 환경&quot;이었으니 맞았다.
+CI 라는 두 번째 환경이 생긴 지금은 <strong>거짓말</strong>이 된 것이고, 그래서 overlay 로 내려보냈다.</p>
+<hr>
+<h2 id="4-코드--결정적인-부분">4. 코드 — 결정적인 부분</h2>
+<h3 id="-로드-제한-이-phase-에서-제일-먼저-부딪힌-벽">① 로드 제한: 이 Phase 에서 제일 먼저 부딪힌 벽</h3>
+<p>가장 자연스러운 작성은 이것인데, <strong>동작하지 않는다</strong>:</p>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/base/kustomization.yaml</span>
+<span class="hljs-attr">configMapGenerator:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga-common</span>
+    <span class="hljs-attr">files:</span> [<span class="hljs-string">application.yml=../../config/common.yml</span>]     <span class="hljs-comment"># ← 상위 디렉터리</span>
+</code></pre><pre><code>error: loading KV pairs: file sources: [application.yml=../../config/common.yml]:
+  security; file &#39;/…/deploy/config/common.yml&#39;
+  is not in or below &#39;/…/deploy/k8s/base&#39;
+</code></pre><p>Kustomize 는 기본적으로 kustomization 디렉터리 <strong>바깥의 파일</strong>을 못 읽는다
+(<code>LoadRestrictionsRootOnly</code>). 공급망 공격 방지가 목적이다 — 남의 kustomization 을 받아 빌드했을 때
+내 <code>~/.ssh/id_rsa</code> 를 ConfigMap 으로 빨아가지 못하게 한다.</p>
+<p>우회법이 셋인데 각각 대가가 있다:</p>
+<table>
+<thead>
+<tr>
+<th>방법</th>
+<th>대가</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>kustomize build --load-restrictor LoadRestrictionsNone</code></td>
+<td>별도 바이너리 필요(kubectl 은 이 플래그를 노출 안 함) + 안전장치를 통째로 끔</td>
+</tr>
+<tr>
+<td><code>deploy/config/</code> 를 <code>base/</code> 안으로 이동</td>
+<td>compose 가 &quot;k8s 디렉터리&quot;에서 설정을 마운트하게 됨 — 소유 관계가 뒤집힘</td>
+</tr>
+<tr>
+<td><strong><code>deploy/config/</code> 를 스스로 kustomization 루트로</strong></td>
+<td>없음 ← <strong>이걸 골랐다</strong></td>
+</tr>
+</tbody></table>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/config/kustomization.yaml — 파일들이 자기 루트 안에 있으므로 제한에 안 걸린다</span>
+<span class="hljs-attr">configMapGenerator:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga-common</span>
+    <span class="hljs-attr">files:</span> [<span class="hljs-string">application.yml=common.yml</span>]
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">order-service-config</span>
+    <span class="hljs-attr">files:</span> [<span class="hljs-string">application.yml=order-service.yml</span>]
+  <span class="hljs-comment"># … 6개 서비스</span>
+</code></pre><pre><code class="hljs language-yaml"><span class="hljs-comment"># deploy/k8s/base/kustomization.yaml — 디렉터리 참조는 &#x27;새 루트&#x27;라 허용된다</span>
+<span class="hljs-attr">resources:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">../../config</span>
+</code></pre><p>덤이 있다. <strong>ConfigMap 을 만드는 규칙이 원본 파일 바로 옆에 있게</strong> 되어
+&quot;이 디렉터리가 설정의 주인&quot;이라는 사실이 구조로 드러난다.</p>
+<h3 id="-생성기의-해시-접미사--이-phase-의-핵심">② 생성기의 해시 접미사 — 이 Phase 의 핵심</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># 렌더 결과</span>
+<span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
+<span class="hljs-attr">kind:</span> <span class="hljs-string">ConfigMap</span>
+<span class="hljs-attr">metadata:</span>
+  <span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga-common-49f7g8bmk6</span>      <span class="hljs-comment"># ← 내용 해시가 붙는다</span>
+<span class="hljs-meta">---</span>
+<span class="hljs-attr">kind:</span> <span class="hljs-string">Deployment</span>
+      <span class="hljs-attr">volumes:</span>
+        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">common-config</span>
+          <span class="hljs-attr">configMap:</span>
+            <span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga-common-49f7g8bmk6</span>   <span class="hljs-comment"># ← 참조도 같이 고쳐진다</span>
+</code></pre><p>두 번째가 핵심이다. Deployment 에는 <code>configMap: {name: shopsaga-common}</code> 이라고만 적혀 있는데,
+Kustomize 의 <strong>이름 참조 변환기</strong>가 생성기의 결과를 알고 참조까지 바꿔 준다.</p>
+<blockquote>
+<p>이게 <code>base</code> 와 <code>../../config</code> 처럼 <strong>다른 kustomization 에 나뉘어 있어도 동작하는지</strong>는
+확실하지 않아서 먼저 실험했다 — 동작한다(§7-①).</p>
+</blockquote>
+<p>그 결과 이렇게 된다:</p>
+<pre><code>common.yml 한 글자 수정
+  → 내용 해시가 바뀐다
+  → ConfigMap 이름이 바뀐다
+  → 그걸 참조하는 Deployment 의 &#39;파드 템플릿&#39;이 바뀐다   ← 여기가 핵심
+  → 쿠버네티스가 &quot;배포가 바뀌었다&quot;고 판단한다
+  → 롤링 업데이트가 저절로 일어난다
+</code></pre><p><strong>&quot;설정 변경&quot;이 &quot;배포 변경&quot;으로 타입 승격된다.</strong> <code>--config</code> 플래그가 필요 없어진 이유다.</p>
+<h3 id="-db-자격증명은-일부러-생성기로-만들지-않았다">③ DB 자격증명은 일부러 생성기로 만들지 않았다</h3>
+<p>일관성만 보면 DB 비밀번호도 <code>secretGenerator</code> 로 옮기는 게 맞아 보인다. 하지만 안 했다.</p>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># base/db-secrets.yaml — 평범한 리소스로 남겨 뒀다(해시 접미사 없음)</span>
+<span class="hljs-attr">kind:</span> <span class="hljs-string">Secret</span>
+<span class="hljs-attr">metadata:</span> { <span class="hljs-attr">name:</span> <span class="hljs-string">order-db-credentials</span> }
+<span class="hljs-attr">stringData:</span>
+  <span class="hljs-attr">username:</span> <span class="hljs-string">order</span>
+  <span class="hljs-attr">password:</span> <span class="hljs-string">orderpw</span>
+</code></pre><p>이유: <strong>PostgreSQL 은 비밀번호를 PVC 안 데이터 디렉터리에 초기화 시 한 번 굽는다.</strong>
+Secret 을 생성기로 바꾸면 비밀번호를 고치는 순간 이름이 바뀌고 → DB 파드가 재시작되는데,
+<strong>정작 DB 안의 비밀번호는 그대로</strong>라 앱이 인증 실패로 죽는다.
+&quot;자동 롤아웃&quot;이 여기서는 <strong>도움이 아니라 함정</strong>이다.</p>
+<p>반대로 auth-service 의 RSA 서명 키는 생성기가 맞다 — 키 교체는 원래 재시작이 필요한 일이다.</p>
+<blockquote>
+<p>정리하면: <strong>재시작이 곧 반영인 값은 생성기로, 재시작으로 반영되지 않는 값은 일반 리소스로.</strong></p>
+</blockquote>
+<h3 id="-overlaysci--sed-가-하던-일">④ overlays/ci — sed 가 하던 일</h3>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">images:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">shopsaga/order-service</span>                              <span class="hljs-comment"># base 의 이미지 이름과 정확히 일치</span>
+    <span class="hljs-attr">newName:</span> <span class="hljs-string">ghcr.io/jyh4358/msa-practice/order-service</span>
+    <span class="hljs-attr">newTag:</span> <span class="hljs-string">latest</span>                                            <span class="hljs-comment"># CI 가 커밋 SHA 로 덮어쓴다</span>
+</code></pre><pre><code class="hljs language-yaml"><span class="hljs-comment"># .github/workflows/ci.yml</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">이미지</span> <span class="hljs-string">태그를</span> <span class="hljs-string">이번</span> <span class="hljs-string">커밋으로</span> <span class="hljs-string">고정</span>
+  <span class="hljs-attr">working-directory:</span> <span class="hljs-string">deploy/k8s/overlays/ci</span>
+  <span class="hljs-attr">run:</span> <span class="hljs-string">|
+    for svc in $SERVICES; do
+      kustomize edit set image &quot;shopsaga/${svc}=${IMAGE_BASE}/${svc}:${GITHUB_SHA}&quot;
+    done
+    kustomize build . | grep -E &#x27;^\s+image:&#x27; | sort -u    # ← 눈으로 검증</span>
+</code></pre><p><code>newTag: latest</code> 는 자리 표시가 아니라 <strong>안전한 기본값</strong>이다. 사람이 손으로 <code>apply -k overlays/ci</code> 를
+돌려도 동작한다.</p>
+<blockquote>
+<p>⚠️ <code>kustomize edit</code> 는 <strong>kubectl 내장 kustomize 에 없다</strong>(kubectl 은 <code>build</code> 만 노출한다).
+그래서 CI 는 kustomize 바이너리를 따로 설치한다 — 버전은 kubectl v1.36 내장본과 같은 <strong>5.8.1</strong> 로 맞췄다.
+로컬과 CI 가 다른 렌더 결과를 내면 곤란하기 때문이다.</p>
+</blockquote>
+<h3 id="-ingress-nginx-url-에서-helm-릴리스로">⑤ ingress-nginx: URL 에서 Helm 릴리스로</h3>
+<pre><code class="hljs language-bash">helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx --create-namespace \
+  --version 4.13.9 \
+  --values deploy/k8s/ingress-nginx-values.yaml \
+  --<span class="hljs-built_in">wait</span> --<span class="hljs-built_in">timeout</span> 5m
+</code></pre><p><code>upgrade --install</code> = 없으면 설치, 있으면 갱신(멱등). 그리고 이제 이런 게 가능하다:</p>
+<pre><code class="hljs language-bash">helm list -n ingress-nginx          <span class="hljs-comment"># 무엇이 어느 버전으로 깔렸나</span>
+helm uninstall ingress-nginx        <span class="hljs-comment"># 깨끗이 제거(무엇을 만들었는지 Helm 이 안다)</span>
+</code></pre><p>kind 전용 값은 <code>ingress-nginx-values.yaml</code> 에 <strong>선언</strong>으로 있다:
+<code>hostPort.enabled: true</code>(노드의 80/443 을 직접 점유), <code>nodeSelector: {ingress-ready: &quot;true&quot;}</code>,
+컨트롤플레인 toleration, <code>publishService.enabled: false</code> + <code>publish-status-address: localhost</code>.</p>
+<blockquote>
+<p><strong>Helm 3 과 4 의 <code>--wait</code> 차이(주의).</strong> 내 노트북은 Helm <strong>4.2.3</strong>, GitHub 러너는 <strong>3.21.3</strong> 이다.
+Helm 4 에서 <code>--wait</code> 는 불리언이 아니라 전략을 받는 플래그로 바뀌었다
+(<code>--wait WaitStrategy[=watcher]</code>, 생략 시 기본은 <code>hookOnly</code>).
+값 없이 <code>--wait</code> 만 쓰면 <code>watcher</code> 가 되어 Helm 3 과 같은 뜻이므로
+<code>--wait --timeout 5m</code> 은 <strong>양쪽에서 동일하게 동작한다</strong>. 다만 <code>--wait 5m</code> 처럼 쓰면
+Helm 4 가 <code>5m</code> 을 전략 이름으로 읽어 실패하니 붙여 쓰지 말 것.</p>
+</blockquote>
+<hr>
+<h2 id="5-흐름--명령-하나가-클러스터에-닿기까지">5. 흐름 — 명령 하나가 클러스터에 닿기까지</h2>
+<pre><code>$ kubectl apply -k deploy/k8s/overlays/local
+
+ ① overlays/local/kustomization.yaml 을 읽는다
+      resources: [../../base]                → base 를 먼저 빌드하러 내려간다
+ │
+ ├─② base/kustomization.yaml
+ │     resources: [../../config, namespace.yaml, …] → config 를 먼저 빌드하러 내려간다
+ │   │
+ │   └─③ config/kustomization.yaml
+ │         configMapGenerator ×7  → 파일을 읽어 ConfigMap 생성, 이름에 내용 해시 부착
+ │         (shopsaga-common-49f7g8bmk6 …)
+ │
+ │  ④ base 로 돌아와 매니페스트 15개를 얹고, secretGenerator 로 auth-jwt-key 생성
+ │  ⑤ base 의 변환기 적용
+ │       namespace: shopsaga         → 모든 리소스에 주입(43개 중 42개. Namespace 자신은 제외)
+ │       labels: part-of=shopsaga    → metadata.labels 에만(선택자는 불변 필드라 안 건드림)
+ │       이름 참조 변환기            → Deployment 의 configMap.name 을 해시 이름으로 교정
+ │
+ ⑥ overlay 로 돌아와 패치 적용
+      Service/order-service → type: NodePort, nodePort: 30080
+ │
+ ⑦ 완성된 YAML 43개를 apiserver 로 전송
+</code></pre><p><code>⑦</code> 직전까지는 <strong>클러스터를 전혀 건드리지 않는다.</strong> 그래서 이렇게 미리 볼 수 있다:</p>
+<pre><code class="hljs language-bash">kubectl kustomize deploy/k8s/overlays/local   <span class="hljs-comment"># 최종 YAML 을 눈으로</span>
+kubectl diff      -k deploy/k8s/overlays/local <span class="hljs-comment"># 지금 클러스터와 뭐가 다른지</span>
+</code></pre><p>셸 스크립트 시절에는 <strong>불가능했던 일</strong>이다. &quot;실행해 봐야 아는 것&quot;이 &quot;읽으면 아는 것&quot;이 됐다.</p>
+<hr>
+<h2 id="6-원리--왜-이렇게-동작하나">6. 원리 — 왜 이렇게 동작하나</h2>
+<h3 id="-왜-해시-접미사가-롤링-업데이트를-일으키나">① 왜 해시 접미사가 롤링 업데이트를 일으키나</h3>
+<p>쿠버네티스 Deployment 컨트롤러는 <strong>파드 템플릿(<code>spec.template</code>)의 해시</strong>로 ReplicaSet 을 식별한다.
+템플릿이 한 바이트라도 다르면 다른 ReplicaSet 이고, 그러면 새 ReplicaSet 을 만들고
+옛것을 줄이는 <strong>롤링 업데이트</strong>가 시작된다.</p>
+<p>ConfigMap 의 <strong>내용</strong>은 파드 템플릿에 없다(템플릿에는 <em>이름</em>만 있다). 그래서 16b 에서는
+내용을 바꿔도 템플릿이 그대로라 아무 일도 안 일어났던 것이다.
+생성기는 <strong>내용을 이름에 실어</strong> 템플릿 안으로 밀어 넣는다 — 그래서 동작한다.</p>
+<blockquote>
+<p>같은 목적을 Helm 은 어노테이션으로 해결한다:
+<code>checksum/config: {{ .Files.Get &quot;config/common.yml&quot; | sha256sum }}</code>
+원리는 같다 — <strong>내용의 지문을 파드 템플릿에 넣는다.</strong> Kustomize 는 그걸 자동으로 할 뿐이다.</p>
+</blockquote>
+<h3 id="-왜-includeselectors-false-인가">② 왜 <code>includeSelectors: false</code> 인가</h3>
+<p>공통 라벨을 붙일 때 무심코 선택자까지 바꾸면 이렇게 된다:</p>
+<pre><code>The Deployment &quot;order-service&quot; is invalid: spec.selector: Invalid value: …
+  field is immutable
+</code></pre><p><code>Deployment.spec.selector</code> 는 <strong>불변 필드</strong>다. 이미 떠 있는 Deployment 의 선택자를 바꾸려면
+지우고 다시 만드는 수밖에 없다. 그래서 조회·정리용 라벨은 <code>metadata.labels</code> 에만 붙인다.</p>
+<h3 id="-왜-파드-ready-와-webhook-호출-가능이-다른가">③ 왜 &quot;파드 Ready&quot; 와 &quot;webhook 호출 가능&quot;이 다른가</h3>
+<p>Phase 17 에서 CI 를 깨뜨렸던 그 문제가 여기서도 그대로 유효하다.
+ingress-nginx 는 Ingress 를 만들 때 검증 webhook(<code>:443</code>)을 호출하는데,
+컨트롤러 파드가 Ready 가 된 <strong>뒤에도</strong> 그 Service 의 EndpointSlice 에 주소가 실리기까지
+한 박자가 더 걸린다. 그 사이에 apply 하면 <code>connect: connection refused</code> 다.</p>
+<p><code>helm --wait</code> 는 Deployment 가 Available 이 될 때까지만 기다린다 — <strong>충분하지 않다.</strong>
+그래서 <code>apply.sh</code> 는 그 뒤에 EndpointSlice 에 주소가 실릴 때까지 한 번 더 기다리고,
+그래도 결정적이지 않으므로 <code>apply -k</code> 를 최대 3회 재시도한다.
+그리고 <strong>다 쓰고도 실패하면 반드시 <code>exit 1</code></strong> 한다(조용히 넘어가면 Ingress 없는 클러스터가
+&#39;배포 성공&#39;으로 보고되고 뒤이은 스모크가 엉뚱한 이유로 깨진다).</p>
+<h3 id="-왜-helm-이-남의-것에-맞나">④ 왜 Helm 이 남의 것에 맞나</h3>
+<p>ingress-nginx 하나를 깔면 Deployment·Service·ServiceAccount·ClusterRole·ClusterRoleBinding·
+ValidatingWebhookConfiguration·인증서 발급 Job 까지 <strong>수십 개가 한 덩어리로</strong> 움직인다.
+그 조합은 업스트림이 정하는 것이지 내가 정하는 게 아니다.
+&quot;파라미터 몇 개만 받고 나머지는 알아서&quot; — 그게 정확히 템플릿 엔진이 잘하는 일이다.</p>
+<p>반대로 내 앱의 매니페스트는 내가 전부 이해하고 있고, 바꾸고 싶은 건 몇 군데뿐이다.
+그럴 땐 <strong>원본을 그대로 두고 덧칠</strong>하는 쪽이 읽기 쉽다.</p>
+<hr>
+<h2 id="7-검증--실제로-측정한-것">7. 검증 — 실제로 측정한 것</h2>
+<blockquote>
+<p>환경: macOS(Apple Silicon) · Colima 12GB/6CPU · kind v0.32.0 · k8s v1.36.1 ·
+kubectl v1.36.3(Kustomize 내장 v5.8.1) · Helm v4.2.3</p>
+</blockquote>
+<h3 id="-로드-제한과-그-해법--설계-전에-먼저-실험했다">① 로드 제한과 그 해법 — 설계 전에 먼저 실험했다</h3>
+<p>가정을 세우고 바로 확인했다. 두 가지가 궁금했다:
+(a) 상위 디렉터리 파일을 정말 못 읽는가, (b) 하위 kustomization 으로 우회하면
+<strong>이름 참조 교정이 경계를 넘어 동작하는가</strong>.</p>
+<pre><code>시도 A: files: ../../config/common.yml
+  → error: security; file &#39;/…/config/common.yml&#39; is not in or below &#39;/…/k8s/base&#39;   ✗
+
+시도 B: resources: ../../config  (config/ 를 스스로 kustomization 루트로)
+  → ConfigMap  name: shopsaga-common-52d2kftd5d
+     Deployment volumes[0].configMap.name: shopsaga-common-52d2kftd5d   ✓ 같이 교정됨
+</code></pre><p>(b)가 동작한다는 게 설계의 전제였다. <strong>동작하지 않았다면 이 구조 자체를 못 썼다.</strong></p>
+<h3 id="-배포--실제-클러스터에-적용">② 배포 — 실제 클러스터에 적용</h3>
+<p>기존 클러스터(16b 가 raw 매니페스트로 깐 ingress-nginx 가 있는 상태)에서 시작했다.</p>
+<pre><code>helm upgrade --install 이 소유권 오류로 실패
+  → 16b 의 설치분을 먼저 제거해야 했다:
+     ns/ingress-nginx · ClusterRole·Binding ×2 · IngressClass/nginx · ValidatingWebhookConfiguration
+</code></pre><p>제거 후 <code>./deploy/k8s/apply.sh</code>:</p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>결과</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>전체 소요</td>
+<td><strong>53초</strong> (Helm 설치 + webhook 대기 + apply -k 포함)</td>
+</tr>
+<tr>
+<td>생성된 리소스</td>
+<td>ConfigMap 7 + Secret 1 <strong>created</strong>, 나머지 35 configured</td>
+</tr>
+<tr>
+<td>앱 롤아웃</td>
+<td>6개 Deployment 전부 성공, 신규 파드 <code>restarts=0</code></td>
+</tr>
+<tr>
+<td>최종 상태</td>
+<td>shopsaga 13 파드 <code>1/1 Running</code> + ingress-nginx 1 파드</td>
+</tr>
+</tbody></table>
+<h3 id="--설정-변경--자동-롤아웃-이번-phase-의-핵심-주장">③ ★ 설정 변경 → 자동 롤아웃 (이번 Phase 의 핵심 주장)</h3>
+<p><code>deploy/config/common.yml</code> 에 <code>info.phase: &quot;18&quot;</code> 두 줄을 추가하고 <strong><code>apply.sh</code> 만 다시 실행</strong>했다.
+<code>kubectl rollout restart</code> 는 스크립트 어디에도 없다.</p>
+<pre><code>ConfigMap:  shopsaga-common-49f7g8bmk6  →  shopsaga-common-2497kkbgk6
+Deployment: auth·order·payment·inventory·order-query·gateway  6개 전부 &quot;configured&quot;
+파드:       전부 새 이름, RESTARTS=0    (재시작이 아니라 교체)
+소요:       44초 (6개 서비스 롤링 완료까지)
+중단:       없음 (롤링 업데이트)
+</code></pre><p>파드 <strong>안에서</strong> 실제로 반영됐는지까지 확인:</p>
+<pre><code class="hljs language-console"><span class="hljs-meta prompt_">$ </span><span class="language-bash">kubectl <span class="hljs-built_in">exec</span> -n shopsaga &lt;gateway-pod&gt; -- \
+    grep -A3 <span class="hljs-string">&quot;^info:&quot;</span> /application/config/10-common/application.yml</span>
+info:
+  pod: ${POD_NAME:${HOSTNAME:unknown}}
+<span class="hljs-meta prompt_">  # </span><span class="language-bash">이 값이 바뀌면 ConfigMap 내용 해시가 바뀌고 → 이름이 바뀌고 → 파드가 저절로 갈린다(Phase 18).</span>
+  phase: &quot;18&quot;
+<span class="hljs-meta prompt_">
+$ </span><span class="language-bash">kubectl get pod -n shopsaga &lt;gateway-pod&gt; -o jsonpath=<span class="hljs-string">&#x27;{.spec.volumes[*].configMap.name}&#x27;</span></span>
+shopsaga-common-2497kkbgk6 gateway-service-config-7fkt2t2m9d
+</code></pre><h3 id="-기능-회귀-없음--saga-완주">④ 기능 회귀 없음 — Saga 완주</h3>
+<pre><code>① Ingress(Helm 으로 새로 깐 것) → gateway  : HTTP 200
+② 로그인(secretGenerator 가 넣은 새 RSA 키): 토큰 530자
+③ 주문 접수                                : 201
+④ PENDING → INVENTORY_RESERVED → CONFIRMED : 4초
+⑤ NodePort 30080 (local 오버레이 패치)      : HTTP 200
+</code></pre><h3 id="-images-변환기가-sed-와-다른-점--증거">⑤ <code>images:</code> 변환기가 sed 와 다른 점 — 증거</h3>
+<p><code>overlays/ci</code> 를 렌더한 결과의 <strong>모든</strong> 이미지:</p>
+<pre><code>ghcr.io/jyh4358/msa-practice/auth-service:latest          ← 바뀜
+ghcr.io/jyh4358/msa-practice/gateway-service:latest       ← 바뀜
+ghcr.io/jyh4358/msa-practice/inventory-service:latest     ← 바뀜
+ghcr.io/jyh4358/msa-practice/order-query-service:latest   ← 바뀜
+ghcr.io/jyh4358/msa-practice/order-service:latest         ← 바뀜
+ghcr.io/jyh4358/msa-practice/payment-service:latest       ← 바뀜
+apache/kafka:4.3.1          ← 그대로
+busybox:1.37                ← 그대로 (initContainer)
+grafana/otel-lgtm:0.29.1    ← 그대로
+mongo:8                     ← 그대로
+postgres:18-alpine          ← 그대로
+</code></pre><p>앱 6개만 바뀌고 인프라 5종은 손대지 않았다. <strong>YAML 을 파싱해서 <code>image</code> 필드만 본다</strong>는 증거다.
+<code>overlays/local</code> 은 같은 base 에서 <code>shopsaga/*:0.0.1</code> 그대로 나온다.</p>
+<h3 id="-compose-는-그대로-동작하는가--phase-16b-의-핵심-성과-보존-확인">⑥ compose 는 그대로 동작하는가 — Phase 16b 의 핵심 성과 보존 확인</h3>
+<p><code>deploy/config/</code> 에 <code>kustomization.yaml</code> 을 새로 넣었으므로, compose 가 영향을 받는지 확인해야 했다.
+kind 노드를 정지해 포트 8000 을 넘기고 전체 스택을 띄웠다.</p>
+<pre><code>docker compose -f deploy/compose/compose.yml --profile async up -d
+  → 13 컨테이너, 12 healthy (kafka-ui 는 헬스체크 없음)
+  → 로그인 → 주문 → CONFIRMED : 4초
+</code></pre><p>그리고 결정적인 확인 — <strong>k8s 에서 고친 바로 그 설정이 compose 컨테이너에도 보이는가</strong>:</p>
+<pre><code class="hljs language-console"><span class="hljs-meta prompt_">$ </span><span class="language-bash">docker <span class="hljs-built_in">exec</span> shopsaga-order-service-1 grep -A3 <span class="hljs-string">&quot;^info:&quot;</span> /application/config/10-common/application.yml</span>
+info:
+  pod: ${POD_NAME:${HOSTNAME:unknown}}
+<span class="hljs-meta prompt_">  # </span><span class="language-bash">이 값이 바뀌면 ConfigMap 내용 해시가 바뀌고 → 이름이 바뀌고 → 파드가 저절로 갈린다(Phase 18).</span>
+  phase: &quot;18&quot;
+</code></pre><p>같은 파일이다. <strong>설정의 단일 소스가 유지됐다.</strong></p>
+<h3 id="-빌드테스트">⑦ 빌드·테스트</h3>
+<p><code>./gradlew test --rerun-tasks</code> (캐시를 믿지 않고 전부 다시 실행):</p>
+<pre><code>BUILD SUCCESSFUL in 2m 7s
+테스트 87 / 실패 0 / 에러 0
+</code></pre><p>내역:</p>
+<table>
+<thead>
+<tr>
+<th>태스크</th>
+<th>모듈</th>
+<th>개수</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>test</code></td>
+<td>order-service 45 · order-query-service 16 · payment-service 11 · inventory-service 7 · shared/outbox 4 · gateway-service 1</td>
+<td><strong>84</strong></td>
+</tr>
+<tr>
+<td><code>contractTest</code></td>
+<td>inventory-service 2 · order-service 1 (Phase 15 의 Spring Cloud Contract 가 계약 파일에서 <strong>생성</strong>하는 테스트)</td>
+<td><strong>3</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td><strong>87</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>세는 법 주의.</strong> 계약 테스트는 <strong><code>build/test-results/contractTest/</code></strong> 에 따로 쌓인다.
+<code>build/test-results/test/</code> 만 더하면 84 가 나와서 &quot;87 이 틀렸나?&quot; 싶어지는데, 87 이 맞다.
+(auth-service 는 테스트가 없다.)</p>
+</blockquote>
+<blockquote>
+<p><strong>함정 하나.</strong> 처음 재실행했을 때 <code>OrderViewProjectionIntegrationTest</code> 가
+<code>Could not find a valid Docker environment</code> 로 깨졌다. 코드 문제가 아니라
+<strong>셸에 <code>DOCKER_HOST</code> 를 안 넘겨서</strong> Testcontainers 가 Colima 소켓을 못 찾은 것이다.
+Testcontainers 를 쓰는 테스트를 로컬에서 돌릴 땐 이게 필요하다:</p>
+<pre><code class="hljs language-bash"><span class="hljs-built_in">export</span> DOCKER_HOST=unix://<span class="hljs-variable">$HOME</span>/.colima/default/docker.sock
+<span class="hljs-built_in">export</span> TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+</code></pre><p>(덧붙여, 그냥 <code>./gradlew build</code> 만 돌리면 테스트가 <strong>up-to-date 로 건너뛰어져</strong> 초록불이 나온다.
+ &quot;빌드 통과&quot;를 테스트 증거로 삼으려면 실제로 실행됐는지부터 확인할 것.)</p>
+</blockquote>
+<h3 id="-결함--발견했지만-고치지-않은-것">⑧ 결함 — 발견했지만 고치지 않은 것</h3>
+<p><strong>(a) 아무것도 안 바꿔도 Secret 5개가 매번 <code>configured</code> 로 보인다.</strong></p>
+<pre><code>$ kubectl apply -k deploy/k8s/overlays/local
+  38 unchanged
+   5 configured     ← Secret 5개(DB 4 + auth-jwt-key 1). 연속 실행해도 계속 이렇다.
+
+$ kubectl diff -k deploy/k8s/overlays/local
+  (출력 없음, 종료코드 0)   ← 실제 차이는 없다
+</code></pre><p>원인을 끝까지 파 보니 <strong>둘이 겹쳐 있었다.</strong></p>
+<ul>
+<li><p><strong>DB 자격증명 4개</strong>: 매니페스트는 <code>stringData</code> 로 쓰는데 클러스터는 <code>data</code>(base64)로 저장한다.
+<code>last-applied-configuration</code> 어노테이션에는 <code>stringData</code> 가 남아 있어, 3-way 병합이 매번
+&quot;stringData 를 다시 설정하는&quot; 패치를 만든다.</p>
+</li>
+<li><p><strong><code>auth-jwt-key</code></strong>: 이건 양쪽 다 <code>data</code> 인데도 그랬다. 디코드해 보니 값은 <strong>완전히 동일</strong>한데
+base64 <strong>문자열</strong>이 달랐다.</p>
+<pre><code>last-applied len 2305 / 클러스터 저장본 len 2272
+디코드 결과: 둘 다 1704 바이트, 완전 동일
+last-applied 안의 줄바꿈: 33개 / 저장본: 0개
+줄바꿈만 제거하면 문자열까지 동일
+</code></pre><p>Kustomize 가 base64 를 <strong>70자마다 줄바꿈해서</strong> YAML 에 넣고, API 서버는 줄바꿈 없는 정규형으로
+저장하기 때문이다.</p>
+</li>
+</ul>
+<p>→ <strong>의미상 무해한 표시 문제</strong>다(<code>kubectl diff</code> 가 정상적으로 &quot;차이 없음&quot;을 보여 준다).
+서버사이드 적용(<code>kubectl apply --server-side</code>)으로 옮기면 사라지지만,
+그건 필드 소유권 모델이 바뀌는 별개의 변경이라 이번엔 손대지 않았다.</p>
+<p><strong>(b) 옛 해시 이름의 ConfigMap 이 클러스터에 쌓인다.</strong>
+설정을 한 번 고쳤더니 <code>shopsaga-common-49f7g8bmk6</code>(옛것)과 <code>-2497kkbgk6</code>(새것)이 <strong>둘 다</strong> 남았다.
+<code>kubectl apply -k</code> 는 &quot;지금 렌더에 없는 것&quot;을 지우지 않는다.
+지금은 수동으로 지워야 한다 — 이건 GitOps 의 자동 prune 이 푸는 문제다(§8).</p>
+<p><strong>(c) 16b 가 명령형으로 만든 접미사 없는 리소스 8개가 고아로 남아 있었다.</strong>
+<code>shopsaga-common</code>, <code>*-service-config</code> 6개, <code>auth-jwt-key</code>. 아무도 참조하지 않아 수동 삭제했다.
+마이그레이션 때 한 번 겪고 끝나는 일이지만, (b)와 같은 뿌리다.</p>
+<hr>
+<h2 id="8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>한계</th>
+<th>지금 상태</th>
+<th>어디서 해결되나</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>배포가 여전히 수동</strong></td>
+<td>CI 는 &quot;배포 가능함&quot;만 증명한다. 실제 반영은 내가 <code>apply.sh</code> 를 친다</td>
+<td><strong>GitOps(Argo CD/Flux)</strong> — Git 을 단일 소스로 자동 동기화</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>옛 해시 리소스가 안 지워짐</strong></td>
+<td><code>apply -k</code> 에 prune 이 없다(§7-⑧b)</td>
+<td>Argo CD 의 자동 prune, 또는 <code>kubectl apply --prune --applyset</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Secret 이 매번 <code>configured</code></td>
+<td>표시상 문제, 동작 영향 없음(§7-⑧a)</td>
+<td>서버사이드 적용(<code>--server-side</code>)으로 전환</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Secret 이 여전히 base64 일 뿐</strong></td>
+<td>DB 비밀번호가 git 에 평문으로 있다(dev 값)</td>
+<td>External Secrets Operator · Vault · SOPS</td>
+</tr>
+<tr>
+<td>5</td>
+<td>RSA 키가 <strong>머신마다 다름</strong></td>
+<td><code>.secrets/</code> 가 gitignore 라 노트북과 CI 의 키가 다르다</td>
+<td>위와 같음(비밀 관리 시스템)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>overlay 가 <strong>2개뿐</strong></td>
+<td>local·ci. staging/prod 가 없다</td>
+<td>실제 환경이 생길 때 추가</td>
+</tr>
+<tr>
+<td>7</td>
+<td>컨테이너가 <strong>root 로 실행</strong></td>
+<td><code>runAsNonRoot</code>·<code>readOnlyRootFilesystem</code> 없음</td>
+<td>보안 기본값 강화(Pod Security Standards)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>NetworkPolicy 없음</strong></td>
+<td>모든 파드가 서로 자유롭게 통신</td>
+<td>NetworkPolicy · 서비스 메시</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>HPA 없음</strong></td>
+<td>metrics-server 가 없어 자동 스케일 불가</td>
+<td>metrics-server + HPA</td>
+</tr>
+<tr>
+<td>10</td>
+<td>DB·Kafka 가 <strong>Deployment</strong></td>
+<td>StatefulSet 이 아니다. PVC 는 local-path, 단일 노드, 단일 브로커</td>
+<td>운영으로 간다면 StatefulSet/오퍼레이터</td>
+</tr>
+<tr>
+<td>11</td>
+<td>이미지 <strong>취약점 스캔·서명 없음</strong></td>
+<td>Trivy·cosign·SBOM 미적용</td>
+<td>CI 에 잡 추가(가성비 좋음)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>CI 스모크가 <strong>행복 경로 하나</strong></td>
+<td>실패 경로(재고 부족→보상)는 CI 에서 안 돈다</td>
+<td>스모크 시나리오 확장</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Helm 버전이 <strong>로컬 4 / CI 3</strong></td>
+<td><code>--wait --timeout</code> 은 양쪽 호환(§4-⑤)이지만 스큐는 스큐다</td>
+<td>CI 에서 Helm 버전 고정</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-용어">9. 용어</h2>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>선언적(declarative)</strong></td>
+<td>&quot;이렇게 되어 있어야 한다&quot;를 적는 방식. 반대는 명령형(imperative, &quot;이렇게 해라&quot;)</td>
+</tr>
+<tr>
+<td><strong>멱등(idempotent)</strong></td>
+<td>몇 번 실행해도 결과가 같은 성질. <code>apply</code> 와 <code>helm upgrade --install</code> 이 그렇다</td>
+</tr>
+<tr>
+<td><strong>prune</strong></td>
+<td>선언에 없어진 리소스를 클러스터에서도 지우는 것</td>
+</tr>
+<tr>
+<td><strong>ReplicaSet</strong></td>
+<td>Deployment 가 파드 템플릿 버전마다 만드는 중간 객체. 롤링 업데이트의 단위</td>
+</tr>
+<tr>
+<td><strong>불변 필드(immutable field)</strong></td>
+<td>만든 뒤 바꿀 수 없는 필드. <code>Deployment.spec.selector</code> 가 대표적</td>
+</tr>
+<tr>
+<td><strong>3-way merge</strong></td>
+<td><code>last-applied</code> 어노테이션 · 현재 클러스터 상태 · 새 매니페스트 셋을 비교해 패치를 만드는 방식</td>
+</tr>
+<tr>
+<td><strong>EndpointSlice</strong></td>
+<td>Service 뒤에 실제로 어떤 파드 IP 가 붙어 있는지 담는 객체</td>
+</tr>
+<tr>
+<td><strong>admission webhook</strong></td>
+<td>리소스를 만들 때 apiserver 가 호출해 검증·변형하는 외부 훅</td>
+</tr>
+<tr>
+<td><strong>hostPort</strong></td>
+<td>파드가 노드의 특정 포트를 직접 점유하는 것. 노드당 하나만 가능</td>
+</tr>
+<tr>
+<td><strong>toleration / taint</strong></td>
+<td>taint 는 노드가 거는 &quot;출입 금지&quot;, toleration 은 파드가 가진 &quot;출입증&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="10-참고">10. 참고</h2>
+<ul>
+<li>Kustomize 공식 — <a href="https://kubectl.docs.kubernetes.io/references/kustomize/">https://kubectl.docs.kubernetes.io/references/kustomize/</a><ul>
+<li><code>configMapGenerator</code> / <code>secretGenerator</code> — 해시 접미사와 이름 참조 교정</li>
+<li>로드 제한(<code>LoadRestrictionsRootOnly</code>) — 왜 상위 디렉터리를 못 읽는가</li>
+</ul>
+</li>
+<li>Helm 공식 — <a href="https://helm.sh/docs/">https://helm.sh/docs/</a> (Helm 4 의 <code>--wait</code> 전략 변경 포함)</li>
+<li>ingress-nginx 차트 — <a href="https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx">https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx</a></li>
+<li>kind — 노드 <code>labels</code>, <code>extraPortMappings</code> — <a href="https://kind.sigs.k8s.io/docs/user/configuration/">https://kind.sigs.k8s.io/docs/user/configuration/</a></li>
+<li>이 프로젝트: <a href="PHASE-16-KUBERNETES.html">Phase 16 — 로컬 k8s</a> · <a href="PHASE-17-CICD.html">Phase 17 — CI/CD</a></li>
+<li><code>deploy/k8s/README.md</code> — 실행·정리·함정 표</li>
+</ul>
+<hr>
+<p><em>다음 단계 후보: GitOps(Argo CD)로 §8-1·2 를 한꺼번에 해결하기 · 보안 기본값(runAsNonRoot·NetworkPolicy) ·
+Trivy/cosign 을 CI 에 추가 · Spring Boot 4.1 + Spring Cloud Oakwood 이전.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#0-이번-단계에서-한-일-요약">0. 이번 단계에서 한 일 (요약)</a></li>
+<li class="toc-h2"><a href="#1-왜--셸-스크립트로-배포하면-무엇이-문제인가">1. 왜 — 셸 스크립트로 배포하면 무엇이 문제인가</a></li>
+<li class="toc-h2"><a href="#2-개념--최소-용어">2. 개념 — 최소 용어</a></li>
+<li class="toc-h3"><a href="#kustomize-와-helm-은-경쟁-관계가-아니다">Kustomize 와 Helm 은 경쟁 관계가 아니다</a></li>
+<li class="toc-h2"><a href="#3-구성--디렉터리-모양">3. 구성 — 디렉터리 모양</a></li>
+<li class="toc-h3"><a href="#무엇이-base-이고-무엇이-overlay-인가">무엇이 base 이고 무엇이 overlay 인가</a></li>
+<li class="toc-h2"><a href="#4-코드--결정적인-부분">4. 코드 — 결정적인 부분</a></li>
+<li class="toc-h3"><a href="#-로드-제한-이-phase-에서-제일-먼저-부딪힌-벽">① 로드 제한: 이 Phase 에서 제일 먼저 부딪힌 벽</a></li>
+<li class="toc-h3"><a href="#-생성기의-해시-접미사--이-phase-의-핵심">② 생성기의 해시 접미사 — 이 Phase 의 핵심</a></li>
+<li class="toc-h3"><a href="#-db-자격증명은-일부러-생성기로-만들지-않았다">③ DB 자격증명은 일부러 생성기로 만들지 않았다</a></li>
+<li class="toc-h3"><a href="#-overlaysci--sed-가-하던-일">④ overlays/ci — sed 가 하던 일</a></li>
+<li class="toc-h3"><a href="#-ingress-nginx-url-에서-helm-릴리스로">⑤ ingress-nginx: URL 에서 Helm 릴리스로</a></li>
+<li class="toc-h2"><a href="#5-흐름--명령-하나가-클러스터에-닿기까지">5. 흐름 — 명령 하나가 클러스터에 닿기까지</a></li>
+<li class="toc-h2"><a href="#6-원리--왜-이렇게-동작하나">6. 원리 — 왜 이렇게 동작하나</a></li>
+<li class="toc-h3"><a href="#-왜-해시-접미사가-롤링-업데이트를-일으키나">① 왜 해시 접미사가 롤링 업데이트를 일으키나</a></li>
+<li class="toc-h3"><a href="#-왜-includeselectors-false-인가">② 왜 includeSelectors: false 인가</a></li>
+<li class="toc-h3"><a href="#-왜-파드-ready-와-webhook-호출-가능이-다른가">③ 왜 &quot;파드 Ready&quot; 와 &quot;webhook 호출 가능&quot;이 다른가</a></li>
+<li class="toc-h3"><a href="#-왜-helm-이-남의-것에-맞나">④ 왜 Helm 이 남의 것에 맞나</a></li>
+<li class="toc-h2"><a href="#7-검증--실제로-측정한-것">7. 검증 — 실제로 측정한 것</a></li>
+<li class="toc-h3"><a href="#-로드-제한과-그-해법--설계-전에-먼저-실험했다">① 로드 제한과 그 해법 — 설계 전에 먼저 실험했다</a></li>
+<li class="toc-h3"><a href="#-배포--실제-클러스터에-적용">② 배포 — 실제 클러스터에 적용</a></li>
+<li class="toc-h3"><a href="#--설정-변경--자동-롤아웃-이번-phase-의-핵심-주장">③ ★ 설정 변경 → 자동 롤아웃 (이번 Phase 의 핵심 주장)</a></li>
+<li class="toc-h3"><a href="#-기능-회귀-없음--saga-완주">④ 기능 회귀 없음 — Saga 완주</a></li>
+<li class="toc-h3"><a href="#-images-변환기가-sed-와-다른-점--증거">⑤ images: 변환기가 sed 와 다른 점 — 증거</a></li>
+<li class="toc-h3"><a href="#-compose-는-그대로-동작하는가--phase-16b-의-핵심-성과-보존-확인">⑥ compose 는 그대로 동작하는가 — Phase 16b 의 핵심 성과 보존 확인</a></li>
+<li class="toc-h3"><a href="#-빌드테스트">⑦ 빌드·테스트</a></li>
+<li class="toc-h3"><a href="#-결함--발견했지만-고치지-않은-것">⑧ 결함 — 발견했지만 고치지 않은 것</a></li>
+<li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
+<li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>
+</body>
+</html>

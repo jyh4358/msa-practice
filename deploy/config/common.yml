@@ -32,6 +32,8 @@ spring:
 # POD_NAME 은 k8s 가 Downward API 로, compose 에서는 도커가 컨테이너 ID 를 HOSTNAME 으로 넣어 준다.
 info:
   pod: ${POD_NAME:${HOSTNAME:unknown}}
+  # 이 값이 바뀌면 ConfigMap 내용 해시가 바뀌고 → 이름이 바뀌고 → 파드가 저절로 갈린다(Phase 18).
+  phase: "18"
 
 management:
   info:

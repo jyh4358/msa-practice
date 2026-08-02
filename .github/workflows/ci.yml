@@ -36,6 +36,8 @@ env:
   # ⚠️ GHCR 경로는 소문자만 허용한다(대문자가 섞인 조직/저장소명이면 변환이 필요).
   IMAGE_BASE: ghcr.io/${{ github.repository }}
   SERVICES: "order-service payment-service inventory-service order-query-service gateway-service auth-service"
+  # Phase 18 — kubectl v1.36 에 내장된 kustomize 와 같은 버전. 로컬과 CI 의 렌더 결과를 일치시킨다.
+  KUSTOMIZE_VERSION: "5.8.1"
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────
@@ -213,16 +215,35 @@ jobs:
       # 매니페스트는 로컬 이미지(`shopsaga/<svc>:0.0.1`)를 가리킨다.
       # CI 에서는 방금 GHCR 에 올린 것을 쓰도록 참조만 바꾼다.
       # (Kustomize 의 `images:` 오버레이가 정석이다 — Phase 18 의 과제.)
-      - name: 이미지 참조를 GHCR 로 교체
+      # Phase 18 — kustomize 바이너리. kubectl 에도 kustomize 가 들어 있지만 `build` 만 노출하고
+      # `edit` 하위명령(kustomization.yaml 을 파싱해서 고치는 쪽)은 없다. 그래서 따로 받는다.
+      # 버전은 kubectl v1.36 내장본과 같은 5.8.1 로 맞춘다 — 로컬과 CI 가 다른 렌더 결과를 내면 곤란하다.
+      - name: kustomize 설치
+        run: |
+          set -euo pipefail
+          curl -sSLf "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin kustomize
+          kustomize version
+
+      # Phase 17 에서는 여기서 sed 로 매니페스트의 문자열을 바꿨다:
+      #   sed -i "s|image: shopsaga/${svc}:0.0.1|…|g" deploy/k8s/*.yaml
+      # sed 의 문제는 '더럽다'가 아니라 **틀려도 조용하다**는 것이다 — 패턴이 안 맞으면 0건 치환하고
+      # exit 0 으로 끝난다. CI 는 초록불인데 옛 이미지로 배포된다.
+      # `kustomize edit set image` 는 YAML 을 파싱해서 고치고, 대상이 없으면 확인 가능한 형태로 남는다.
+      - name: 이미지 태그를 이번 커밋으로 고정
+        working-directory: deploy/k8s/overlays/ci
         run: |
           set -euo pipefail
           for svc in $SERVICES; do
-            sed -i "s|image: shopsaga/${svc}:0.0.1|image: ${IMAGE_BASE}/${svc}:${GITHUB_SHA}|g" deploy/k8s/*.yaml
+            kustomize edit set image "shopsaga/${svc}=${IMAGE_BASE}/${svc}:${GITHUB_SHA}"
           done
-          grep -h "image: ghcr" deploy/k8s/*.yaml
+          echo "───── 렌더 결과의 이미지(눈으로 검증한다) ─────"
+          kustomize build . | grep -E '^\s+image:' | sort -u
 
-      # GHCR 패키지는 기본이 private 이다 → 클러스터가 받아올 자격증명이 필요하다.
-      # 기본 서비스어카운트에 붙여 두면 모든 파드가 자동으로 쓴다.
+      # ⚠️ Phase 17 문서 §7 정정 참고: 이 리포지토리는 public 이라 GHCR 패키지도 public 이고,
+      #    실제로는 이 pull secret 없이도 받아진다(익명 접근 200 확인). 리포지토리를 private 으로
+      #    바꾸는 순간 필요해지므로 안전장치로 남겨 둔다.
+      #    기본 서비스어카운트에 붙여 두면 네임스페이스의 모든 파드가 자동으로 쓴다.
       - name: GHCR pull secret
         run: |
           kubectl create namespace shopsaga --dry-run=client -o yaml | kubectl apply -f -
@@ -235,7 +256,7 @@ jobs:
             -p '{"imagePullSecrets":[{"name":"ghcr"}]}'
 
       - name: 배포
-        run: ./deploy/k8s/apply.sh
+        run: ./deploy/k8s/apply.sh ci
 
       - name: 준비 대기
         run: |

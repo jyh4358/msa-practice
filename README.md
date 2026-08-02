@@ -62,6 +62,7 @@ push 하면 **GitHub Actions** 가 빌드·테스트·멀티아치 이미지·**
 | **16a** | **로컬 Kubernetes(kind)**(같은 이미지를 k8s로 이전·ConfigMap/Secret·**liveness≠readiness probe**·NodePort·자가치유·스케일 아웃) | [PHASE-16-KUBERNETES.md](./docs/PHASE-16-KUBERNETES.md) |
 | **16b** | **전체 플랫폼 on k8s**(**Eureka·Config Server 삭제** → 플랫폼 DNS+ConfigMap·Ingress·compose 동반 이전·무중단 롤링) | [PHASE-16-KUBERNETES.md](./docs/PHASE-16-KUBERNETES.md#part-16b) |
 | **17** | **CI/CD**(GitHub Actions·jar 1회 빌드·**네이티브 러너 2개 멀티아치**·GHCR `:커밋SHA`·CI 안에서 kind 스모크 배포) | [PHASE-17-CICD.md](./docs/PHASE-17-CICD.md) |
+| **18** | **선언적 배포**(Kustomize base/overlay·**설정 변경 → 자동 롤아웃**(해시 접미사)·CI의 `sed` 제거·ingress-nginx를 **Helm 릴리스**로) | [PHASE-18-KUSTOMIZE.md](./docs/PHASE-18-KUSTOMIZE.md) |
 
 공통 아키텍처 컨벤션은 [HEXAGONAL.md](./docs/HEXAGONAL.md), 설치/실행은 [SETUP.md](./docs/SETUP.md).
 

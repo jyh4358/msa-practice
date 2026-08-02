@@ -1,7 +1,7 @@
-# Phase 16b — payment-service (결제 — 커맨드/이벤트로만 동작)
+# Phase 16b — order-service (주문 접수 + Saga 조정자)
 #
 # Phase 16a 와 달라진 점: ConfigMap 이 매니페스트 안에 인라인으로 있지 않다.
-# `deploy/config/{common,payment-service}.yml` 로부터 `deploy/k8s/apply.sh` 가 ConfigMap 을 만들어
+# `deploy/config/{common,order-service}.yml` 로부터 `deploy/k8s/apply.sh` 가 ConfigMap 을 만들어
 # 두 개의 서브디렉터리로 마운트한다 — **compose 와 완전히 같은 설정 파일**이다.
 #   /application/config/10-common/application.yml   ← 공통(서비스 주소·Kafka·probe·관측성)
 #   /application/config/20-service/application.yml  ← 이 서비스 전용(DB 호스트 등)
@@ -10,16 +10,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: payment-service
-  namespace: shopsaga
-  labels: { app: payment-service }
+  name: order-service
+  labels: { app: order-service }
 spec:
   replicas: 1
   selector:
-    matchLabels: { app: payment-service }
+    matchLabels: { app: order-service }
   template:
     metadata:
-      labels: { app: payment-service }
+      labels: { app: order-service }
     spec:
       # ★★ k8s 에는 compose 의 depends_on 이 없다 — 보통은 그게 옳다(죽고 다시 뜨면 되니까).
       # 그런데 **재시도되지 않는 기동 작업**이 하나 있다: Spring 의 KafkaAdmin 은 @Bean 으로 선언한
@@ -37,37 +36,37 @@ spec:
             requests: { memory: 16Mi, cpu: 10m }
             limits:   { memory: 32Mi }
       containers:
-        - name: payment-service
-          image: shopsaga/payment-service:0.0.1
+        - name: order-service
+          image: shopsaga/order-service:0.0.1
           # ★ 태그가 latest 면 imagePullPolicy 기본값이 Always 가 되어 kind 에 넣어둔 로컬 이미지를 무시한다.
           imagePullPolicy: IfNotPresent
           ports:
-            - { name: http, containerPort: 8081 }
+            - { name: http, containerPort: 8080 }
           env:
             - { name: JAVA_OPTS, value: "-Xms128m -Xmx320m" }
             # Downward API — 파드가 자기 이름을 환경변수로 받는다(k8s API 호출·권한 불필요).
             - name: POD_NAME
               valueFrom: { fieldRef: { fieldPath: metadata.name } }
             - name: SPRING_DATASOURCE_USERNAME
-              valueFrom: { secretKeyRef: { name: payment-db-credentials, key: username } }
+              valueFrom: { secretKeyRef: { name: order-db-credentials, key: username } }
             - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom: { secretKeyRef: { name: payment-db-credentials, key: password } }
+              valueFrom: { secretKeyRef: { name: order-db-credentials, key: password } }
           volumeMounts:
             - { name: common-config,  mountPath: /application/config/10-common,  readOnly: true }
             - { name: service-config, mountPath: /application/config/20-service, readOnly: true }
           # ⚠️ timeoutSeconds 기본값은 1초 — readiness 가 DB 를 조회하므로 여유를 준다(flapping 방지).
           startupProbe:
-            httpGet: { path: /actuator/health/readiness, port: 8081 }
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 36
           readinessProbe:
-            httpGet: { path: /actuator/health/readiness, port: 8081 }
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
           livenessProbe:
-            httpGet: { path: /actuator/health/liveness, port: 8081 }
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
@@ -81,13 +80,17 @@ spec:
         - name: common-config
           configMap: { name: shopsaga-common }
         - name: service-config
-          configMap: { name: payment-service-config }
+          configMap: { name: order-service-config }
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: payment-service, namespace: shopsaga }
+metadata: { name: order-service }
 spec:
+  # ★ Phase 18: 여기는 **ClusterIP** 다 — 정상 트래픽은 Ingress → gateway-service 로 들어온다.
+  #   16a 에서 만든 '게이트웨이 우회 디버깅 경로'(NodePort 30080)는 내 노트북에서만 필요하므로
+  #   `overlays/local` 의 패치로 옮겼다. CI 스모크는 Ingress 만 쓰니 거기엔 없는 게 맞다.
+  #   → base 는 "어디서든 참인 것"만, 오버레이는 "그 환경에서만 참인 것"을 담는다.
   type: ClusterIP
-  selector: { app: payment-service }
+  selector: { app: order-service }
   ports:
-    - { name: http, port: 8081, targetPort: 8081 }
+    - { name: http, port: 8080, targetPort: 8080 }

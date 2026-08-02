@@ -76,6 +76,8 @@ const DOCS = [
     desc: '16a 클러스터+서비스 이전(probe·ConfigMap/Secret) / 16b Eureka·Config Server 삭제·Ingress·전체 플랫폼' },
   { key: 'PHASE-17-CICD', out: 'PHASE-17-CICD.html', title: 'Phase 17 · CI/CD', group: 'Phase 단계별', file: 'docs/PHASE-17-CICD.md',
     desc: 'GitHub Actions·jar 1회 빌드·네이티브 러너 2개 멀티아치·GHCR·CI 안 kind 스모크 배포' },
+  { key: 'PHASE-18-KUSTOMIZE', out: 'PHASE-18-KUSTOMIZE.html', title: 'Phase 18 · 선언적 배포', group: 'Phase 단계별', file: 'docs/PHASE-18-KUSTOMIZE.md',
+    desc: 'Kustomize base/overlay·생성기 해시로 설정 변경 자동 롤아웃·CI의 sed 제거·ingress-nginx를 Helm 릴리스로' },
 
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },

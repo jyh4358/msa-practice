@@ -7,7 +7,7 @@
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: { name: order-query-mongo-data, namespace: shopsaga }
+metadata: { name: order-query-mongo-data }
 spec:
   accessModes: [ReadWriteOnce]
   resources: { requests: { storage: 1Gi } }
@@ -16,7 +16,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: order-query-mongo
-  namespace: shopsaga
   labels: { app: order-query-mongo }
 spec:
   replicas: 1
@@ -59,7 +58,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: order-query-mongo, namespace: shopsaga }
+metadata: { name: order-query-mongo }
 spec:
   type: ClusterIP
   selector: { app: order-query-mongo }

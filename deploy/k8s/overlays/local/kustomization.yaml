@@ -1,0 +1,37 @@
+# Phase 18 — overlays/local: 내 노트북(kind on Colima) 전용 덧칠.
+#
+#   kubectl apply -k deploy/k8s/overlays/local
+#
+# 이미지는 base 그대로 `shopsaga/<svc>:0.0.1` 을 쓴다.
+# `deploy/k8s/build-and-load.sh` 가 그 태그로 빌드해 `kind load` 로 노드에 직접 밀어 넣으므로
+# 레지스트리가 필요 없다(그래서 여기엔 images: 블록이 없다 — CI 쪽과 대비된다).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# ── 로컬에서만 필요한 것: 게이트웨이 우회 디버깅 경로 ─────────────────────────
+# order-service 를 NodePort 30080 으로도 열어 둔다(kind-cluster.yaml 이 30080 을 호스트로 뚫어 놨다).
+#   Ingress → gateway:8000  … 정상 경로(엣지 JWT 선검증·회로차단기·과부하 차단을 거친다)
+#   NodePort  → order:30080 … 게이트웨이를 건너뛴 경로
+# 둘을 비교하면 "엣지가 실제로 무슨 일을 하는지"가 눈에 보인다. CI 스모크는 Ingress 만 쓰므로 거기엔 없다.
+#
+# 패치는 **전략적 병합 패치**(strategic merge patch)다. 원본과 같은 모양의 YAML 조각을 주면
+# 같은 필드는 덮어쓰고 없던 필드는 더한다 — `ports` 처럼 이름 있는 리스트는 name 을 키로 병합된다.
+patches:
+  - target:
+      kind: Service
+      name: order-service
+    patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: order-service
+      spec:
+        type: NodePort
+        ports:
+          - name: http
+            port: 8080
+            targetPort: 8080
+            nodePort: 30080
