@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파트 B 복습 (Phase 8~11) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li class="active"><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="2차-복습--파트-b-관측성-먼저-그-다음-비동기-phase-811">2차 복습 — 파트 B: 관측성 먼저, 그 다음 비동기 (Phase 8~11)</h1>
+<blockquote>
+<p>⚠️ <strong>이 복습은 Phase 8~11 시점을 다룹니다.</strong> 이후 크게 바뀐 것 둘:
+<strong>Phase 12</strong> 에서 order→payment 동기 REST 가 완전히 사라지고 Kafka 이벤트 Saga 가 됐고,
+<strong>Phase 16b</strong> 에서 Config Server 가 삭제돼 설정이 <code>deploy/config/</code> 파일로 옮겨갔습니다.
+(그래서 아래에 <code>config-repo</code> 가 나오면 &quot;지금은 <code>deploy/config/</code>&quot; 로 읽으세요.)</p>
+</blockquote>
+<blockquote>
+<p>파트 A 가 <strong>동기 플랫폼</strong>을 세웠다면, 파트 B 는 그 위에 <strong>눈(관측성)</strong> 을 달고
+<strong>결합을 끊는(비동기)</strong> 단계입니다. 순서가 중요합니다 — 비동기로 가면 흐름이 눈에 안 보이므로
+<strong>관측성을 먼저</strong> 깔았습니다.
+<strong>큰 그림 → 단계 회고 → 개념 자가진단 → 셀프 퀴즈 → 재현 체크리스트 → 아직 열린 한계</strong> 순.</p>
+</blockquote>
+<hr>
+<h2 id="1-큰-그림--파트-b-가-끝났을-때의-모양">1. 큰 그림 — 파트 B 가 끝났을 때의 모양</h2>
+<pre><code>                        클라이언트
+                            ▼
+                   gateway (8000)
+                       │
+          ┌────────────┼─────────────────┐
+          ▼            ▼                 ▼
+   order (8080)   payment (8081)   order-query (8083)  ← 읽기 전용
+      │  │                                  ▲
+      │  └─ 동기 REST ─▶ payment            │ 투영
+      │                                      │
+      ▼ ① 같은 트랜잭션에 INSERT              │
+   ┌─────────────┐                           │
+   │ orderdb     │                           │
+   │  orders     │                           │
+   │  outbox ────┼─② @Scheduled 릴레이 ─┐    │
+   └─────────────┘                      │    │
+                                        ▼    │
+                              ┌──────────────┴───┐
+                              │  Kafka           │
+                              │  order-events    │
+                              └──┬───────────────┘
+                                 │ ③ 소비 (messageId 로 멱등)
+                                 ▼
+                          inventory (8082) ── inventorydb
+                                              processed_messages
+
+   ─────────────────────────────────────────────────────────────
+   관측성:  모든 서비스 ──OTLP──▶ otel-lgtm (Tempo·Loki·Prometheus·Grafana:3000)
+            trace 가 gateway→order→[Kafka]→inventory 까지 &#39;하나로&#39; 이어진다
+</code></pre><p><strong>핵심 한 문장:</strong> 쓰기는 <strong>DB 한 번만</strong> 하고(outbox), 발행은 <strong>나중에 따로</strong>(릴레이),
+소비는 <strong>중복돼도 안전하게</strong>(멱등) 만든 다음, 읽기는 <strong>따로 만든 모델</strong>(CQRS)에서 가져온다.
+그리고 그 전 과정이 <strong>한 트레이스로 보인다.</strong></p>
+<hr>
+<h2 id="2-단계별-회고-무엇을왜">2. 단계별 회고 (무엇을·왜)</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>무엇을</th>
+<th>왜(어떤 문제를 풀려고)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>8a</strong> 트레이싱·메트릭</td>
+<td>Micrometer Tracing + OTLP → <code>otel-lgtm</code>. trace/span, <code>traceparent</code> 전파</td>
+<td>서비스가 여럿이 되자 <strong>&quot;이 요청이 어디서 느렸나&quot;를 알 수 없게 됨</strong></td>
+</tr>
+<tr>
+<td><strong>8b</strong> 로그·대시보드</td>
+<td>로그 → Loki, <strong>RED 대시보드</strong>, 트레이스↔로그 상호 점프</td>
+<td>로그가 서비스별로 흩어져 <strong>한 요청을 따라갈 수 없음</strong></td>
+</tr>
+<tr>
+<td><strong>9a</strong> 비동기</td>
+<td>inventory 분리, <code>OrderPlaced</code> 이벤트 발행/소비, HTTP→Kafka 트레이스 전파</td>
+<td>동기 호출은 <strong>장애가 전파</strong>되고 <strong>같이 느려짐</strong>(시간적 결합)</td>
+</tr>
+<tr>
+<td><strong>10</strong> Outbox+멱등</td>
+<td>트랜잭셔널 outbox + <code>@Scheduled</code> 릴레이 + <code>processed_messages</code></td>
+<td><strong>이중 쓰기 문제</strong> — DB 커밋과 Kafka 발행이 원자적이지 않음</td>
+</tr>
+<tr>
+<td><strong>11</strong> CQRS</td>
+<td><code>order-query-service</code> + MongoDB 읽기 모델, 이벤트 투영</td>
+<td>조회가 쓰기 모델을 침범(조인 폭발·성능·모델 오염)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>관통하는 실:</strong> Phase 2 에서 생긴 <strong>&quot;분산 트랜잭션이 사라졌다&quot;</strong> 는 문제를
+파트 B 는 <strong>정면으로 풀지 않는다.</strong> 대신 <strong>신뢰할 수 있는 메시지 전달</strong>(outbox+멱등)이라는
+<strong>척추</strong>를 먼저 세운다. 그 위에서 파트 C 의 Saga 가 가능해진다.</p>
+</blockquote>
+<hr>
+<h2 id="3-핵심-개념-자가진단-막힘없이-설명되면-통과">3. 핵심 개념 자가진단 (막힘없이 설명되면 통과)</h2>
+<p>각 항목을 <strong>소리 내어 1~2문장으로</strong> 설명해 보세요. 막히면 옆 문서로.</p>
+<h3 id="관측성">관측성</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>trace / span / traceparent</strong>: 무엇이 어떤 관계인가? W3C 헤더는 어디에 실리나? → <code>PHASE-8-OBSERVABILITY.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>로그·메트릭·트레이스 셋의 역할 차이</strong>. RED(Rate·Errors·Duration)는 무엇을 보는가? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>트레이스↔로그 점프</strong>가 되려면 로그에 무엇이 들어 있어야 하나? → 〃</li>
+<li><input disabled="" type="checkbox"> ⚠️ <strong>커스텀 빌더로 만든 클라이언트가 트레이스에서 사라지는 이유</strong>는? → 〃 (<code>ObservationRegistry</code> 누락)</li>
+</ul>
+<h3 id="비동기">비동기</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>동기 호출의 결합</strong> 두 가지(시간적·장애 전파)를 각각 설명 → <code>PHASE-9-ASYNC-KAFKA.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>토픽·파티션·컨슈머 그룹·오프셋</strong>: 순서는 어디까지 보장되나? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>리플레이</strong>가 가능한 이유(브로커가 지우지 않는다)와, 그때 소비자가 갖춰야 할 성질은? → 〃</li>
+</ul>
+<h3 id="신뢰성-파트-b-의-심장">신뢰성 (파트 B 의 심장)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> ★ <strong>이중 쓰기 문제(dual write)</strong>: DB 커밋 + Kafka 발행을 왜 한 트랜잭션으로 못 묶나? 실패 조합 2가지는? → <code>PHASE-10-OUTBOX.md</code></li>
+<li><input disabled="" type="checkbox"> ★ <strong>트랜잭셔널 Outbox</strong>: 무엇을 같은 트랜잭션에 넣고, 발행은 누가 언제 하나? → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>at-least-once + 멱등 = effectively-once</strong>: 왜 &quot;정확히 한 번&quot;은 못 만드나? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>멱등 소비자</strong>: <code>processed_messages</code> 는 무엇을 키로 하나? 중복이면 어떻게? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>릴레이가 폴링인 이유</strong>와 그 대가(지연·DB 부하)는? → 〃</li>
+</ul>
+<h3 id="cqrs">CQRS</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>읽기 모델을 왜 따로 두나</strong>, 비정규화의 이득과 대가는? → <code>PHASE-11-CQRS.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>결과적 일관성</strong>: 주문 직후 조회하면 없을 수 있다 — 이걸 사용자에게 어떻게 설명하나? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>투영의 결정성</strong>이 왜 중요한가(리플레이로 재구축하려면)? → 〃</li>
+</ul>
+<hr>
+<h2 id="4-셀프-퀴즈-답은-아래-접힘">4. 셀프 퀴즈 (답은 아래 접힘)</h2>
+<ol>
+<li><code>orders</code> INSERT 와 Kafka <code>send()</code> 를 <strong>하나의 <code>@Transactional</code> 안에</strong> 넣으면 무엇이 잘못되나? 실패 조합 두 가지를 말해보세요.</li>
+<li>Outbox 를 쓰면 &quot;정확히 한 번(exactly-once)&quot; 전달이 되나?</li>
+<li>릴레이가 같은 outbox 행을 <strong>두 번</strong> 발행할 수 있나? 그래도 괜찮은 이유는?</li>
+<li>inventory 가 같은 <code>OrderPlaced</code> 를 두 번 받으면 재고가 두 번 깎이나? 막는 장치는?</li>
+<li>HTTP 요청에서 시작된 trace 가 <strong>Kafka 를 건너</strong> inventory 까지 이어지려면 무엇이 필요한가? (outbox 가 끼어 있다는 점에 주의)</li>
+<li>주문 직후 <code>GET /order-views</code> 에 그 주문이 <strong>안 보일 수</strong> 있다. 버그인가?</li>
+<li>Mongo 읽기 모델을 통째로 지우고 다시 만들 수 있나? 조건은?</li>
+<li><code>RestClient</code> 로 부른 payment 호출이 Grafana 트레이스에서 <strong>span 이 안 보인다.</strong> 무엇을 빠뜨렸나?</li>
+<li>Kafka 컨슈머 그룹을 새로 만들고 <code>auto-offset-reset: earliest</code> 로 붙이면 무슨 일이 일어나나?</li>
+</ol>
+<details><summary>정답 펼치기</summary>
+
+<ol>
+<li><strong>Kafka 는 DB 트랜잭션에 참여하지 않는다.</strong> ① DB 커밋 성공 + 발행 실패 → 재고가 영원히 안 깎임(이벤트 유실). ② 발행 성공 + DB 롤백 → 있지도 않은 주문에 대해 재고가 깎임(유령 이벤트). 둘 다 조용히 일어난다.</li>
+<li><strong>아니다.</strong> outbox 는 <strong>at-least-once</strong>(최소 한 번)를 준다. 릴레이가 발행 후 <code>published=true</code> 로 표시하기 전에 죽으면 다시 발행한다. &quot;정확히 한 번&quot;처럼 <strong>보이게</strong> 만드는 건 소비자 쪽 멱등성이고, 그 합을 <strong>effectively-once</strong> 라고 부른다.</li>
+<li>있다(2번의 그 창). 괜찮은 이유는 소비자가 <code>messageId</code> 로 중복을 걸러내기 때문 — <code>processed_messages</code> 에 이미 있으면 <strong>처리하지 않고 성공 처리</strong>한다.</li>
+<li>아니다. <code>processed_messages(message_id)</code> <strong>유니크 제약</strong>이 두 번째를 막는다. 중요한 건 &quot;무시&quot;가 아니라 <strong>같은 트랜잭션 안에서</strong> 기록해야 한다는 것(기록만 되고 처리가 롤백되면 영영 유실).</li>
+<li><code>traceparent</code> 를 <strong>outbox 행에 같이 저장</strong>했다가 릴레이가 발행할 때 Kafka 헤더로 <strong>복원</strong>해야 한다. outbox 를 거치면서 원래 요청의 스레드/컨텍스트가 끊기기 때문. (Phase 12 에서 이걸 넣어 Saga 전체가 한 트레이스가 됐다.)</li>
+<li><strong>버그가 아니다.</strong> 쓰기(orders)와 읽기(order-views)가 이벤트로 연결돼 있어 <strong>결과적 일관성</strong>이다. UI 는 &quot;처리 중&quot;을 보여주거나, 방금 쓴 값은 쓰기 모델에서 읽는 식(read-your-writes)으로 다룬다.</li>
+<li>가능하다. 조건은 <strong>투영이 결정적</strong>일 것 — 같은 이벤트 순서를 다시 먹이면 같은 결과가 나와야 한다. 투영 안에서 <code>now()</code>·랜덤·외부 호출을 쓰면 깨진다.</li>
+<li><strong><code>ObservationRegistry</code>.</strong> <code>RestClient.Builder</code> 를 스프링 자동설정 대신 <strong>직접</strong> 만들면 계측 인터셉터가 안 붙는다. 자동설정의 <code>RestClientBuilderConfigurer</code> 를 거치거나 registry 를 명시해야 한다.</li>
+<li>그 그룹은 오프셋이 없으므로 <strong>토픽에 남아 있는 처음부터 전부 다시 읽는다</strong>. 이게 리플레이의 원리이고, 그래서 소비자가 멱등하지 않으면 재앙이 된다.</li>
+</ol>
+</details>
+
+<hr>
+<h2 id="5-재현-체크리스트-맨바닥에서-뜨면-체화된-것">5. 재현 체크리스트 (&quot;맨바닥에서 뜨면 체화된 것&quot;)</h2>
+<blockquote>
+<p>Phase 12 이후 구조에서 재현합니다. <code>--profile async</code> 가 <strong>필수</strong>입니다.</p>
+</blockquote>
+<ul>
+<li><input disabled="" type="checkbox"> <code>docker compose -f deploy/compose/compose.yml --profile async up -d</code> → 13 컨테이너 healthy.</li>
+<li><input disabled="" type="checkbox"> 주문 1건 넣고 <strong>Grafana(:8000/grafana) 에서 trace 하나</strong>를 열어 gateway→order→Kafka→inventory 가 이어지는지 확인.</li>
+<li><input disabled="" type="checkbox"> 그 trace 에서 <strong>로그로 점프</strong>해 같은 요청의 로그가 보이는지 확인.</li>
+<li><input disabled="" type="checkbox"> <code>SELECT * FROM outbox ORDER BY id DESC LIMIT 5;</code> — <code>published</code> 가 어떻게 변하는지 관찰.</li>
+<li><input disabled="" type="checkbox"> <strong>Kafka 를 잠깐 내리고</strong> 주문을 넣어본다 → 주문은 성공(201), outbox 에 미발행으로 쌓임 → Kafka 를 올리면 저절로 흘러가는지 확인. ★ 이게 outbox 의 존재 이유다.</li>
+<li><input disabled="" type="checkbox"> <code>SELECT * FROM processed_messages;</code> — 멱등 기록을 눈으로 확인.</li>
+<li><input disabled="" type="checkbox"> 같은 이벤트를 <strong>일부러 두 번</strong> 흘려보내고 재고가 한 번만 깎이는지 확인.</li>
+<li><input disabled="" type="checkbox"> <code>GET /order-views?customerId=…</code> 가 주문 직후엔 비어 있다가 잠시 뒤 채워지는 걸 관찰(결과적 일관성).</li>
+<li><input disabled="" type="checkbox"> 각 단계에서 &quot;왜 이 장치가 필요한가&quot;를 스스로 설명.</li>
+</ul>
+<hr>
+<h2 id="6-아직-열려-있는-한계-누적--해결-phase">6. 아직 열려 있는 한계 (누적) → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>해결 Phase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>분산 트랜잭션 정합성</strong>(고아 결제) — Phase 2 부터 <strong>아직도</strong> 열려 있음</td>
+<td><strong>Phase 12·13</strong>(Saga·보상)</td>
+</tr>
+<tr>
+<td><strong>실패했을 때 되돌리기가 없음</strong>(재고는 깎였는데 결제 실패하면?)</td>
+<td><strong>Phase 12</strong>(보상 트랜잭션)</td>
+</tr>
+<tr>
+<td><strong>소비가 계속 실패하는 메시지</strong>(poison)가 파이프라인을 막음</td>
+<td><strong>Phase 14</strong>(DLQ)</td>
+</tr>
+<tr>
+<td><strong>장애 전파 차단 장치 없음</strong>(회로차단기·격벽·재시도 정책)</td>
+<td><strong>Phase 14</strong>(Resilience4j)</td>
+</tr>
+<tr>
+<td><strong>이벤트 스키마가 바뀌면 소비자가 깨짐</strong>(계약이 없음)</td>
+<td><strong>Phase 15</strong>(계약 테스트·tolerant reader)</td>
+</tr>
+<tr>
+<td>릴레이 <strong>폴링 지연</strong>(수백 ms~초) · DB 부하</td>
+<td>Debezium CDC (미실시)</td>
+</tr>
+<tr>
+<td>단일 호스트 · 이미지 수동</td>
+<td><strong>Phase 16</strong>(k8s)·<strong>17</strong>(CI/CD)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-다음--파트-c-phase-1215">7. 다음 — 파트 C (Phase 12~15)</h2>
+<ul>
+<li><strong>12 Saga(코레오그래피)</strong>: 동기 결제를 지우고, 각 서비스가 남의 <strong>사실 이벤트</strong>를 듣고 반응 + <strong>보상</strong>.</li>
+<li><strong>13 Saga(오케스트레이션)</strong>: 중앙 조정자·상태기계·타임아웃 — 같은 문제의 <strong>다른 답</strong>을 비교.</li>
+<li><strong>14 복원력</strong>: 회로차단기·격벽·재시도·DLQ — &quot;실패는 일어난다&quot;를 전제로.</li>
+<li><strong>15 계약·설정 방송</strong>: 스키마 진화, Spring Cloud Contract.</li>
+</ul>
+<blockquote>
+<p>준비되면 <a href="REVIEW-PART-C.html">파트 C 복습</a>으로.</p>
+</blockquote>
+<p><em>관련: <a href="README.html">README</a> 인덱스 · <code>PHASE-8</code>~`PHASE-11<code>심화 문서. 로드맵:</code>MSA-LEARNING-PLAN.md`.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#1-큰-그림--파트-b-가-끝났을-때의-모양">1. 큰 그림 — 파트 B 가 끝났을 때의 모양</a></li>
+<li class="toc-h2"><a href="#2-단계별-회고-무엇을왜">2. 단계별 회고 (무엇을·왜)</a></li>
+<li class="toc-h2"><a href="#3-핵심-개념-자가진단-막힘없이-설명되면-통과">3. 핵심 개념 자가진단 (막힘없이 설명되면 통과)</a></li>
+<li class="toc-h3"><a href="#관측성">관측성</a></li>
+<li class="toc-h3"><a href="#비동기">비동기</a></li>
+<li class="toc-h3"><a href="#신뢰성-파트-b-의-심장">신뢰성 (파트 B 의 심장)</a></li>
+<li class="toc-h3"><a href="#cqrs">CQRS</a></li>
+<li class="toc-h2"><a href="#4-셀프-퀴즈-답은-아래-접힘">4. 셀프 퀴즈 (답은 아래 접힘)</a></li>
+<li class="toc-h2"><a href="#5-재현-체크리스트-맨바닥에서-뜨면-체화된-것">5. 재현 체크리스트 (&quot;맨바닥에서 뜨면 체화된 것&quot;)</a></li>
+<li class="toc-h2"><a href="#6-아직-열려-있는-한계-누적--해결-phase">6. 아직 열려 있는 한계 (누적) → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#7-다음--파트-c-phase-1215">7. 다음 — 파트 C (Phase 12~15)</a></li></ul></nav></aside>
+</body>
+</html>

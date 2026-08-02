@@ -84,7 +84,13 @@ const DOCS = [
   { key: 'PHASE-COMMIT-MAP',     out: 'PHASE-COMMIT-MAP.html', title: 'Phase ↔ 커밋 지도',       group: '지도·복습', file: 'docs/PHASE-COMMIT-MAP.md',
     desc: 'git 이력으로 단계별 코드 변화 되짚기' },
   { key: 'REVIEW-PART-A',        out: 'REVIEW-PART-A.html', title: '파트 A 복습 (Phase 0~7)',   group: '지도·복습', file: 'docs/REVIEW-PART-A.md',
-    desc: '큰 그림·자가진단·셀프 퀴즈·재현 체크리스트' },
+    desc: '동기 플랫폼 — 큰 그림·자가진단·셀프 퀴즈·재현 체크리스트' },
+  { key: 'REVIEW-PART-B',        out: 'REVIEW-PART-B.html', title: '파트 B 복습 (Phase 8~11)',  group: '지도·복습', file: 'docs/REVIEW-PART-B.md',
+    desc: '관측성·비동기·Outbox·CQRS — 이중 쓰기와 멱등을 중심으로' },
+  { key: 'REVIEW-PART-C',        out: 'REVIEW-PART-C.html', title: '파트 C 복습 (Phase 12~15)', group: '지도·복습', file: 'docs/REVIEW-PART-C.md',
+    desc: 'Saga 두 방식 비교·보상·복원력·계약 테스트' },
+  { key: 'REVIEW-PART-D',        out: 'REVIEW-PART-D.html', title: '파트 D 복습 (Phase 16~19)', group: '지도·복습', file: 'docs/REVIEW-PART-D.md',
+    desc: 'k8s·CI/CD·Kustomize·GitOps — 명령형에서 선언형으로' },
 ];
 
 const GROUP_ORDER = ['시작', '공통 개념', 'Phase 단계별', '지도·복습'];

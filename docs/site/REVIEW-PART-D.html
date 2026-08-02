@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파트 D 복습 (Phase 16~19) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li class="active"><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="4차-복습--파트-d-플랫폼과-배포-phase-1619">4차 복습 — 파트 D: 플랫폼과 배포 (Phase 16~19)</h1>
+<blockquote>
+<p>파트 A~C 는 <strong>애플리케이션</strong>을 만들었습니다. 파트 D 는 그걸 <strong>어디서 어떻게 돌리느냐</strong>를 다룹니다.
+여기서 흥미로운 일이 벌어집니다 — <strong>애플리케이션 코드가 오히려 줄어듭니다.</strong>
+Eureka(디스커버리)와 Config Server(설정)가 <strong>삭제</strong>되고 그 역할이 플랫폼으로 넘어가기 때문입니다.
+파트 D 의 관통하는 질문은 이겁니다: <strong>&quot;이 일은 애플리케이션의 일인가, 플랫폼의 일인가?&quot;</strong></p>
+</blockquote>
+<hr>
+<h2 id="1-큰-그림--배포가-네-단계에-걸쳐-어떻게-변했나">1. 큰 그림 — 배포가 네 단계에 걸쳐 어떻게 변했나</h2>
+<pre><code>Phase 15 까지     내가 손으로: ./gradlew bootJar → docker build → docker compose up
+                  · 지금 뜬 게 어느 커밋인지 아무도 모름
+
+Phase 16 (k8s)    내가 손으로: build-and-load.sh → apply.sh (kubectl apply -f 여러 개)
+                  · 얻은 것: 자가치유·스케일·probe / Eureka·Config Server 삭제
+                  · 남은 것: 여전히 내가 친다
+
+Phase 17 (CI)     push → [빌드·테스트 → 멀티아치 이미지 → GHCR → CI 안 kind 스모크]
+                  · 얻은 것: &quot;이 커밋은 배포 가능하다&quot;는 증명, 이미지에 커밋 SHA
+                  · 남은 것: 진짜 클러스터엔 여전히 내가 apply
+
+Phase 18 (선언)   kubectl apply -k overlays/local  (한 줄)
+                  · 얻은 것: base/overlay, 설정 변경 → 자동 롤아웃(해시), CI 의 sed 제거
+                  · 남은 것: apply 를 누르는 사람 = 나
+
+Phase 19 (GitOps) git push  ← 내가 치는 명령은 이것 하나
+                  CI 가 이미지 만들고 → 태그를 Git 에 커밋 → Argo CD 가 보고 스스로 배포
+                  · 얻은 것: 드리프트 복원(selfHeal), prune, CI 가 클러스터 자격증명 불필요
+</code></pre><p><strong>핵심 한 문장:</strong> 파트 D 는 <strong>&quot;사람이 하던 일을 하나씩 선언으로 바꾸는&quot; 이야기</strong>다.
+그리고 매 단계마다 <strong>무엇을 잃는지</strong>도 같이 봤다(Phase 19 는 비밀의 자동 롤아웃을 잃었다).</p>
+<h3 id="지금의-배치">지금의 배치</h3>
+<pre><code>   Git (github.com/jyh4358/msa-practice)  ← 배포의 단일 진실
+     deploy/config/*.yml        ← compose 와 k8s 가 &#39;같은 파일&#39;을 쓴다
+     deploy/k8s/base/           ← 어디서나 참인 매니페스트
+     deploy/k8s/overlays/
+        local  (내 노트북·NodePort 디버그)
+        ci     (CI 스모크·버려짐)
+        gitops (Argo CD 가 보는 것·봇이 커밋)
+              ▲                          │
+              │ CI 봇이 이미지 태그 커밋   │ Argo CD 가 60초마다 당겨 본다
+              │                          ▼
+   ┌──────────────────────────────────────────────┐
+   │ kind 클러스터 (Colima 12GB)                   │
+   │  ns argocd    : controller·repo-server·server·redis
+   │  ns ingress-nginx : Helm 릴리스               │
+   │  ns shopsaga  : 13 파드 (GHCR 이미지)          │
+   └──────────────────────────────────────────────┘
+</code></pre><hr>
+<h2 id="2-단계별-회고-무엇을왜">2. 단계별 회고 (무엇을·왜)</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>무엇을</th>
+<th>왜(어떤 문제를 풀려고)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>16a</strong> 로컬 k8s</td>
+<td>kind, Deployment/Service/ConfigMap/Secret, <strong>liveness≠readiness</strong>, NodePort, 자가치유·스케일</td>
+<td>단일 호스트 compose 는 <strong>죽으면 끝</strong>이고 스케일이 없다</td>
+</tr>
+<tr>
+<td><strong>16b</strong> 전체 이전</td>
+<td><strong>Eureka·Config Server 삭제</strong> → 플랫폼 DNS + ConfigMap, Ingress, compose 동반 이전</td>
+<td>디스커버리·설정은 <strong>애플리케이션의 일이 아니라 플랫폼의 일</strong>이었다</td>
+</tr>
+<tr>
+<td><strong>17</strong> CI/CD</td>
+<td>GitHub Actions, jar 1회 빌드 + <strong>네이티브 러너 2개</strong>로 멀티아치, GHCR <code>:커밋SHA</code>, CI 안 스모크</td>
+<td>사람이 빌드하니 <strong>뜬 게 어느 커밋인지 모른다</strong></td>
+</tr>
+<tr>
+<td><strong>18</strong> 선언적 배포</td>
+<td>Kustomize base/overlay, <strong>생성기 해시 → 자동 롤아웃</strong>, <code>sed</code> 제거, ingress-nginx 를 Helm 으로</td>
+<td>배포가 <strong>셸 스크립트</strong>라 읽을 수도 되돌릴 수도 없다</td>
+</tr>
+<tr>
+<td><strong>19</strong> GitOps</td>
+<td>Argo CD, <strong>CI→Git 승격</strong>, <code>selfHeal</code>·<code>prune</code></td>
+<td><code>apply</code> 를 누르는 게 사람이면 <strong>드리프트를 막을 수 없다</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>관통하는 실 ①:</strong> 16b 에서 <strong>코드가 줄었다.</strong> 서비스 2개(discovery·config)와 <code>config-repo</code> 가 통째로 삭제됐다.
+좋은 플랫폼은 애플리케이션이 짊어지던 짐을 가져간다.</p>
+<p><strong>관통하는 실 ②:</strong> 18 → 19 에서 <strong>하나를 얻고 하나를 잃었다.</strong>
+얻은 것: 자동 배포·드리프트 복원·prune. 잃은 것: <strong>비밀의 자동 롤아웃</strong>(§4 퀴즈 7번).</p>
+</blockquote>
+<hr>
+<h2 id="3-핵심-개념-자가진단">3. 핵심 개념 자가진단</h2>
+<h3 id="쿠버네티스-기본기-16">쿠버네티스 기본기 (16)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> ★ <strong>liveness ≠ readiness</strong>: 각각 실패하면 무슨 일이 일어나나? <strong>liveness 에 DB 를 넣으면 왜 재앙인가?</strong> → <code>PHASE-16-KUBERNETES.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>startupProbe</strong> 는 왜 따로 있나(느린 기동과 liveness 의 충돌) → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>Deployment ↔ ReplicaSet ↔ Pod</strong> 관계. 롤링 업데이트의 단위는? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>Service 와 EndpointSlice</strong>: &quot;파드가 Ready&quot; 와 &quot;Service 로 트래픽이 간다&quot;는 왜 다른 사건인가? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>Ingress 와 Ingress 컨트롤러</strong>의 차이(오브젝트만 만들면 아무 일도 안 일어난다) → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>k8s 에는 <code>depends_on</code> 이 없다.</strong> 그런데 딱 한 곳에 <code>initContainer</code> 를 뒀다 — 어디이고 왜인가? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>Secret 은 암호화가 아니다</strong> — 그럼 ConfigMap 보다 나은 점이 뭔가? → 〃</li>
+</ul>
+<h3 id="플랫폼으로의-이동-16b">플랫폼으로의 이동 (16b)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> ★ <strong>Eureka 를 지울 수 있었던 이유.</strong> 그 역할을 무엇이 대신하나? 잃은 기능은 없나? → <code>PHASE-16-KUBERNETES.md</code> (16b)</li>
+<li><input disabled="" type="checkbox"> <strong>Config Server → ConfigMap</strong>: <code>{cipher}</code> 복호화 키가 필요 없어진 이유는? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>설정 3층</strong>(jar 기본값 / 클래스패스 공통 / <code>deploy/config</code>)이 각각 무엇을 담나? → 〃</li>
+</ul>
+<h3 id="cicd-17">CI/CD (17)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>jar 을 한 번만 빌드하는 이유</strong>(아키텍처별로 다시 안 만드는 근거) → <code>PHASE-17-CICD.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>에뮬레이션 대신 네이티브 러너 2개</strong>를 쓴 이유와, <code>imagetools create</code> 가 하는 일 → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>이미지 태그를 커밋 SHA 로</strong> 다는 것의 가치 → 〃</li>
+<li><input disabled="" type="checkbox"> ⚠️ <strong>CI 가 빨라지자 드러난 버그</strong>가 있었다. 무엇이고 왜 느릴 땐 안 보였나? → 〃 §7-⑦</li>
+</ul>
+<h3 id="선언적-배포-18">선언적 배포 (18)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>Kustomize vs Helm</strong>: 접근이 어떻게 다른가? &quot;내 것은 Kustomize, 남의 것은 Helm&quot; 의 근거는? → <code>PHASE-18-KUSTOMIZE.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>base 와 overlay 의 경계</strong>를 어디에 긋나(판단 기준 한 문장) → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>생성기 해시 접미사가 왜 롤링 업데이트를 일으키나?</strong> ConfigMap 내용은 파드 템플릿에 없는데? → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>DB 비밀번호는 일부러 생성기로 만들지 않았다.</strong> 왜? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong><code>sed</code> 대신 <code>images:</code> 변환기</strong>를 쓰는 이유(더러워서가 아니다) → 〃</li>
+</ul>
+<h3 id="gitops-19">GitOps (19)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>push 방식 vs pull 방식</strong> 배포. pull 이 보안상 나은 이유는? → <code>PHASE-19-GITOPS.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>sync 와 health 의 차이</strong>. <code>Synced + Degraded</code> 는 무슨 뜻인가? → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>Argo CD 에서 <code>secretGenerator</code> 를 못 쓰는 이유</strong>. 그래서 무엇을 잃었나? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>prune 이 안 지우는 리소스</strong>가 있다. 무엇을 기준으로 판단하나? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>selfHeal 은 변경을 &#39;막지&#39; 않는다</strong> — 그럼 무엇을 하나? 정말 막으려면? → 〃</li>
+</ul>
+<hr>
+<h2 id="4-셀프-퀴즈-답은-아래-접힘">4. 셀프 퀴즈 (답은 아래 접힘)</h2>
+<ol>
+<li>readiness probe 에 DB 조회를 넣는 건 괜찮은데 <strong>liveness 에 넣으면</strong> 왜 재앙인가?</li>
+<li>파드가 전부 <code>Running 1/1</code> 인데 Saga 가 <code>PENDING</code> 에서 멈췄다. Kafka 도 살아 있다. 무엇을 의심하나?</li>
+<li>Phase 16b 에서 Eureka 를 <strong>지울 수 있었던</strong> 근거는? 대신 무엇이 그 일을 하나?</li>
+<li>같은 <code>deploy/config/common.yml</code> 파일을 compose 는 바인드 마운트하고, k8s 는 ConfigMap 으로 만든다. 이게 왜 중요한가?</li>
+<li>Phase 17 에서 CI <strong>1차는 통과했는데 2차가 실패</strong>했다. 코드는 그대로였다. 왜?</li>
+<li>Phase 18 에서 <code>deploy/config/kustomization.yaml</code> 이 <strong><code>deploy/k8s/</code> 가 아니라 <code>deploy/config/</code> 에</strong> 있는 이유는?</li>
+<li>★ Phase 19 에서 <code>secretGenerator</code> 를 걷어냈다. <strong>왜 걷어내야 했고, 그래서 무엇을 잃었나?</strong></li>
+<li>Argo CD 가 <code>Synced</code> 인데 <code>health</code> 가 10분째 <code>Progressing</code> 이다. 어디를 보나?</li>
+<li><code>kubectl scale deploy/auth-service --replicas=5</code> 를 쳤다. 명령은 성공하나? 5분 뒤엔?</li>
+<li>Phase 18 이 남긴 &quot;옛 해시 ConfigMap 누적&quot;을 Phase 19 의 <code>prune</code> 이 해결했다. 그런데 <strong>일부는 안 지워졌다.</strong> 왜?</li>
+<li>CI 봇이 Git 에 커밋하는데, 그 커밋이 다시 CI 를 트리거하지 않는 이유는?</li>
+</ol>
+<details><summary>정답 펼치기</summary>
+
+<ol>
+<li><strong>liveness 실패는 컨테이너를 죽인다.</strong> DB 가 잠깐 흔들리면 <strong>모든 파드가 동시에 재시작</strong>되고, 재시작한 파드가 다시 DB 에 몰려 상황을 악화시킨다(재시작 루프). readiness 는 <strong>트래픽만 끊고 파드는 살려 두므로</strong> DB 가 돌아오면 그대로 복귀한다. 규칙: <strong>liveness 에 외부 의존성 금지.</strong></li>
+<li><strong>토픽이 없을 가능성.</strong> Spring 의 <code>KafkaAdmin</code> 은 <code>NewTopic</code> 빈을 <strong>기동 시 딱 한 번</strong> 만들고, 브로커가 아직 없으면 조용히 실패한 뒤 재시도하지 않는다. 그래서 파드는 초록불인데 발행이 <code>UNKNOWN_TOPIC_OR_PARTITION</code> 으로 계속 실패한다. → 그 한 곳에만 <code>initContainer</code> 로 Kafka 를 기다리게 했다.</li>
+<li><strong>쿠버네티스 Service 가 이름을 주소로 바꿔 주기 때문이다</strong>(<code>http://order-service:8080</code> → CoreDNS → ClusterIP → EndpointSlice 의 Ready 파드). 즉 Eureka 가 하던 등록·조회·헬스 기반 제외를 <strong>플랫폼이 이미 한다.</strong> 잃은 건 클라이언트 사이드 LB 의 세밀한 제어 정도이고, 대신 <code>@LoadBalanced</code> 를 떼어냈다.</li>
+<li><strong>설정이 두 벌로 갈라지지 않기 때문이다.</strong> compose 와 k8s 가 각자 설정을 갖고 있으면 한쪽만 고치는 사고가 반드시 난다. 파일 하나를 두 방식으로 <strong>주입만</strong> 다르게 한다. (Phase 18 에서 Kustomize 로 옮길 때도 이 구조를 지키느라 로드 제한을 우회해야 했다.)</li>
+<li><strong>캐시 덕에 빨라졌기 때문이다.</strong> 1차는 이미지 pull 이 느려서 ingress-nginx 의 admission webhook 이 준비될 시간을 <strong>우연히</strong> 벌었다. 2차는 캐시로 빨라져 그 창이 사라졌고 <code>connection refused</code> 로 깨졌다. <strong>경쟁 조건은 빨라질 때 드러난다.</strong></li>
+<li><strong>Kustomize 는 kustomization 디렉터리 바깥 파일을 못 읽는다</strong>(<code>LoadRestrictionsRootOnly</code>, 공급망 공격 방지). <code>deploy/config/</code> 를 스스로 kustomization 루트로 만들고 상위에서 <code>resources: [../../config]</code> 로 끌어오면 제한에 안 걸리면서 <strong>compose 와의 파일 공유도 유지</strong>된다.</li>
+<li><strong>Argo CD 는 Git 저장소를 클론해서 렌더</strong>한다. 개인키는 <code>.gitignore</code> 대상이라 Git 에 없으므로 <code>kustomize build</code> 가 영원히 실패한다. 부트스트랩 스크립트를 대신 돌려 줄 수도 없다(Argo CD 는 선언만 읽고 명령은 실행하지 않는다 — 그게 안전성이다). 그래서 서명 키를 <code>kubectl</code> 로 넣는 <strong>클러스터 사전 조건</strong>으로 옮겼고, <strong>해시 접미사가 사라져 키를 갈아도 파드가 자동으로 안 갈린다</strong>. 제대로 된 답은 Sealed Secrets / External Secrets Operator.</li>
+<li><strong><code>kubectl get events</code>.</strong> <code>Synced</code> 는 &quot;Git 대로 만들었다&quot;까지만 보장한다. Git 에 <strong>없는 전제</strong>(대표적으로 <code>auth-jwt-key</code> Secret)가 빠지면 파드가 못 뜨고 계속 <code>Progressing</code> 이다. 실제로 이 프로젝트에서 그 일이 있었다(부트스트랩을 건너뛴 실수).</li>
+<li><strong>성공한다.</strong> 실제로 replicas 가 5가 되고 파드가 늘어난다. 그리고 <strong>약 6초 뒤 Argo CD 의 selfHeal 이 Git 값(2)으로 되돌린다.</strong> selfHeal 은 <strong>차단이 아니라 복원</strong>이다. 정말 막으려면 RBAC 으로 사람의 쓰기 권한을 빼야 한다.</li>
+<li><strong>Argo CD 는 자기가 만든 것만 지운다.</strong> 판단 기준은 <code>argocd.argoproj.io/tracking-id</code> 어노테이션이다. Phase 18 시절 <code>kubectl apply -k</code> 로 만들어진 ConfigMap 에는 그 표시가 없으므로 &quot;남의 것&quot;으로 보고 건드리지 않는다. 전환 시점에 <strong>한 번은 손으로</strong> 치워야 한다(안전장치이기도 하다).</li>
+<li><strong><code>paths-ignore</code>.</strong> 봇은 <code>deploy/k8s/overlays/gitops/**</code> 만 건드리고, push 트리거가 그 경로를 무시하도록 돼 있다. (커밋 메시지의 <code>[skip ci]</code> 는 이중 안전장치.) 이게 없으면 커밋 → CI → 커밋 → … 무한 루프가 된다.</li>
+</ol>
+</details>
+
+<hr>
+<h2 id="5-재현-체크리스트">5. 재현 체크리스트</h2>
+<blockquote>
+<p>⚠️ compose 와 kind 를 <strong>동시에 띄우지 말 것</strong>(RAM + 포트 8000 충돌).</p>
+</blockquote>
+<p><strong>기본 기동</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> <code>colima start</code> → <code>docker start shopsaga-control-plane</code> → 13파드 + argocd 4파드 Ready.</li>
+<li><input disabled="" type="checkbox"> <code>curl localhost:8000/actuator/health</code> → 200, 로그인 → 주문 → <code>CONFIRMED</code>.</li>
+</ul>
+<p><strong>쿠버네티스 감각 (16)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> <code>kubectl delete pod -n shopsaga -l app=order-service</code> → 저절로 다시 생기는지(자가치유).</li>
+<li><input disabled="" type="checkbox"> <code>kubectl scale deploy/order-service -n shopsaga --replicas=3</code> → 요청이 여러 파드로 분산되는지.</li>
+<li><input disabled="" type="checkbox"> ★ <code>kubectl scale deploy/order-db --replicas=0</code> → <strong>readiness 는 죽고 liveness 는 산다</strong>(RESTARTS 가 안 늘어남)를 눈으로. 다시 1로 올리면 자동 복귀.</li>
+</ul>
+<p><strong>선언적 배포 (18)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> <code>kubectl kustomize deploy/k8s/overlays/local</code> — 적용 <strong>전에</strong> 최종 YAML 을 눈으로.</li>
+<li><input disabled="" type="checkbox"> <code>kubectl diff -k deploy/k8s/overlays/local</code> — 지금 클러스터와의 차이.</li>
+<li><input disabled="" type="checkbox"> <code>deploy/config/common.yml</code> 을 한 글자 고치고 렌더 → <strong>ConfigMap 이름의 해시가 바뀌는지</strong> 확인.</li>
+</ul>
+<p><strong>GitOps (19)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> <code>kubectl get application shopsaga -n argocd -o wide</code> → <code>Synced/Healthy</code>.</li>
+<li><input disabled="" type="checkbox"> <code>kubectl port-forward svc/argocd-server -n argocd 8081:80</code> → UI 에서 리소스 트리 보기.</li>
+<li><input disabled="" type="checkbox"> ★ <strong>selfHeal</strong>: <code>kubectl scale deploy/auth-service --replicas=5</code> → 몇 초 뒤 되돌아오는지 <strong>시간을 재본다</strong>.</li>
+<li><input disabled="" type="checkbox"> ★ <strong>전체 루프</strong>: 설정을 한 줄 고쳐 <code>git push</code> → CI 통과 → <strong>봇 커밋</strong> 확인(<code>git log origin/main</code>) → Argo CD 리비전 전환 → 파드 교체까지, <strong><code>kubectl</code> 을 한 번도 치지 않고</strong> 관찰.</li>
+<li><input disabled="" type="checkbox"> <code>git log deploy/k8s/overlays/gitops/</code> — <strong>이게 곧 배포 이력</strong>임을 확인.</li>
+</ul>
+<hr>
+<h2 id="6-아직-열려-있는-한계-누적--어디서-해결되나">6. 아직 열려 있는 한계 (누적) → 어디서 해결되나</h2>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>어디서</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>★ <strong>키 교체 시 자동 롤아웃 없음</strong>(Phase 19 가 되돌린 것)</td>
+<td><strong>Sealed Secrets / ESO</strong></td>
+</tr>
+<tr>
+<td><strong>DB 비밀번호가 Git 에 평문</strong>(dev 값)</td>
+<td>위와 같음</td>
+</tr>
+<tr>
+<td><strong>롤백 미검증</strong> — <code>git revert</code> 로 될 것이나 실측 안 함</td>
+<td>다음 기회</td>
+</tr>
+<tr>
+<td>Argo CD UI 가 port-forward 로만(서브경로는 업스트림 이슈)</td>
+<td>이슈 해결 대기</td>
+</tr>
+<tr>
+<td>폴링 60초 — 즉시 반영 아님</td>
+<td>webhook(클러스터가 인터넷에 노출돼야 함)</td>
+</tr>
+<tr>
+<td>컨테이너 <strong>root 실행</strong> · NetworkPolicy 없음</td>
+<td>보안 기본값 강화</td>
+</tr>
+<tr>
+<td>이미지 <strong>취약점 스캔·서명 없음</strong></td>
+<td>Trivy · cosign</td>
+</tr>
+<tr>
+<td><strong>HPA 불가</strong>(metrics-server 없음)</td>
+<td>metrics-server + HPA</td>
+</tr>
+<tr>
+<td>DB·Kafka 가 Deployment(StatefulSet 아님) · 단일 노드 · 단일 브로커</td>
+<td>운영이라면 오퍼레이터</td>
+</tr>
+<tr>
+<td>CI 스모크가 <strong>행복 경로 하나</strong></td>
+<td>실패 경로 시나리오 추가</td>
+</tr>
+<tr>
+<td>환경이 <strong>하나</strong>(gitops 오버레이 = 사실상 prod)</td>
+<td>staging/prod 분리 + ApplicationSet</td>
+</tr>
+<tr>
+<td>Argo CD 가 <strong>단일 장애점</strong></td>
+<td>HA 모드</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-여기까지-오면">7. 여기까지 오면</h2>
+<p>파트 A<del>D 로 **Phase 0</del>19** 를 한 바퀴 돌았습니다. 스스로 확인해 볼 것:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Phase 2 에서 <strong>깨진 것</strong>(분산 트랜잭션)이 어디서 <strong>어떻게</strong> 복구됐는지 한 호흡에 설명할 수 있다. (2 → 10 → 12/13 → 14)</li>
+<li><input disabled="" type="checkbox"> 같은 문제(Saga)를 <strong>두 방식</strong>으로 푼 경험에서, 무엇을 기준으로 고를지 말할 수 있다.</li>
+<li><input disabled="" type="checkbox"> &quot;이 일은 애플리케이션의 일인가 플랫폼의 일인가&quot; 를 Eureka·Config Server 사례로 설명할 수 있다.</li>
+<li><input disabled="" type="checkbox"> 배포가 <strong>명령형 → 선언형 → GitOps</strong> 로 가면서 매 단계 <strong>무엇을 얻고 무엇을 잃었는지</strong> 말할 수 있다.</li>
+<li><input disabled="" type="checkbox"> 각 Phase 문서의 <strong>§8 한계표</strong>가 다음 Phase 의 시작점이었다는 흐름이 보인다.</li>
+</ul>
+<blockquote>
+<p>막히는 항목이 있으면 그 Phase 문서로 돌아가세요. <strong>막히는 곳이 곧 다음에 볼 곳</strong>입니다.</p>
+</blockquote>
+<p><em>관련: <a href="REVIEW-PART-A.html">파트 A</a> · <a href="REVIEW-PART-B.html">파트 B</a> · <a href="REVIEW-PART-C.html">파트 C</a> ·
+<a href="README.html">README</a> 인덱스 · <code>PHASE-16</code>~`PHASE-19` 심화 문서 · <a href="PHASE-COMMIT-MAP.html">커밋 지도</a>.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#1-큰-그림--배포가-네-단계에-걸쳐-어떻게-변했나">1. 큰 그림 — 배포가 네 단계에 걸쳐 어떻게 변했나</a></li>
+<li class="toc-h3"><a href="#지금의-배치">지금의 배치</a></li>
+<li class="toc-h2"><a href="#2-단계별-회고-무엇을왜">2. 단계별 회고 (무엇을·왜)</a></li>
+<li class="toc-h2"><a href="#3-핵심-개념-자가진단">3. 핵심 개념 자가진단</a></li>
+<li class="toc-h3"><a href="#쿠버네티스-기본기-16">쿠버네티스 기본기 (16)</a></li>
+<li class="toc-h3"><a href="#플랫폼으로의-이동-16b">플랫폼으로의 이동 (16b)</a></li>
+<li class="toc-h3"><a href="#cicd-17">CI/CD (17)</a></li>
+<li class="toc-h3"><a href="#선언적-배포-18">선언적 배포 (18)</a></li>
+<li class="toc-h3"><a href="#gitops-19">GitOps (19)</a></li>
+<li class="toc-h2"><a href="#4-셀프-퀴즈-답은-아래-접힘">4. 셀프 퀴즈 (답은 아래 접힘)</a></li>
+<li class="toc-h2"><a href="#5-재현-체크리스트">5. 재현 체크리스트</a></li>
+<li class="toc-h2"><a href="#6-아직-열려-있는-한계-누적--어디서-해결되나">6. 아직 열려 있는 한계 (누적) → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#7-여기까지-오면">7. 여기까지 오면</a></li></ul></nav></aside>
+</body>
+</html>

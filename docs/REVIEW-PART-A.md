@@ -127,6 +127,10 @@
 - **10 Outbox + 멱등성**: Phase 2의 고아 결제/이중 처리 문제를 제대로.
 - **11 CQRS**: 읽기/쓰기 모델 분리.
 
-> 준비되면 **Phase 8**부터. 이 문서의 자가진단·퀴즈를 다시 풀어 막히는 곳이 있으면 해당 Phase 문서로 복귀하세요.
+> 준비되면 [**파트 B 복습**](REVIEW-PART-B.md)으로. 이 문서의 자가진단·퀴즈를 다시 풀어
+> 막히는 곳이 있으면 해당 Phase 문서로 복귀하세요.
+>
+> 전체 복습 자료: [파트 A](REVIEW-PART-A.md)(0~7) · [파트 B](REVIEW-PART-B.md)(8~11) ·
+> [파트 C](REVIEW-PART-C.md)(12~15) · [파트 D](REVIEW-PART-D.md)(16~19)
 
 *관련: [README](../README.md) 인덱스, `docs/PHASE-0~7`·`SERVICE-DISCOVERY`·`SECURITY`·`HEXAGONAL`. 로드맵: `MSA-LEARNING-PLAN.md`.*

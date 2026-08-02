@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파트 C 복습 (Phase 12~15) · ShopSaga 문서</title>
+<style>
+
+:root{
+  --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+  --sidebar-bg:#f6f8fa; --accent:#0969da; --accent-soft:#ddf4ff;
+  --code-bg:#f6f8fa; --code-fg:#1f2328; --table-alt:#f6f8fa; --quote-border:#d0d7de;
+  --sidebar-w:280px; --toc-w:240px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+    --sidebar-bg:#161b22; --accent:#4493f8; --accent-soft:#122436;
+    --code-bg:#161b22; --code-fg:#e6edf3; --table-alt:#161b22; --quote-border:#30363d;
+  }
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* 레이아웃: 사이드바 | 본문 | 목차 */
+.sidebar{
+  position:fixed; top:0; left:0; width:var(--sidebar-w); height:100vh; overflow-y:auto;
+  background:var(--sidebar-bg); border-right:1px solid var(--border); padding:20px 14px 40px;
+}
+.content{
+  margin-left:var(--sidebar-w); margin-right:var(--toc-w);
+  padding:44px 48px 80px; max-width:900px;
+}
+.toc-wrap{
+  position:fixed; top:0; right:0; width:var(--toc-w); height:100vh; overflow-y:auto;
+  padding:44px 18px 40px; border-left:1px solid var(--border);
+}
+@media (max-width:1200px){
+  .toc-wrap{display:none;}
+  .content{margin-right:0;}
+}
+@media (max-width:860px){
+  .content{margin-left:0; padding:64px 20px 60px;}
+  .sidebar{transform:translateX(-100%); transition:transform .2s ease; z-index:30; box-shadow:0 0 24px rgba(0,0,0,.2);}
+  body.nav-open .sidebar{transform:translateX(0);}
+  body.nav-open .nav-backdrop{display:block;}
+  .nav-toggle{display:flex;}
+}
+
+/* 사이드바 내부 */
+.brand a{font-weight:700; font-size:16px; color:var(--fg);}
+.brand-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.nav-group{margin-top:20px;}
+.nav-group-title{font-size:12px; font-weight:700; color:var(--muted); text-transform:none; letter-spacing:.02em; padding:0 8px 6px;}
+.sidebar ul{list-style:none; margin:0; padding:0;}
+.sidebar li a{display:block; padding:6px 10px; border-radius:6px; color:var(--fg); font-size:14px;}
+.sidebar li a:hover{background:var(--accent-soft); text-decoration:none;}
+.sidebar li.active a{background:var(--accent); color:#fff; font-weight:600;}
+
+/* 목차 */
+.toc-title{font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px;}
+.toc ul{list-style:none; margin:0; padding:0;}
+.toc li{margin:0;}
+.toc li a{display:block; padding:3px 8px; font-size:13px; color:var(--muted); border-left:2px solid transparent; line-height:1.4;}
+.toc li a:hover{color:var(--accent); text-decoration:none;}
+.toc-h3 a{padding-left:20px; font-size:12.5px;}
+
+/* 모바일 토글 */
+.nav-toggle{display:none; position:fixed; top:12px; left:12px; z-index:40;
+  width:40px; height:40px; align-items:center; justify-content:center;
+  background:var(--sidebar-bg); border:1px solid var(--border); border-radius:8px;
+  font-size:18px; cursor:pointer; color:var(--fg);}
+.nav-backdrop{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;}
+
+/* 본문 타이포 */
+.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+  line-height:1.3; margin:1.6em 0 .6em; font-weight:700;}
+.markdown-body h1{font-size:2em; margin-top:0; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h2{font-size:1.5em; padding-bottom:.3em; border-bottom:1px solid var(--border);}
+.markdown-body h3{font-size:1.25em;}
+.markdown-body h4{font-size:1.05em;}
+.markdown-body p{margin:0 0 1em;}
+.markdown-body ul,.markdown-body ol{margin:0 0 1em; padding-left:1.7em;}
+.markdown-body li{margin:.2em 0;}
+.markdown-body blockquote{
+  margin:0 0 1em; padding:.4em 1em; color:var(--muted);
+  border-left:4px solid var(--quote-border); background:var(--table-alt);}
+.markdown-body blockquote p{margin:.4em 0;}
+.markdown-body hr{border:0; border-top:1px solid var(--border); margin:2em 0;}
+.markdown-body img{max-width:100%;}
+
+/* 표 */
+.markdown-body table{border-collapse:collapse; width:100%; margin:0 0 1.2em; display:block; overflow-x:auto;}
+.markdown-body th,.markdown-body td{border:1px solid var(--border); padding:7px 12px; text-align:left;}
+.markdown-body th{background:var(--table-alt); font-weight:700;}
+.markdown-body tr:nth-child(2n) td{background:var(--table-alt);}
+
+/* 코드 */
+.markdown-body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"D2Coding","D2Coding ligature",monospace;
+  font-size:.88em;}
+.markdown-body :not(pre)>code{
+  background:var(--code-bg); padding:.15em .4em; border-radius:6px; border:1px solid var(--border);}
+.markdown-body pre{
+  background:var(--code-bg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+  border:1px solid var(--border); margin:0 0 1.2em; line-height:1.55;}
+.markdown-body pre code{background:none; padding:0; border:0; font-size:13.5px; white-space:pre;}
+
+/* 상세(details) */
+.markdown-body details{border:1px solid var(--border); border-radius:8px; padding:.6em 1em; margin:0 0 1em; background:var(--table-alt);}
+.markdown-body summary{cursor:pointer; font-weight:600;}
+
+/* 랜딩 카드 */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin:0 0 1.6em;}
+.card{display:block; border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--sidebar-bg);
+  transition:border-color .15s ease, transform .15s ease;}
+.card:hover{border-color:var(--accent); text-decoration:none; transform:translateY(-2px);}
+.card-title{font-weight:700; color:var(--fg); margin-bottom:6px;}
+.card-desc{font-size:13.5px; color:var(--muted); line-height:1.5;}
+
+/* 푸터 */
+.site-footer{margin-top:40px; color:var(--muted); font-size:13px;}
+.site-footer hr{border:0; border-top:1px solid var(--border); margin:0 0 12px;}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}
+@media (prefers-color-scheme: dark) {
+  pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+  }
+  code.hljs {
+    padding: 3px 5px
+  }
+  /*!
+    Theme: GitHub Dark
+    Description: Dark theme as seen on github.com
+    Author: github.com
+    Maintainer: @Hirse
+    Updated: 2021-05-15
+  
+    Outdated base version: https://github.com/primer/github-syntax-dark
+    Current colors taken from GitHub's CSS
+  */
+  .hljs {
+    color: #c9d1d9;
+    background: #0d1117
+  }
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+    /* prettylights-syntax-keyword */
+    color: #ff7b72
+  }
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+    /* prettylights-syntax-entity */
+    color: #d2a8ff
+  }
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-variable,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id {
+    /* prettylights-syntax-constant */
+    color: #79c0ff
+  }
+  .hljs-regexp,
+  .hljs-string,
+  .hljs-meta .hljs-string {
+    /* prettylights-syntax-string */
+    color: #a5d6ff
+  }
+  .hljs-built_in,
+  .hljs-symbol {
+    /* prettylights-syntax-variable */
+    color: #ffa657
+  }
+  .hljs-comment,
+  .hljs-code,
+  .hljs-formula {
+    /* prettylights-syntax-comment */
+    color: #8b949e
+  }
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-tag,
+  .hljs-selector-pseudo {
+    /* prettylights-syntax-entity-tag */
+    color: #7ee787
+  }
+  .hljs-subst {
+    /* prettylights-syntax-storage-modifier-import */
+    color: #c9d1d9
+  }
+  .hljs-section {
+    /* prettylights-syntax-markup-heading */
+    color: #1f6feb;
+    font-weight: bold
+  }
+  .hljs-bullet {
+    /* prettylights-syntax-markup-list */
+    color: #f2cc60
+  }
+  .hljs-emphasis {
+    /* prettylights-syntax-markup-italic */
+    color: #c9d1d9;
+    font-style: italic
+  }
+  .hljs-strong {
+    /* prettylights-syntax-markup-bold */
+    color: #c9d1d9;
+    font-weight: bold
+  }
+  .hljs-addition {
+    /* prettylights-syntax-markup-inserted */
+    color: #aff5b4;
+    background-color: #033a16
+  }
+  .hljs-deletion {
+    /* prettylights-syntax-markup-deleted */
+    color: #ffdcd7;
+    background-color: #67060c
+  }
+  .hljs-char.escape_,
+  .hljs-link,
+  .hljs-params,
+  .hljs-property,
+  .hljs-punctuation,
+  .hljs-tag {
+    /* purposely ignored */
+    
+  }
+}
+</style>
+</head>
+<body>
+<button class="nav-toggle" aria-label="메뉴" onclick="document.body.classList.toggle('nav-open')">☰</button>
+<div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<aside class="sidebar"><div class="brand"><a href="index.html">📚 ShopSaga 문서</a><div class="brand-sub">MSA 핸즈온 · Phase 0~7</div></div><div class="nav-group"><div class="nav-group-title">시작</div><ul><li><a href="index.html">홈 · 개요</a></li><li><a href="README.html">README (프로젝트 개요)</a></li><li><a href="MSA-LEARNING-PLAN.html">전체 로드맵 (18단계)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">공통 개념</div><ul><li><a href="HEXAGONAL.html">헥사고날 아키텍처 컨벤션</a></li><li><a href="SETUP.html">설치·실행 (트러블슈팅)</a></li></ul></div><div class="nav-group"><div class="nav-group-title">Phase 단계별</div><ul><li><a href="PHASE-0-SCAFFOLD.html">Phase 0 · 스캐폴드</a></li><li><a href="PHASE-1-MONOLITH.html">Phase 1 · 모놀리스(ACID)</a></li><li><a href="PHASE-2-SPLIT-PAYMENT.html">Phase 2 · 결제 분리</a></li><li><a href="PHASE-3-GATEWAY.html">Phase 3 · API 게이트웨이</a></li><li><a href="SERVICE-DISCOVERY.html">Phase 4 · 서비스 디스커버리</a></li><li><a href="SECURITY.html">Phase 5 · 보안(JWT)</a></li><li><a href="PHASE-6-CONFIG.html">Phase 6 · 중앙 설정</a></li><li><a href="PHASE-7-COMPOSE.html">Phase 7 · Docker Compose</a></li><li><a href="PHASE-8-OBSERVABILITY.html">Phase 8 · 관측성</a></li><li><a href="PHASE-9-ASYNC-KAFKA.html">Phase 9 · 비동기(Kafka)</a></li><li><a href="PHASE-10-OUTBOX.html">Phase 10 · Outbox+멱등성</a></li><li><a href="PHASE-11-CQRS.html">Phase 11 · CQRS 읽기 모델</a></li><li><a href="PHASE-12-SAGA.html">Phase 12 · Saga(보상)</a></li><li><a href="PHASE-13-SAGA-ORCHESTRATION.html">Phase 13 · Saga 오케스트레이션</a></li><li><a href="PHASE-14-RESILIENCE.html">Phase 14 · 복원력 패턴</a></li><li><a href="PHASE-15-CONTRACTS.html">Phase 15 · 강화(계약·Bus)</a></li><li><a href="PHASE-16-KUBERNETES.html">Phase 16 · 로컬 k8s(kind)</a></li><li><a href="PHASE-17-CICD.html">Phase 17 · CI/CD</a></li><li><a href="PHASE-18-KUSTOMIZE.html">Phase 18 · 선언적 배포</a></li><li><a href="PHASE-19-GITOPS.html">Phase 19 · GitOps</a></li></ul></div><div class="nav-group"><div class="nav-group-title">지도·복습</div><ul><li><a href="PHASE-COMMIT-MAP.html">Phase ↔ 커밋 지도</a></li><li><a href="REVIEW-PART-A.html">파트 A 복습 (Phase 0~7)</a></li><li><a href="REVIEW-PART-B.html">파트 B 복습 (Phase 8~11)</a></li><li class="active"><a href="REVIEW-PART-C.html">파트 C 복습 (Phase 12~15)</a></li><li><a href="REVIEW-PART-D.html">파트 D 복습 (Phase 16~19)</a></li></ul></div></aside>
+<main class="content">
+  <article class="markdown-body">
+<h1 id="3차-복습--파트-c-saga--복원력-phase-1215">3차 복습 — 파트 C: Saga &amp; 복원력 (Phase 12~15)</h1>
+<blockquote>
+<p>⚠️ <strong>이 복습은 Phase 12~15 시점을 다룹니다.</strong> 이후 바뀐 것:
+<strong>Phase 16b</strong> 에서 Config Server 가 삭제돼 설정이 <code>deploy/config/</code> 로 옮겨갔습니다
+(아래에 <code>config-repo</code> 가 나오면 &quot;지금은 <code>deploy/config/</code>&quot; 로 읽으세요).
+Spring Cloud Bus 는 남아 있고, k8s 에서도 동작합니다.</p>
+</blockquote>
+<blockquote>
+<p>파트 A 에서 <strong>깨진 것</strong>(Phase 2, 분산 트랜잭션 소실)을 파트 B 가 <strong>신뢰할 수 있는 배관</strong>으로 받쳐 놨습니다.
+파트 C 에서 드디어 <strong>그 깨진 것을 고칩니다.</strong> 그리고 &quot;고쳤다&quot;고 끝내지 않고,
+<strong>실패가 일어난다는 전제</strong>로 방어선을 두르고, <strong>계약</strong>으로 서비스 간 약속을 못박습니다.</p>
+</blockquote>
+<hr>
+<h2 id="1-큰-그림--두-가지-saga-를-둘-다-만들었다">1. 큰 그림 — 두 가지 Saga 를 <strong>둘 다</strong> 만들었다</h2>
+<p>이 프로젝트의 특이한 점: Saga 를 <strong>한 가지만 고르지 않고 둘 다 구현</strong>하고 <code>saga.mode</code> 로 토글합니다.
+같은 문제를 두 방식으로 풀어 봐야 트레이드오프가 몸에 남기 때문입니다. <strong>상호배타</strong>입니다(동시에 켜면 이중 처리).</p>
+<pre><code>◆ choreography (Phase 12) — 조정자가 없다
+    order ──OrderPlaced──▶ inventory ──StockReserved──▶ payment
+                                │                          │
+                          StockRejected              PaymentApproved / PaymentRejected
+                                │                          │
+                                ▼                          ▼
+                          order 가 듣고 CANCELLED    order 가 듣고 CONFIRMED / 보상 시작
+    · 각자 &quot;남의 사실&quot;을 듣고 스스로 반응
+    · 장점: 결합 낮음, 서비스 추가가 쉬움
+    · 단점: 전체 흐름이 어디에도 안 적혀 있다 (코드를 다 읽어야 안다)
+
+◆ orchestration (Phase 13, 기본값) — order 가 조정자
+                    ┌──────────── order (조정자) ────────────┐
+                    │  saga_instance 테이블 = 상태기계         │
+                    │  STARTED → AWAITING_INVENTORY →        │
+                    │  AWAITING_PAYMENT → COMPLETED          │
+                    │  실패 시 COMPENSATING_INVENTORY → CANCELLED │
+                    └──┬──────────────────────────▲──────────┘
+        saga-commands  │                          │  saga-replies
+         (지시)         ▼                          │   (결과)
+                inventory / payment ──────────────┘
+    · 장점: 흐름이 한 곳(switch 하나)에 다 있다, 타임아웃 처리 가능
+    · 단점: 조정자가 중심점이자 단일 장애점, 서비스 추가 시 조정자를 고쳐야 함
+</code></pre><p><strong>핵심 한 문장:</strong> 분산 환경에는 롤백이 없으므로 <strong>되돌리는 일을 직접 짠다</strong>(보상).
+그리고 그 일련의 과정을 <strong>어디에 적어 둘 것인가</strong>(각자 vs 한 곳)가 코레오그래피와 오케스트레이션의 차이다.</p>
+<hr>
+<h2 id="2-단계별-회고-무엇을왜">2. 단계별 회고 (무엇을·왜)</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>무엇을</th>
+<th>왜(어떤 문제를 풀려고)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>12</strong> Saga(코레오그래피)</td>
+<td>동기 결제 호출 <strong>삭제</strong>, 주문 상태기계, <strong>보상</strong>(재고 해제), outbox 에 <code>traceparent</code> 저장·복원</td>
+<td>Phase 2 이후 열려 있던 <strong>분산 트랜잭션 부재</strong>를 처음으로 정면 대응</td>
+</tr>
+<tr>
+<td><strong>13</strong> Saga(오케스트레이션)</td>
+<td>중앙 조정자 + <code>saga_instance</code> + <strong><code>SagaTimeoutSweeper</code></strong> + <strong>결정적 커맨드 키</strong></td>
+<td>코레오그래피는 <strong>아무도 응답을 안 하면 영원히 멈춘다</strong>(타임아웃 주체가 없음)</td>
+</tr>
+<tr>
+<td><strong>14</strong> 복원력</td>
+<td>Resilience4j 5종, 게이트웨이 회로차단기+fallback, 엣지 RateLimiter/Bulkhead, <strong>DLQ</strong>, outbox 격리, <strong>고아 결제 환불 보상</strong></td>
+<td>&quot;실패는 일어난다&quot; — 전파를 끊고, 독을 격리하고, 못 되돌린 것을 뒤늦게라도 보상</td>
+</tr>
+<tr>
+<td><strong>15</strong> 계약·설정 방송</td>
+<td>Spring Cloud Bus, <strong>계약 테스트</strong>(동기 API + 이벤트), tolerant reader</td>
+<td>서비스가 늘자 <strong>&quot;내가 바꾸면 누가 깨지나&quot;</strong> 를 알 수 없게 됨</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>관통하는 실:</strong> Phase 2 → 10 → 12/13 이 하나의 이야기다.
+<strong>깨졌다 → 배관을 놨다 → 되돌리기를 짰다.</strong> 그리고 14 가 &quot;그 배관도 고장 난다&quot;를 다룬다.</p>
+</blockquote>
+<hr>
+<h2 id="3-핵심-개념-자가진단">3. 핵심 개념 자가진단</h2>
+<h3 id="saga">Saga</h3>
+<ul>
+<li><input disabled="" type="checkbox"> ★ <strong>보상 트랜잭션 ≠ 롤백</strong>: 무엇이 다른가? &quot;재고 해제&quot;가 왜 롤백이 아닌가? → <code>PHASE-12-SAGA.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>코레오그래피 vs 오케스트레이션</strong>을 각각 한 문장으로. 어느 쪽이 흐름 파악이 쉽고, 어느 쪽이 결합이 낮은가? → <code>PHASE-13-SAGA-ORCHESTRATION.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>상태기계</strong>를 왜 DB 테이블(<code>saga_instance</code>)로 두나? 메모리에 두면 안 되는 이유는? → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong><code>SagaTimeoutSweeper</code></strong>: 무엇을 감시하고, 재촉 후에도 응답이 없으면 어떻게 끝내나? → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>결정적 커맨드 키</strong>(<code>CommandKeys.of(sagaId, 타입)</code>): <strong>메시지 기반 dedup 으로 왜 부족했나?</strong> → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>중복 커맨드를 그냥 무시하면 왜 안 되나?</strong> → 〃</li>
+</ul>
+<h3 id="복원력">복원력</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>회로차단기</strong>의 세 상태(CLOSED/OPEN/HALF_OPEN)와 전이 조건 → <code>PHASE-14-RESILIENCE.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>격벽(Bulkhead)</strong> 이 막는 것과 <strong>RateLimiter</strong> 가 막는 것의 차이 → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>재시도가 위험해지는 경우</strong>(멱등하지 않은 연산·재시도 폭풍) → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>DLQ/poison message</strong>: 계속 실패하는 메시지를 왜 옆으로 치우나? 치운 다음엔? → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>outbox 격리</strong>(<code>attempts</code> 상한): 한 건이 파이프라인 전체를 막지 않게 하는 원리 → 〃</li>
+<li><input disabled="" type="checkbox"> ★ <strong>고아 결제</strong>: 왜 생기고, Phase 14 는 어떻게 보상했나? → 〃</li>
+</ul>
+<h3 id="계약">계약</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>계약 테스트</strong>가 통합 테스트와 다른 점(누가 무엇을 보증하나) → <code>PHASE-15-CONTRACTS.md</code></li>
+<li><input disabled="" type="checkbox"> <strong>tolerant reader</strong> 규칙 세 줄(추가만 OK, 제거·개명·타입변경 금지)과 그 이유 → 〃</li>
+<li><input disabled="" type="checkbox"> <strong>Spring Cloud Bus</strong>: <code>/actuator/busrefresh</code> 가 한 인스턴스에서 전체로 퍼지는 원리 → 〃</li>
+<li><input disabled="" type="checkbox"> ⚠️ <strong><code>@Value</code> 는 리프레시로 안 바뀐다</strong> — 무엇으로 받아야 하나? → 〃</li>
+</ul>
+<hr>
+<h2 id="4-셀프-퀴즈-답은-아래-접힘">4. 셀프 퀴즈 (답은 아래 접힘)</h2>
+<ol>
+<li>재고는 예약됐는데 결제가 거절됐다. 데이터베이스 롤백으로 되돌릴 수 있나? 그럼 어떻게 되돌리나?</li>
+<li>코레오그래피 모드에서 <strong>payment 서비스가 통째로 죽어</strong> 아무 응답도 안 하면 그 주문은 어떻게 되나?</li>
+<li>오케스트레이션의 <code>SagaTimeoutSweeper</code> 가 15초 무응답에 커맨드를 <strong>재전송</strong>한다. 이때 결제가 <strong>두 번 청구</strong>될 위험이 있다. 왜 <code>processed_messages</code>(메시지 id 기반) 로는 못 막나?</li>
+<li>3번의 답으로 도입한 <code>processed_commands</code> 에서, 중복 커맨드를 발견하면 <strong>그냥 무시</strong>하면 어떻게 되나?</li>
+<li>게이트웨이 회로차단기가 OPEN 되면 사용자는 무엇을 받나? 그게 왜 &quot;그냥 500&quot; 보다 나은가?</li>
+<li>재시도를 켰는데 오히려 장애가 커졌다. 어떤 상황일까?</li>
+<li>어떤 메시지가 역직렬화에서 계속 실패한다. 이걸 방치하면 무슨 일이 생기나? DLQ 는 그걸 어떻게 막나?</li>
+<li>고아 결제(orphan payment)란 무엇이고, 왜 Saga 만으로는 안 잡혔나?</li>
+<li><code>OrderPlacedEvent</code> 에 필드를 <strong>추가</strong>하는 건 안전하다고 했다. 왜? 반대로 <strong>제거</strong>하면 무엇이 깨지나?</li>
+<li><code>config-repo</code> 값을 바꾸고 order-service <strong>한 대</strong>에만 <code>/actuator/busrefresh</code> 를 쳤다. 나머지 인스턴스는?</li>
+</ol>
+<details><summary>정답 펼치기</summary>
+
+<ol>
+<li><strong>롤백은 불가능하다.</strong> 재고 예약은 <strong>이미 커밋된 다른 서비스의 트랜잭션</strong>이다. 되돌리려면 &quot;예약을 해제한다&quot;는 <strong>새 트랜잭션(보상)</strong> 을 실행해야 한다. 그래서 보상은 &quot;없던 일로&quot;가 아니라 <strong>&quot;반대 방향의 사실을 하나 더 만드는 일&quot;</strong> 이다.</li>
+<li><strong>영원히 <code>PENDING</code> 에 머문다.</strong> 코레오그래피에는 <strong>전체 흐름을 감시하는 주체가 없어서</strong> 타임아웃을 걸 자리가 없다. 이게 Phase 13(오케스트레이션)을 만든 직접적 이유다.</li>
+<li><strong>재전송할 때 메시지 id 가 새로 생기기 때문이다.</strong> 소비자는 &quot;처음 보는 메시지&quot;로 판단해 정상 처리한다. 즉 메시지 기반 dedup 은 <strong>같은 메시지의 재전달</strong>은 막지만 <strong>같은 의도의 새 메시지</strong>는 못 막는다. 그래서 <code>sagaId + 커맨드 타입</code> 으로 <strong>의도 자체를 키로</strong> 삼는 결정적 키가 필요하다.</li>
+<li><strong>조정자가 영영 기다린다.</strong> 중복이라고 판단해 조용히 무시하면 리플라이가 안 가고, 조정자는 응답을 못 받아 또 재촉하고… 무한 루프다. 올바른 처리는 <strong>저장해 둔 결과로 리플라이를 다시 보내는 것</strong>이다.</li>
+<li><strong>fallback 응답</strong>(예: &quot;일시적으로 처리할 수 없습니다&quot;)을 받는다. 나은 이유는 ① 사용자에게 <strong>빠르게</strong> 응답하고(타임아웃까지 안 기다림) ② 죽어가는 서비스에 <strong>부하를 더 얹지 않아</strong> 회복할 틈을 준다.</li>
+<li><strong>재시도 폭풍.</strong> 다운스트림이 과부하로 느려진 상황에서 모든 클라이언트가 재시도하면 <strong>부하가 배로</strong> 늘어 더 죽는다. 그래서 재시도는 회로차단기·지수 백오프·지터와 <strong>같이</strong> 써야 하고, 멱등하지 않은 연산에는 아예 쓰면 안 된다.</li>
+<li><strong>컨슈머가 그 오프셋에서 멈춰 그 파티션의 뒤쪽 메시지가 전부 막힌다</strong>(head-of-line blocking). DLQ 는 N 회 실패한 메시지를 <code>.DLT</code> 토픽으로 <strong>옆으로 치우고</strong> 오프셋을 전진시켜 나머지가 흐르게 한다. 치운 건 나중에 사람이 보고 고쳐서 재투입한다.</li>
+<li><strong>결제는 승인됐는데 그 사실이 order 에 반영되지 못한 상태.</strong> 예컨대 리플라이 유실이나 조정자 타임아웃 포기 시점이 어긋나면 생긴다. Saga 상태기계는 &quot;내가 아는 상태&quot;만 되돌리므로, <strong>조정자가 모르는 결제</strong>는 보상 대상에 안 들어간다. Phase 14 는 <code>RefundPaymentCommand</code> 로 <strong>뒤늦게 환불</strong>하는 경로를 따로 만들었다.</li>
+<li><strong>tolerant reader</strong> 규칙 때문이다. 소비자는 모르는 필드를 무시하도록 역직렬화를 설정했으므로, 추가는 옛 소비자에게 <strong>보이지 않을 뿐</strong> 깨지지 않는다. 반대로 제거·개명은 <strong>그 필드를 읽던 소비자가 즉시 깨진다</strong>(null 또는 역직렬화 실패). 그래서 제거는 &quot;아무도 안 읽는다&quot;를 확인한 뒤 여러 릴리스에 걸쳐 한다.</li>
+<li><strong>전부 반영된다.</strong> Bus 가 그 리프레시 요청을 <strong>Kafka 토픽으로 방송</strong>하고, 같은 Bus 에 붙은 모든 인스턴스가 그걸 듣고 각자 리프레시한다. 단 <strong><code>@Value</code> 로 주입한 값은 안 바뀐다</strong> — <code>@ConfigurationProperties</code> 여야 재바인딩된다.</li>
+</ol>
+</details>
+
+<hr>
+<h2 id="5-재현-체크리스트">5. 재현 체크리스트</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <code>--profile async</code> 로 전체 기동 후 <strong>정상 주문</strong> → <code>CONFIRMED</code> 까지 확인.</li>
+<li><input disabled="" type="checkbox"> ★ <strong>실패 경로</strong>: 합계가 <code>.99</code> 로 끝나는 주문을 넣어 결제 거절 → <strong>재고가 해제되고</strong> <code>CANCELLED</code> 되는지 확인.
+<code>SELECT * FROM stock_reservations;</code> 로 예약 원장이 되돌아가는지 눈으로.</li>
+<li><input disabled="" type="checkbox"> <code>SELECT state FROM saga_instance WHERE order_id=&#39;…&#39;;</code> 로 상태 전이를 추적.</li>
+<li><input disabled="" type="checkbox"> ★ <strong>타임아웃</strong>: inventory 를 내리고 주문 → <code>SagaTimeoutSweeper</code> 가 재촉하다 포기하는지 로그로 확인.</li>
+<li><input disabled="" type="checkbox"> ★ <strong>모드 토글</strong>: <code>saga.mode</code> 를 <code>choreography</code> 로 바꿔 재기동 → 같은 주문이 <strong>다른 경로로</strong> 완주하는지 확인. (⚠️ 둘을 동시에 켜지 말 것)</li>
+<li><input disabled="" type="checkbox"> <strong>회로차단기</strong>: <code>ChaosController</code> 로 inventory 를 고장 내고 게이트웨이가 fallback 을 주는지 확인.</li>
+<li><input disabled="" type="checkbox"> <strong>DLQ</strong>: 잘못된 형식의 메시지를 토픽에 넣고 <code>.DLT</code> 로 가는지 kafka-ui 에서 확인.</li>
+<li><input disabled="" type="checkbox"> <strong>계약 테스트</strong>: <code>inventory-service</code> 의 계약을 일부러 깨뜨리고 <code>order-service</code> 빌드가 <strong>실패</strong>하는지 확인. ★ 이게 계약 테스트의 존재 이유.</li>
+<li><input disabled="" type="checkbox"> <strong>Bus</strong>: 설정을 바꾸고 한 인스턴스에 <code>busrefresh</code> → 다른 인스턴스에도 반영되는지.</li>
+<li><input disabled="" type="checkbox"> 각 단계에서 &quot;왜 이 장치가 필요한가&quot;를 스스로 설명.</li>
+</ul>
+<hr>
+<h2 id="6-아직-열려-있는-한계-누적--해결-phase">6. 아직 열려 있는 한계 (누적) → 해결 Phase</h2>
+<table>
+<thead>
+<tr>
+<th>한계</th>
+<th>해결 Phase</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>단일 호스트</strong>(compose) — 스케일·자가치유 없음</td>
+<td><strong>Phase 16</strong>(k8s)</td>
+</tr>
+<tr>
+<td><strong>이미지·배포가 수동</strong> — 지금 뜬 게 어느 커밋인지 모름</td>
+<td><strong>Phase 17</strong>(CI/CD)</td>
+</tr>
+<tr>
+<td>계약이 <strong>브로커 왕복을 검증하지 않음</strong>(outbox 까지만)</td>
+<td>통합은 compose 실증이 담당(의도적 범위)</td>
+</tr>
+<tr>
+<td><strong>DLQ 재투입 도구 없음</strong> — 치운 메시지를 손으로 다시 넣어야 함</td>
+<td>미해결(운영 도구 영역)</td>
+</tr>
+<tr>
+<td><strong>Saga 참여자가 3개뿐</strong> — shipping 등이 늘면 조정자 복잡도는?</td>
+<td>미실시(캡스톤 후보)</td>
+</tr>
+<tr>
+<td>시크릿·인가 심화(서비스 신원, mTLS)</td>
+<td>미실시</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-다음--파트-d-phase-1619">7. 다음 — 파트 D (Phase 16~19)</h2>
+<ul>
+<li><strong>16 로컬 k8s</strong>: 같은 이미지를 쿠버네티스로. probe·자가치유·스케일, 그리고 <strong>Eureka·Config Server 삭제</strong>.</li>
+<li><strong>17 CI/CD</strong>: push 하면 빌드·테스트·멀티아치 이미지·GHCR·스모크 배포까지 자동.</li>
+<li><strong>18 선언적 배포</strong>: Kustomize base/overlay, 설정 변경이 곧 배포 변경.</li>
+<li><strong>19 GitOps</strong>: Argo CD 가 Git 을 보고 스스로 배포. <code>kubectl</code> 을 치는 사람이 사라진다.</li>
+</ul>
+<blockquote>
+<p>준비되면 <a href="REVIEW-PART-D.html">파트 D 복습</a>으로.</p>
+</blockquote>
+<p><em>관련: <a href="README.html">README</a> 인덱스 · <code>PHASE-12</code>~`PHASE-15<code>심화 문서. 로드맵:</code>MSA-LEARNING-PLAN.md`.</em></p>
+
+  </article>
+  <footer class="site-footer">
+    <hr>
+    <p>ShopSaga · 이 페이지는 <code>docs/tools/build-docs.mjs</code> 로 <code>docs/*.md</code> 에서 자동 생성됩니다.</p>
+  </footer>
+</main>
+<aside class="toc-wrap"><nav class="toc"><div class="toc-title">이 문서 목차</div><ul><li class="toc-h2"><a href="#1-큰-그림--두-가지-saga-를-둘-다-만들었다">1. 큰 그림 — 두 가지 Saga 를 둘 다 만들었다</a></li>
+<li class="toc-h2"><a href="#2-단계별-회고-무엇을왜">2. 단계별 회고 (무엇을·왜)</a></li>
+<li class="toc-h2"><a href="#3-핵심-개념-자가진단">3. 핵심 개념 자가진단</a></li>
+<li class="toc-h3"><a href="#saga">Saga</a></li>
+<li class="toc-h3"><a href="#복원력">복원력</a></li>
+<li class="toc-h3"><a href="#계약">계약</a></li>
+<li class="toc-h2"><a href="#4-셀프-퀴즈-답은-아래-접힘">4. 셀프 퀴즈 (답은 아래 접힘)</a></li>
+<li class="toc-h2"><a href="#5-재현-체크리스트">5. 재현 체크리스트</a></li>
+<li class="toc-h2"><a href="#6-아직-열려-있는-한계-누적--해결-phase">6. 아직 열려 있는 한계 (누적) → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#7-다음--파트-d-phase-1619">7. 다음 — 파트 D (Phase 16~19)</a></li></ul></nav></aside>
+</body>
+</html>
