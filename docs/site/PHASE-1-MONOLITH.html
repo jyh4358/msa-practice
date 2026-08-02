@@ -521,15 +521,15 @@ JPA에서 위험한 <code>@ToString</code>/<code>@EqualsAndHashCode</code>/<code
 </blockquote>
 <ul>
 <li><strong>한 서비스, 한 DB</strong>다. 결제·재고가 별도 서비스로 나가 있지 않다.</li>
-<li><code>payments</code> 테이블은 <strong>이 단계에만</strong> 존재한다. <strong>Phase 2-2(<code>a9a1cda</code>)의 V3 마이그레이션에서 drop</strong>되고
+<li><code>payments</code> 테이블은 <strong>이 단계에만</strong> 존재한다. <strong>Phase 2-2(<code>72bc785</code>)의 V3 마이그레이션에서 drop</strong>되고
 <code>orders</code>에 <code>payment_id</code> 컬럼만 남는다.</li>
 <li>게이트웨이/Eureka/보안은 아직 없다. 클라이언트가 8080을 직접 부른다.</li>
 </ul>
 <hr>
 <h2 id="4-코드설정--한-부분씩-해설">4. 코드/설정 — 한 부분씩 해설</h2>
 <blockquote>
-<p>아래는 리팩터 커밋(<code>db42211</code>)과 문서 커밋(<code>361e05f</code>) 시점, 즉 <strong>Phase 1이 끝난 상태</strong>의 코드다.
-초기 커밋(<code>fcaa736</code>)과 달라진 부분은 그때마다 표시한다.</p>
+<p>아래는 리팩터 커밋(<code>c34f1be</code>)과 문서 커밋(<code>b543669</code>) 시점, 즉 <strong>Phase 1이 끝난 상태</strong>의 코드다.
+초기 커밋(<code>374dc47</code>)과 달라진 부분은 그때마다 표시한다.</p>
 </blockquote>
 <h3 id="41-유스케이스--단일-트랜잭션-orderserviceplaceorder">4.1 유스케이스 — 단일 트랜잭션 (<code>OrderService.placeOrder</code>)</h3>
 <pre><code class="hljs language-java"><span class="hljs-meta">@Override</span>
@@ -559,10 +559,10 @@ JPA에서 위험한 <code>@ToString</code>/<code>@EqualsAndHashCode</code>/<code
 <li><strong>반환은 <code>OrderView</code></strong>(불변 뷰)다. 가변 도메인 <code>Order</code>를 그대로 내보내지 않는다.</li>
 </ul>
 <blockquote>
-<p><strong>초기 커밋(<code>fcaa736</code>)과의 차이</strong>: 그때는 <code>placeOrder</code>가 도메인 <code>Order</code>를 직접 반환했고, 재고
+<p><strong>초기 커밋(<code>374dc47</code>)과의 차이</strong>: 그때는 <code>placeOrder</code>가 도메인 <code>Order</code>를 직접 반환했고, 재고
 차감이 <code>loadStockPort.load → stock.reserve → saveStockPort.save</code>(락 없음, <code>LinkedHashMap</code>)였다.
 원본 코드의 주석 스스로 <em>&quot;락/@Version 이 없어 동시 주문 시 lost-update(oversell) 가능&quot;</em> 이라고
-인정하고 있었다. <code>db42211</code>이 이 한계를 비관적 락으로 닫았고, <code>SaveStockPort</code>를 <strong>제거</strong>하고
+인정하고 있었다. <code>c34f1be</code>이 이 한계를 비관적 락으로 닫았고, <code>SaveStockPort</code>를 <strong>제거</strong>하고
 <code>ReserveStockPort</code>로 대체했다.</p>
 </blockquote>
 <h3 id="42-아웃바운드-포트--의도만-표현-reservestockport">4.2 아웃바운드 포트 — 의도만 표현 (<code>ReserveStockPort</code>)</h3>
@@ -675,7 +675,7 @@ context, 트랜잭션 내 엔티티 캐시)가 <strong>관리(managed)</strong> 
 만든다. Hibernate는 <strong>검증만</strong> 한다(엔티티≠스키마면 부팅 실패 → 빠른 피드백).</p>
 <blockquote>
 <p><strong>V2가 이 단계의 지문</strong>이다. <code>stock_items</code>와 <code>payments</code>가 order-service DB에 있다는 것 자체가
-&quot;재고·결제를 이 서비스가 직접 소유&quot;한다는 증거다. <strong>Phase 2-2의 V3(<code>a9a1cda</code>)에서
+&quot;재고·결제를 이 서비스가 직접 소유&quot;한다는 증거다. <strong>Phase 2-2의 V3(<code>72bc785</code>)에서
 <code>DROP TABLE payments; ALTER TABLE orders ADD COLUMN payment_id UUID;</code></strong> 로 결제가 빠져나간다.</p>
 </blockquote>
 <h3 id="49-빌드--lombok--querydsl--testcontainers-buildgradlekts">4.9 빌드 — Lombok · QueryDSL · Testcontainers (<code>build.gradle.kts</code>)</h3>

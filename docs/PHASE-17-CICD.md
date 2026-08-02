@@ -336,7 +336,7 @@ PR 은 **빌드·테스트만** 돈다. 이것만으로도 "깨진 코드가 머
 
 ## 7. 검증 — 실제로 측정한 것
 
-> 대상: 커밋 `9a60530` · [CI 실행 #1](https://github.com/jyh4358/msa-practice/actions/runs/30702698385)
+> 대상: 커밋 `e6cdaa8` · [CI 실행 #1](https://github.com/jyh4358/msa-practice/actions/runs/30702698385)
 > **첫 실행에서 5개 잡 전부 통과했다**(재시도 없음).
 
 ### ① 잡별 결과와 소요 시간

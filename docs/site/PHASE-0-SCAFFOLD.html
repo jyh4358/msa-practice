@@ -727,7 +727,7 @@ curl -s localhost:8080/actuator/flyway | python3 -m json.tool <span class="hljs-
 </tr>
 </tbody></table>
 <blockquote>
-<p><strong>아웃바운드 어댑터 누락 사건(커밋 <code>bb2ee23</code>).</strong> 최초 커밋 직후, <code>.gitignore</code>의 <code>out/</code> 패턴(앵커 없음)이
+<p><strong>아웃바운드 어댑터 누락 사건(커밋 <code>3c76c63</code>).</strong> 최초 커밋 직후, <code>.gitignore</code>의 <code>out/</code> 패턴(앵커 없음)이
 헥사고날 <code>adapter/out</code>·<code>application/port/out</code> 디렉터리까지 무시해 영속 어댑터·아웃바운드 포트 13개가
 커밋에서 빠졌다. <code>out/</code> → <strong><code>/out/</code></strong>(루트 앵커)로 한정해 해결. IDE 산출물 디렉터리(<code>/out/</code>)만 무시하도록
 좁힌 것.</p>

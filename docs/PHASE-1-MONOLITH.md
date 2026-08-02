@@ -134,7 +134,7 @@ SQL로는 `SELECT … FOR UPDATE`. 이걸 **비관적 락**이라 한다("충돌
 > ([...]는 헥사고날 계층 이름, →는 호출 방향. 세부 정의는 §2.5.)
 
 - **한 서비스, 한 DB**다. 결제·재고가 별도 서비스로 나가 있지 않다.
-- `payments` 테이블은 **이 단계에만** 존재한다. **Phase 2-2(`a9a1cda`)의 V3 마이그레이션에서 drop**되고
+- `payments` 테이블은 **이 단계에만** 존재한다. **Phase 2-2(`72bc785`)의 V3 마이그레이션에서 drop**되고
   `orders`에 `payment_id` 컬럼만 남는다.
 - 게이트웨이/Eureka/보안은 아직 없다. 클라이언트가 8080을 직접 부른다.
 
@@ -142,8 +142,8 @@ SQL로는 `SELECT … FOR UPDATE`. 이걸 **비관적 락**이라 한다("충돌
 
 ## 4. 코드/설정 — 한 부분씩 해설
 
-> 아래는 리팩터 커밋(`db42211`)과 문서 커밋(`361e05f`) 시점, 즉 **Phase 1이 끝난 상태**의 코드다.
-> 초기 커밋(`fcaa736`)과 달라진 부분은 그때마다 표시한다.
+> 아래는 리팩터 커밋(`c34f1be`)과 문서 커밋(`b543669`) 시점, 즉 **Phase 1이 끝난 상태**의 코드다.
+> 초기 커밋(`374dc47`)과 달라진 부분은 그때마다 표시한다.
 
 ### 4.1 유스케이스 — 단일 트랜잭션 (`OrderService.placeOrder`)
 ```java
@@ -173,10 +173,10 @@ public OrderView placeOrder(PlaceOrderCommand command) {
   상품 중복 수량을 합산해 **한 번만** 차감한다.
 - **반환은 `OrderView`**(불변 뷰)다. 가변 도메인 `Order`를 그대로 내보내지 않는다.
 
-> **초기 커밋(`fcaa736`)과의 차이**: 그때는 `placeOrder`가 도메인 `Order`를 직접 반환했고, 재고
+> **초기 커밋(`374dc47`)과의 차이**: 그때는 `placeOrder`가 도메인 `Order`를 직접 반환했고, 재고
 > 차감이 `loadStockPort.load → stock.reserve → saveStockPort.save`(락 없음, `LinkedHashMap`)였다.
 > 원본 코드의 주석 스스로 *"락/@Version 이 없어 동시 주문 시 lost-update(oversell) 가능"* 이라고
-> 인정하고 있었다. `db42211`이 이 한계를 비관적 락으로 닫았고, `SaveStockPort`를 **제거**하고
+> 인정하고 있었다. `c34f1be`이 이 한계를 비관적 락으로 닫았고, `SaveStockPort`를 **제거**하고
 > `ReserveStockPort`로 대체했다.
 
 ### 4.2 아웃바운드 포트 — 의도만 표현 (`ReserveStockPort`)
@@ -305,7 +305,7 @@ server:
 만든다. Hibernate는 **검증만** 한다(엔티티≠스키마면 부팅 실패 → 빠른 피드백).
 
 > **V2가 이 단계의 지문**이다. `stock_items`와 `payments`가 order-service DB에 있다는 것 자체가
-> "재고·결제를 이 서비스가 직접 소유"한다는 증거다. **Phase 2-2의 V3(`a9a1cda`)에서
+> "재고·결제를 이 서비스가 직접 소유"한다는 증거다. **Phase 2-2의 V3(`72bc785`)에서
 > `DROP TABLE payments; ALTER TABLE orders ADD COLUMN payment_id UUID;`** 로 결제가 빠져나간다.
 
 ### 4.9 빌드 — Lombok · QueryDSL · Testcontainers (`build.gradle.kts`)

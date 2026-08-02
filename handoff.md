@@ -1,4 +1,4 @@
-# ShopSaga MSA — 세션 핸드오프 (2026-08-02, Phase 18 완료 · 미커밋)
+# ShopSaga MSA — 세션 핸드오프 (2026-08-02, Phase 18 완료 · 커밋 이메일 이력 재작성)
 
 > 새 세션에서 이 파일 + 프로젝트 메모리를 먼저 읽고 이어가세요. **가장 완전한 상태는 프로젝트 메모리**
 > `~/.claude/projects/-Users-younho-IdeaProjects-msa/memory/msa-learning-project.md` 에 있습니다.
@@ -61,16 +61,17 @@ Phase 13은 여기에 **`processed_commands` + 결정적 커맨드 키**(`Comman
 sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 이중 청구를 못 막기 때문. 중복이면 **저장된 결과로 리플라이 재전송**(무시하면 조정자가 영영 대기).
 
 ## git 상태 (중요)
-- **HEAD = `696f8f0`(Phase 17). Phase 18 작업분은 전부 _미커밋_** — 사용자가 요청하면 커밋한다.
-  변경: `deploy/k8s/*.yaml` 15개가 `base/` 로 이동(git mv) · 신규 `deploy/config/kustomization.yaml`,
-  `deploy/k8s/base/kustomization.yaml`, `deploy/k8s/overlays/{local,ci}/`, `deploy/k8s/ingress-nginx-values.yaml` ·
-  수정 `apply.sh`·`kind-cluster.yaml`·`.github/workflows/ci.yml`·`.gitignore`·`deploy/config/common.yml` ·
-  문서 `docs/PHASE-18-KUSTOMIZE.md`(신규)·`README.md`·`deploy/k8s/README.md`·`docs/tools/build-docs.mjs`·`docs/site/`(26p).
-- ⚠️ **커밋 시 `docs/PHASE-COMMIT-MAP.md` 에 Phase 18 행을 추가할 것**(해시는 커밋 후 확인).
-- 최근 커밋: `696f8f0`(ingress webhook 경쟁 수정) · `0252cd4`·`72323ef`·`2fc2b1e`(P17 문서) ·
-  `9a60530`(P17 CI) · `787ab76`(P16b) · `d413b1c`(P16a) · `19a4435`(P15).
+- **Phase 18 커밋 완료**: `72ab3f7`(기능) · `2486e00`(커밋 지도 행). 그 위에 이메일 정정 커밋이 얹힌다.
+- ⚠️⚠️ **2026-08-02 이력 재작성함.** 커밋 이메일 오타(`jyh4358@gamil.com` — gmail 아님)로 GitHub 이
+  31개 커밋을 계정에 연결하지 못해 **기여 그래프(잔디)에 안 잡히고 있었다.**
+  `git filter-repo --mailmap` 으로 전부 `97331219+jyh4358@users.noreply.github.com` 로 교체.
+  → **모든 커밋 해시가 바뀌었다**(내용·날짜·메시지는 그대로). 문서 58곳의 해시 참조는 매핑으로 자동 갱신함.
+  → 원본 이력 백업: `~/shopsaga-backup-20260802/pre-email-rewrite.bundle`(complete history 검증됨).
+  → **force-push 가 필요하다**(origin 은 아직 옛 이력). 포크 0·스타 0·협업자 본인뿐이라 남에게 영향 없음.
+- ⚠️ 앞으로 커밋 전 확인: `git config user.email` 이 `97331219+jyh4358@users.noreply.github.com` 인지.
+  (global 에 설정돼 있음. 로컬 override 는 없음.)
 - **커밋·푸시 모두 사용자가 명시 요청할 때만.**
-- ⚠️ `docs/PHASE-COMMIT-MAP.md` 는 17행(`9a60530`)까지 채움 완료 → **Phase 18 커밋 때 새 행 추가.**
+- ⚠️ 다음 Phase 커밋 때 `docs/PHASE-COMMIT-MAP.md` 에 새 행 추가할 것.
 - ⚠️ `deploy/k8s/base/.secrets/` 는 **gitignore** — auth RSA 개인키가 여기 산다. `apply.sh` 가 없으면 만든다.
   clone 직후에는 없으므로 `kubectl kustomize` 가 실패한다(정상 동작).
 - ⚠️ **`.github/workflows/` 를 건드리는 커밋은 토큰에 `workflow` + `Contents: Read and write` 필요**
@@ -80,7 +81,7 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - gitignore: `deploy/compose/.env`, `docs/tools/node_modules/`, `**/build/`.
 
 ### 사용자에게 아직 답을 못 받은 것 2개 (급하지 않음)
-- `docs/site/` HTML **25p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
+- `docs/site/` HTML **26p 가 매 커밋마다 diff 에 잡힌다** → gitignore 할지 계속 커밋할지.
 - `Co-Authored-By` 트레일러가 갈려 있다: P12 이전 `Claude Opus 4.8`, P14~17 `Claude Opus 5 (1M context)`.
 
 ## 지금 이 순간의 상태 (2026-08-02, Phase 18 완료 직후)
@@ -91,7 +92,7 @@ sweep 재전송 시 메시지 id가 바뀌므로 메시지 기반 dedup으론 �
 - 도구: `kubectl` v1.36.3 · `kind` v0.32.0 · `helm` **v4.2.3** · `k9s` · `gh` v2.97.0(**로그인 완료**, API 5000/hr).
 - 빌드: `./gradlew build` 통과, **테스트 87개 / 실패 0**.
 - **CI**: [Actions](https://github.com/jyh4358/msa-practice/actions/workflows/ci.yml) — 3회 실행(성공·실패·성공).
-  최신 `696f8f0` **success**. 잡 5개: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크.
+  최신 CI 는 재작성 **이전** 해시(`696f8f0`)로 돌았다 — force-push 후 새로 돈다. 잡 5개: 빌드·테스트 → 이미지(amd64/arm64 네이티브) → 매니페스트 → kind 스모크.
   캐시 후 전체 **13m43s → ~4m**(빌드 5m41s→1m08s).
 - **이미지**: `ghcr.io/jyh4358/msa-practice/<service>:<커밋SHA>` 및 `:latest` — **멀티아치(amd64+arm64), 공개**.
   ⚠️ 앞서 "private" 이라 적었던 것은 **오류**였다. 공개 저장소의 Actions 가 push 한 패키지는 저장소 공개 설정을

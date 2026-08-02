@@ -376,7 +376,7 @@ curl -s localhost:8080/actuator/flyway | python3 -m json.tool # V1,V2 적용 이
 | postgres:18 컨테이너가 시작 직후 Exit(1) | PG18의 데이터 디렉터리 경로 변경(`/var/lib/postgresql/<버전>/docker`), 옛 `/data` 마운트 거부 | 볼륨을 `/var/lib/postgresql`(상위)에 마운트 (§4.7) |
 | `GET /orders`가 500 (`LazyInitializationException`) | `open-in-view:false`라 트랜잭션 종료 후 LAZY 직렬화 실패 | 엔티티→DTO 변환을 `@Transactional` 서비스 메서드 안에서 수행 |
 
-> **아웃바운드 어댑터 누락 사건(커밋 `bb2ee23`).** 최초 커밋 직후, `.gitignore`의 `out/` 패턴(앵커 없음)이
+> **아웃바운드 어댑터 누락 사건(커밋 `3c76c63`).** 최초 커밋 직후, `.gitignore`의 `out/` 패턴(앵커 없음)이
 > 헥사고날 `adapter/out`·`application/port/out` 디렉터리까지 무시해 영속 어댑터·아웃바운드 포트 13개가
 > 커밋에서 빠졌다. `out/` → **`/out/`**(루트 앵커)로 한정해 해결. IDE 산출물 디렉터리(`/out/`)만 무시하도록
 > 좁힌 것.

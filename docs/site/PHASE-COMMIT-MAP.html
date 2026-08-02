@@ -384,6 +384,13 @@ code.hljs {
 </blockquote>
 <p>원격: <code>github.com/jyh4358/msa-practice</code> · 기본 브랜치 <code>main</code>.
 커밋 해시는 히스토리를 재작성하지 않는 한 <strong>불변</strong>이므로 이 지도는 안정적입니다.</p>
+<blockquote>
+<p>⚠️ <strong>2026-08-02, 이력을 한 번 재작성했습니다.</strong> 커밋 author/committer 이메일에 오타(<code>gamil.com</code>)가
+있어 GitHub 이 커밋을 계정에 연결하지 못했고(기여 그래프 미집계), <code>git filter-repo --mailmap</code> 으로
+31개 커밋의 이메일을 고쳤습니다. <strong>그 결과 이 표의 해시가 전부 새 값으로 바뀌었습니다</strong>
+(내용·날짜·메시지는 그대로). 이전 해시로 적힌 외부 메모가 있다면 더 이상 찾을 수 없습니다.
+재작성 직전 이력은 로컬 번들 <code>~/shopsaga-backup-20260802/pre-email-rewrite.bundle</code> 에 보관.</p>
+</blockquote>
 <hr>
 <h2 id="매핑-표-오래된--최신">매핑 표 (오래된 → 최신)</h2>
 <table>
@@ -398,142 +405,142 @@ code.hljs {
 </thead>
 <tbody><tr>
 <td><strong>0</strong> 스캐폴드</td>
-<td><code>fcaa736</code></td>
+<td><code>374dc47</code></td>
 <td>모노레포 최초 커밋</td>
 <td><code>settings.gradle.kts</code>·<code>gradle/libs.versions.toml</code>·<code>gradlew</code>·<code>deploy/compose/compose.infra.yml</code>·<code>docs/{HEXAGONAL,SETUP}.md</code>·<code>MSA-LEARNING-PLAN.md</code></td>
 <td><a href="PHASE-0-SCAFFOLD.html">PHASE-0-SCAFFOLD</a></td>
 </tr>
 <tr>
 <td><strong>1</strong> 모놀리스(ACID)</td>
-<td><code>fcaa736</code> → <code>bb2ee23</code> → <code>db42211</code> → <code>361e05f</code></td>
+<td><code>374dc47</code> → <code>3c76c63</code> → <code>c34f1be</code> → <code>b543669</code></td>
 <td>주문+재고+결제 단일 트랜잭션, 헥사고날·비관적 락·QueryDSL·출력모델·Lombok</td>
-<td>order-service <code>domain/</code>·<code>application/</code>·<code>adapter/</code>(특히 <code>db42211</code>이 비관적 락·QueryDSL·<code>*Query*Repository</code>·<code>QuerydslConfig</code>·출력모델 리팩터). <code>bb2ee23</code>은 gitignore <code>out/</code> 버그로 누락됐던 <code>adapter/out</code>·<code>port/out</code> 추적</td>
+<td>order-service <code>domain/</code>·<code>application/</code>·<code>adapter/</code>(특히 <code>c34f1be</code>이 비관적 락·QueryDSL·<code>*Query*Repository</code>·<code>QuerydslConfig</code>·출력모델 리팩터). <code>3c76c63</code>은 gitignore <code>out/</code> 버그로 누락됐던 <code>adapter/out</code>·<code>port/out</code> 추적</td>
 <td><a href="PHASE-1-MONOLITH.html">PHASE-1-MONOLITH</a></td>
 </tr>
 <tr>
 <td><strong>2-1</strong> 결제 분리</td>
-<td><code>fb27790</code></td>
+<td><code>6bc9f2b</code></td>
 <td>payment-service 신설(아직 미연결)</td>
 <td><code>services/payment-service/**</code> 전체 신규, <code>compose.infra.yml</code>에 payment-db 추가</td>
 <td><a href="PHASE-2-SPLIT-PAYMENT.html">PHASE-2-SPLIT-PAYMENT</a></td>
 </tr>
 <tr>
 <td><strong>2-2</strong> 원격 결제</td>
-<td><code>a9a1cda</code></td>
+<td><code>72bc785</code></td>
 <td>order→payment 동기 REST, 로컬 결제 제거</td>
 <td>order-service <code>adapter/out/payment/*</code>(RestClient) 추가, <code>domain/Payment.java</code>·<code>PaymentJpaEntity</code> 삭제, <code>V3__remove_local_payment.sql</code>, <code>OrderService</code></td>
 <td>〃</td>
 </tr>
 <tr>
 <td><strong>3</strong> 게이트웨이</td>
-<td><code>41392a2</code></td>
+<td><code>a7ed2fb</code></td>
 <td>Spring Cloud Gateway 단일 진입점</td>
 <td><code>services/gateway-service/**</code> 신규, <code>settings.gradle.kts</code></td>
 <td><a href="PHASE-3-GATEWAY.html">PHASE-3-GATEWAY</a></td>
 </tr>
 <tr>
 <td><strong>4</strong> 디스커버리</td>
-<td><code>91e27d6</code></td>
+<td><code>0c34e24</code></td>
 <td>Eureka, 이름 기반 라우팅·호출</td>
 <td><code>services/discovery-service/**</code> 신규, gateway 라우트 <code>lb://</code>, order <code>PaymentClientConfig</code>(@LoadBalanced), 각 <code>application.yml</code>에 eureka</td>
 <td><a href="SERVICE-DISCOVERY.html">SERVICE-DISCOVERY</a></td>
 </tr>
 <tr>
 <td><strong>5</strong> 보안</td>
-<td><code>98003e7</code></td>
+<td><code>19fad3a</code></td>
 <td>RS256 JWT 인증·역할 인가·토큰 전파</td>
 <td><code>services/auth-service/**</code> 신규, gateway·order·payment <code>SecurityConfig</code>, order <code>BearerTokenRelayInterceptor</code>, <code>OrderController</code> @PreAuthorize</td>
 <td><a href="SECURITY.html">SECURITY</a></td>
 </tr>
 <tr>
 <td><em>(docs)</em></td>
-<td><code>f38b23e</code></td>
+<td><code>52bd050</code></td>
 <td>Phase 0~3 심화 문서 백필 + 초보자 개선 + README</td>
 <td><code>docs/PHASE-0~3-*.md</code> 신규, <code>SERVICE-DISCOVERY</code>·<code>SECURITY</code> 개선, <code>README</code></td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>6</strong> 중앙 설정</td>
-<td><code>de61515</code></td>
+<td><code>0ba2477</code></td>
 <td>Config Server(native) + 시크릿 암호화</td>
 <td><code>services/config-service/**</code> 신규, <code>config-repo/*.yml</code>({cipher} 포함), 각 클라이언트 <code>application.yml</code> 스트립 + <code>spring.config.import</code></td>
 <td><a href="PHASE-6-CONFIG.html">PHASE-6-CONFIG</a></td>
 </tr>
 <tr>
 <td><strong>7</strong> compose</td>
-<td><code>68249f6</code></td>
+<td><code>7d964b1</code></td>
 <td>Docker Compose 전체 스택</td>
 <td><code>deploy/docker/Dockerfile.service</code>, <code>deploy/compose/compose.yml</code>·<code>.env.example</code>, <code>config-repo/*-docker.yml</code></td>
 <td><a href="PHASE-7-COMPOSE.html">PHASE-7-COMPOSE</a></td>
 </tr>
 <tr>
 <td><em>(docs)</em></td>
-<td><code>8df41ab</code></td>
+<td><code>08e2757</code></td>
 <td>Phase↔커밋 지도 + 파트 A 복습</td>
 <td><code>PHASE-COMMIT-MAP</code>·<code>REVIEW-PART-A</code> 신규, README 링크</td>
 <td>—</td>
 </tr>
 <tr>
 <td><em>(docs)</em></td>
-<td><code>cbb96f8</code></td>
+<td><code>b0c8dbf</code></td>
 <td>오프라인 HTML 문서 사이트</td>
 <td><code>docs/tools/build-docs.mjs</code>·<code>docs/site/**</code> 신규, 원본 마크다운 렌더 결함 6수정</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>8a</strong> 관측성</td>
-<td><code>7e352d8</code></td>
+<td><code>b8b6ffe</code></td>
 <td>분산 트레이싱·메트릭(OTLP→otel-lgtm)</td>
 <td>4서비스 tracing 의존성, <code>config-repo</code> tracing/otlp, <code>compose</code> otel-lgtm, <code>PaymentClientConfig</code> ObservationRegistry</td>
 <td><a href="PHASE-8-OBSERVABILITY.html">PHASE-8</a></td>
 </tr>
 <tr>
 <td><strong>8b</strong> 관측성 심화</td>
-<td><code>a0f0b1f</code></td>
+<td><code>e9a0ed1</code></td>
 <td>로그→Loki·RED 대시보드·트레이스↔로그 점프</td>
 <td>logback appender×4 + <code>OpenTelemetryAppenderInstaller</code>×4 + <code>logback-spring.xml</code>×4, <code>config-repo</code> otlp.logging/percentiles-histogram, <code>deploy/grafana/**</code> 대시보드, <code>OrderService</code> @Slf4j 로그</td>
 <td>〃</td>
 </tr>
 <tr>
 <td><strong>9a</strong> 비동기(Kafka)</td>
-<td><code>a0d04f6</code></td>
+<td><code>3e9111f</code></td>
 <td>재고 분리·OrderPlaced 이벤트·HTTP→Kafka 트레이스·리플레이</td>
 <td><code>services/inventory-service/**</code> 신규, <code>shared/events/**</code>(OrderPlacedEvent), order <code>OrderService</code>(재고 제거+발행)·<code>PublishOrderEventPort</code>·Kafka 어댑터·<code>V4__drop_local_stock</code>, <code>config-repo</code> kafka, compose kafka·kafka-ui·inventory-db·inventory-service(<code>--profile async</code>)</td>
 <td><a href="PHASE-9-ASYNC-KAFKA.html">PHASE-9</a></td>
 </tr>
 <tr>
 <td><strong>10</strong> Outbox+멱등</td>
-<td><code>4c7ac02</code></td>
+<td><code>ce13c9e</code></td>
 <td>트랜잭셔널 Outbox·@Scheduled 릴레이·멱등 소비자(effectively-once)·이중 쓰기 제거</td>
 <td>order <code>adapter/out/outbox/**</code>(엔티티·리포·발행어댑터·릴레이)·<code>V5__outbox</code>·<code>@EnableScheduling</code>, <code>OrderEventKafkaAdapter</code> 삭제, inventory <code>processed_messages</code>(엔티티·리포·<code>ProcessedMessagePort</code>·어댑터)·<code>V2__processed_messages</code>·<code>StockService</code> 멱등 가드·리스너 <code>messageId</code> 헤더, <code>config-repo</code> outbox.relay</td>
 <td><a href="PHASE-10-OUTBOX.html">PHASE-10</a></td>
 </tr>
 <tr>
 <td><strong>11</strong> CQRS 읽기모델</td>
-<td><code>1dfb81c</code></td>
+<td><code>dd8695c</code></td>
 <td>이벤트 투영→MongoDB 비정규화 읽기 모델·조회 전용 서비스·투영 결정성·리플레이 재구축</td>
 <td><code>services/order-query-service/**</code> 신규(투영기·Mongo 어댑터·조회 API·<code>MongoConfig</code> Decimal128), <code>shared/events</code> <code>OrderPlacedEvent</code>에 <code>totalAmount</code>·<code>occurredAt</code> 추가, order <code>OrderService</code> 발행부 확장, <code>config-repo</code> order-query-service(+docker)·gateway <code>/order-views</code> 라우트, compose <code>mongo:8</code>·order-query-service(<code>--profile async</code>)</td>
 <td><a href="PHASE-11-CQRS.html">PHASE-11</a></td>
 </tr>
 <tr>
 <td><strong>12</strong> Saga(코레오그래피)</td>
-<td><code>5f71c03</code></td>
+<td><code>b4d86b5</code></td>
 <td>동기 결제 제거·주문 상태기계·보상(재고 해제)·outbox traceparent 복원→Saga 한 트레이스</td>
 <td><code>shared/outbox/**</code> 신규(outbox·inbox 메커니즘 공유 라이브러리 + 트레이스 복원), <code>shared/events</code> 이벤트 5종+<code>Topics</code>, order(상태기계 <code>Order</code>·<code>OrderSagaService</code>·리스너 2종·<code>V6__processed_messages</code>, <strong>동기 결제 어댑터 삭제</strong>), inventory(<code>StockSagaTransactions</code>·보상 <code>release</code>·예약 원장 <code>V3</code>·리스너 2종), payment(<code>PaymentSagaService</code>·리스너·<code>V2__outbox_and_inbox</code>), order-query(단조 상태 전이 <code>OrderViewStatus</code>·3토픽 구독), compose <code>required:false</code> kafka 의존</td>
 <td><a href="PHASE-12-SAGA.html">PHASE-12</a></td>
 </tr>
 <tr>
 <td><strong>13</strong> Saga(오케스트레이션)</td>
-<td><code>93d9a26</code></td>
+<td><code>5f834cf</code></td>
 <td>중앙 조정자·saga_instance·타임아웃 sweep·결정적 커맨드 키·모드 토글</td>
 <td><code>shared/events/commands/**</code>(커맨드 3종+<code>SagaReply</code>), <code>shared/outbox</code>(<code>ProcessedCommand</code>·<code>CommandKeys</code>), order(<code>domain/saga/**</code> 상태기계·<code>SagaOrchestratorService</code> switch·<strong><code>SagaTimeoutSweeper</code></strong>·<code>V7__saga_instance</code>+부분인덱스·<code>SagaReplyListener</code>·커맨드 발행 어댑터), inventory/payment(<code>SagaCommandListener</code>·커맨드 서비스·리플라이 발행·<code>processed_commands</code> 마이그레이션), 코레오그래피 리스너 <code>@ConditionalOnProperty</code> 게이팅, <code>config-repo</code> <code>saga.mode</code>·<code>saga.timeout</code></td>
 <td><a href="PHASE-13-SAGA-ORCHESTRATION.html">PHASE-13</a></td>
 </tr>
 </tbody></table>
-<p>| <strong>14</strong> 복원력 패턴 | <code>6f0ba71</code> | Resilience4j 5종·게이트웨이 회로차단기+fallback·엣지 RateLimiter/Bulkhead·DLQ(poison→<code>.DLT</code>)·outbox 격리·<strong>고아 결제 환불 보상</strong> | <code>shared/messaging/**</code> 신규(<code>KafkaErrorHandlingConfiguration</code>: DefaultErrorHandler+DLPR+DLT 토픽), <code>shared/outbox</code>(<code>attempts</code> 상한 폴링·<code>outbox.stuck</code> 게이지·<code>OutboxRelayTest</code>), <code>shared/events/commands/RefundPaymentCommand</code>+<code>SagaReply.Kind.PAYMENT_REFUNDED</code>, order(<code>adapter/out/rest/**</code> 재고 사전 확인 5종 애너테이션·<code>StockPrecheck</code>·<code>PlaceOrderResult</code>·<code>SagaOrchestratorService#compensateOrphanPayment</code>), payment(<code>onRefundPayment</code>·<code>PaymentStatus.REFUNDED</code>·<code>V4__payment_refund</code>), gateway(<code>resilience/**</code> 회로차단기 Customizer·fallback·엣지 throttle 필터), inventory(<code>ChaosSwitch</code>·<code>ChaosController</code>), <code>config-repo</code>(ErrorHandlingDeserializer·<code>messaging.dlq</code>·<code>resilience4j.*</code> aspect order·라우트 CircuitBreaker 필터) | <a href="PHASE-14-RESILIENCE.html">PHASE-14</a> |</p>
-<p>| <strong>15</strong> 플랫폼 강화 | <code>19a4435</code> | Spring Cloud Bus 설정 방송 · 계약 테스트(동기 API + 이벤트) · 이벤트 스키마 진화 | <code>config-repo/application.yml</code>(spring.cloud.stream 바인더 byte[] 직렬화·bus), 각 서비스 <code>spring-cloud-starter-bus-kafka</code>+actuator <code>refresh,busrefresh</code>, order(<code>StockPrecheckProperties</code> @ConfigurationProperties 전환·<code>contracts/messaging/order_placed.yml</code>·<code>MessagingBase</code> 커스텀 MessageVerifier·<code>InventoryContractConsumerTest</code>·<code>InventoryStockClient</code> Integer 검증), inventory(contract 플러그인·<code>contracts/rest/*.yml</code>·<code>RestBase</code>·stub jar 발행), order-query(<code>EventSchemaEvolutionTest</code>), <code>gradle/libs.versions.toml</code>(springCloudContract 4.3.4 + 플러그인 alias) | <a href="PHASE-15-CONTRACTS.html">PHASE-15</a> |
-| <strong>16a</strong> 로컬 k8s(kind) | <code>d413b1c</code> | kind 클러스터 · order-service 이전 · ConfigMap/Secret · liveness≠readiness probe · NodePort · 자가치유/스케일 | <code>deploy/k8s/**</code> 신규(<code>kind-cluster.yaml</code>·<code>build-and-load.sh</code>·<code>00</code><del><code>40</code> 매니페스트·README), 6개 서비스 <code>SecurityConfig</code>(probe 하위경로 <code>/actuator/health/**</code> permitAll) | <a href="PHASE-16-KUBERNETES.html">PHASE-16</a> |
-| <strong>16b</strong> 전체 플랫폼 on k8s | <code>787ab76</code> | <strong>Eureka·Config Server 삭제</strong> · 설정 3층화(jar·라이브러리·ConfigMap) · compose 동반 이전(15→13) · Ingress · auth 복제본 2 | <code>services/discovery-service</code>·<code>services/config-service</code>·<code>config-repo/</code> <strong>삭제</strong>, <code>shared/messaging/…/shopsaga-messaging-defaults.yml</code> 신규, <code>deploy/config/**</code> 신규, `deploy/k8s/{21</del>25,32~35,50-ingress,apply.sh}<code>신규, 6개 서비스</code>application.yml<code>재작성,</code>InventoryRestConfig<code>(@LoadBalanced 제거)·</code>RsaKeyConfig<code>(키를 Secret 으로), </code>compose.yml<code>재작성, gateway 테스트 사본 삭제+회귀 가드 | [PHASE-16](PHASE-16-KUBERNETES.md) | | **17** CI/CD |</code>9a60530<code>| GitHub Actions 5잡: 빌드·테스트 → 이미지(amd64·arm64 네이티브) → 매니페스트 병합 → kind 스모크 배포. GHCR</code>:커밋SHA<code>로 추적성 확보 |</code>.github/workflows/ci.yml<code>신규,</code>README.md<code>(CI 배지) | [PHASE-17](PHASE-17-CICD.md) | | **18** 선언적 배포 | </code>e75ba35<code>| Kustomize</code>base/<code>+</code>overlays/{local,ci}<code> · **생성기 해시로 설정 변경 → 자동 롤아웃**(</code>--config<code>삭제) · CI 의</code>sed<code>→</code>kustomize edit set image<code>· ingress-nginx 를 **Helm 릴리스**로 |</code>deploy/k8s/*.yaml<code>15개 →</code>deploy/k8s/base/<code>(git mv, 숫자 접두사 제거·</code>namespace:<code>34곳 삭제),</code>deploy/config/kustomization.yaml<code>신규(로드 제한 우회 + compose 와 파일 공유 유지),</code>deploy/k8s/base/kustomization.yaml<code> 신규(namespace 변환기·공통 라벨·</code>secretGenerator<code>), </code>deploy/k8s/overlays/{local,ci}/<code>신규,</code>deploy/k8s/ingress-nginx-values.yaml<code>신규,</code>apply.sh<code>축소,</code>kind-cluster.yaml<code>(ingress-ready 노드 라벨), </code>.github/workflows/ci.yml<code>(kustomize 5.8.1 설치·</code>apply.sh ci<code>), </code>.gitignore<code>(</code>base/.secrets/`) | <a href="PHASE-18-KUSTOMIZE.html">PHASE-18</a> |</p>
+<p>| <strong>14</strong> 복원력 패턴 | <code>5dd24a8</code> | Resilience4j 5종·게이트웨이 회로차단기+fallback·엣지 RateLimiter/Bulkhead·DLQ(poison→<code>.DLT</code>)·outbox 격리·<strong>고아 결제 환불 보상</strong> | <code>shared/messaging/**</code> 신규(<code>KafkaErrorHandlingConfiguration</code>: DefaultErrorHandler+DLPR+DLT 토픽), <code>shared/outbox</code>(<code>attempts</code> 상한 폴링·<code>outbox.stuck</code> 게이지·<code>OutboxRelayTest</code>), <code>shared/events/commands/RefundPaymentCommand</code>+<code>SagaReply.Kind.PAYMENT_REFUNDED</code>, order(<code>adapter/out/rest/**</code> 재고 사전 확인 5종 애너테이션·<code>StockPrecheck</code>·<code>PlaceOrderResult</code>·<code>SagaOrchestratorService#compensateOrphanPayment</code>), payment(<code>onRefundPayment</code>·<code>PaymentStatus.REFUNDED</code>·<code>V4__payment_refund</code>), gateway(<code>resilience/**</code> 회로차단기 Customizer·fallback·엣지 throttle 필터), inventory(<code>ChaosSwitch</code>·<code>ChaosController</code>), <code>config-repo</code>(ErrorHandlingDeserializer·<code>messaging.dlq</code>·<code>resilience4j.*</code> aspect order·라우트 CircuitBreaker 필터) | <a href="PHASE-14-RESILIENCE.html">PHASE-14</a> |</p>
+<p>| <strong>15</strong> 플랫폼 강화 | <code>1d504a0</code> | Spring Cloud Bus 설정 방송 · 계약 테스트(동기 API + 이벤트) · 이벤트 스키마 진화 | <code>config-repo/application.yml</code>(spring.cloud.stream 바인더 byte[] 직렬화·bus), 각 서비스 <code>spring-cloud-starter-bus-kafka</code>+actuator <code>refresh,busrefresh</code>, order(<code>StockPrecheckProperties</code> @ConfigurationProperties 전환·<code>contracts/messaging/order_placed.yml</code>·<code>MessagingBase</code> 커스텀 MessageVerifier·<code>InventoryContractConsumerTest</code>·<code>InventoryStockClient</code> Integer 검증), inventory(contract 플러그인·<code>contracts/rest/*.yml</code>·<code>RestBase</code>·stub jar 발행), order-query(<code>EventSchemaEvolutionTest</code>), <code>gradle/libs.versions.toml</code>(springCloudContract 4.3.4 + 플러그인 alias) | <a href="PHASE-15-CONTRACTS.html">PHASE-15</a> |
+| <strong>16a</strong> 로컬 k8s(kind) | <code>2116b6f</code> | kind 클러스터 · order-service 이전 · ConfigMap/Secret · liveness≠readiness probe · NodePort · 자가치유/스케일 | <code>deploy/k8s/**</code> 신규(<code>kind-cluster.yaml</code>·<code>build-and-load.sh</code>·<code>00</code><del><code>40</code> 매니페스트·README), 6개 서비스 <code>SecurityConfig</code>(probe 하위경로 <code>/actuator/health/**</code> permitAll) | <a href="PHASE-16-KUBERNETES.html">PHASE-16</a> |
+| <strong>16b</strong> 전체 플랫폼 on k8s | <code>68f2813</code> | <strong>Eureka·Config Server 삭제</strong> · 설정 3층화(jar·라이브러리·ConfigMap) · compose 동반 이전(15→13) · Ingress · auth 복제본 2 | <code>services/discovery-service</code>·<code>services/config-service</code>·<code>config-repo/</code> <strong>삭제</strong>, <code>shared/messaging/…/shopsaga-messaging-defaults.yml</code> 신규, <code>deploy/config/**</code> 신규, `deploy/k8s/{21</del>25,32~35,50-ingress,apply.sh}<code>신규, 6개 서비스</code>application.yml<code>재작성,</code>InventoryRestConfig<code>(@LoadBalanced 제거)·</code>RsaKeyConfig<code>(키를 Secret 으로), </code>compose.yml<code>재작성, gateway 테스트 사본 삭제+회귀 가드 | [PHASE-16](PHASE-16-KUBERNETES.md) | | **17** CI/CD |</code>e6cdaa8<code>| GitHub Actions 5잡: 빌드·테스트 → 이미지(amd64·arm64 네이티브) → 매니페스트 병합 → kind 스모크 배포. GHCR</code>:커밋SHA<code>로 추적성 확보 |</code>.github/workflows/ci.yml<code>신규,</code>README.md<code>(CI 배지) | [PHASE-17](PHASE-17-CICD.md) | | **18** 선언적 배포 | </code>72ab3f7<code>| Kustomize</code>base/<code>+</code>overlays/{local,ci}<code> · **생성기 해시로 설정 변경 → 자동 롤아웃**(</code>--config<code>삭제) · CI 의</code>sed<code>→</code>kustomize edit set image<code>· ingress-nginx 를 **Helm 릴리스**로 |</code>deploy/k8s/*.yaml<code>15개 →</code>deploy/k8s/base/<code>(git mv, 숫자 접두사 제거·</code>namespace:<code>34곳 삭제),</code>deploy/config/kustomization.yaml<code>신규(로드 제한 우회 + compose 와 파일 공유 유지),</code>deploy/k8s/base/kustomization.yaml<code> 신규(namespace 변환기·공통 라벨·</code>secretGenerator<code>), </code>deploy/k8s/overlays/{local,ci}/<code>신규,</code>deploy/k8s/ingress-nginx-values.yaml<code>신규,</code>apply.sh<code>축소,</code>kind-cluster.yaml<code>(ingress-ready 노드 라벨), </code>.github/workflows/ci.yml<code>(kustomize 5.8.1 설치·</code>apply.sh ci<code>), </code>.gitignore<code>(</code>base/.secrets/`) | <a href="PHASE-18-KUSTOMIZE.html">PHASE-18</a> |</p>
 <blockquote>
 <p><em>(각 Phase 행의 해시는 그 Phase의 <strong>기능 커밋</strong>이다. 문서·HTML 갱신분은 대개 바로 뒤 커밋에 들어간다 —
 커밋 해시는 자기 자신을 담을 수 없어 이 표의 행은 항상 다음 커밋에서 기입되기 때문이다.)</em></p>
@@ -541,10 +548,10 @@ code.hljs {
 <hr>
 <h2 id="알아둘-애매-지점-git만-보면-헷갈리는-곳">알아둘 애매 지점 (git만 보면 헷갈리는 곳)</h2>
 <ol>
-<li><strong>Phase 0과 1은 최초 커밋 <code>fcaa736</code>에 함께</strong> 들어 있다(프로젝트 시작 시 스캐폴드+모놀리스를 한 번에 커밋). &quot;0=빌드·설정·인프라 파일, 1=order-service 코드&quot;로 구분해서 보면 된다.</li>
-<li><strong>Phase 1은 4개 커밋에 걸쳐</strong> 성숙했다: 최초(<code>fcaa736</code>) → 누락 패키지 추적(<code>bb2ee23</code>, <code>.gitignore</code>의 <code>out/</code>가 헥사고날 <code>adapter/out</code>을 잘못 무시한 버그 수정) → <strong>리팩터(<code>db42211</code>)</strong>(여기서 비관적 락·QueryDSL·출력모델·Lombok) → 문서(<code>361e05f</code>).</li>
-<li><strong>Phase 2는 2-1(<code>fb27790</code>)·2-2(<code>a9a1cda</code>) 두 커밋</strong>으로 나뉜다.</li>
-<li><strong>docs 커밋 <code>f38b23e</code>가 Phase 5와 6 사이에 끼어</strong> 있다(Phase 7 작업 중 0~3 문서를 몰아서 백필했기 때문). Phase 순서 ≠ 커밋 시간순인 유일한 지점.</li>
+<li><strong>Phase 0과 1은 최초 커밋 <code>374dc47</code>에 함께</strong> 들어 있다(프로젝트 시작 시 스캐폴드+모놀리스를 한 번에 커밋). &quot;0=빌드·설정·인프라 파일, 1=order-service 코드&quot;로 구분해서 보면 된다.</li>
+<li><strong>Phase 1은 4개 커밋에 걸쳐</strong> 성숙했다: 최초(<code>374dc47</code>) → 누락 패키지 추적(<code>3c76c63</code>, <code>.gitignore</code>의 <code>out/</code>가 헥사고날 <code>adapter/out</code>을 잘못 무시한 버그 수정) → <strong>리팩터(<code>c34f1be</code>)</strong>(여기서 비관적 락·QueryDSL·출력모델·Lombok) → 문서(<code>b543669</code>).</li>
+<li><strong>Phase 2는 2-1(<code>6bc9f2b</code>)·2-2(<code>72bc785</code>) 두 커밋</strong>으로 나뉜다.</li>
+<li><strong>docs 커밋 <code>52bd050</code>가 Phase 5와 6 사이에 끼어</strong> 있다(Phase 7 작업 중 0~3 문서를 몰아서 백필했기 때문). Phase 순서 ≠ 커밋 시간순인 유일한 지점.</li>
 <li>Phase 3~7은 <strong>1커밋 = 1Phase</strong>로 깔끔하다.</li>
 </ol>
 <hr>
