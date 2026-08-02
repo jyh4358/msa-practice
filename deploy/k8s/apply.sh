@@ -28,26 +28,14 @@ export DOCKER_HOST="${DOCKER_HOST:-unix://$HOME/.colima/default/docker.sock}"
 
 OVERLAY="${1:-local}"
 K8S=deploy/k8s
-SECRETS="$K8S/base/.secrets"
 INGRESS_CHART_VERSION=4.13.9        # controller 1.13.9 — Phase 16b 에서 검증한 1.13 계열
 
 [ -d "$K8S/overlays/$OVERLAY" ] || { echo "✗ 알 수 없는 오버레이: $OVERLAY (local | ci)"; exit 1; }
 
 # ── ① 비밀 '재료' — git 에 없는 것만 여기서 만든다 ────────────────────────────
-# 키는 한 번만 만든다. 이미 있으면 그대로 둔다 — 새로 만들면 발급된 토큰이 전부 무효가 되기 때문이다.
-if [ ! -f "$SECRETS/auth-jwt-key.pem" ]; then
-  echo "▶ auth-service RSA 서명 키 생성 (PKCS#8)"
-  mkdir -p "$SECRETS"
-  # ⚠️ PKCS#1(`BEGIN RSA PRIVATE KEY`)이 아니라 PKCS#8(`BEGIN PRIVATE KEY`)이어야 한다.
-  #    RsaKeyConfig 가 PKCS#8 만 읽는다. `openssl genrsa` 는 PKCS#1 을 내므로 genpkey 를 쓴다.
-  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$SECRETS/auth-jwt-key.pem" 2>/dev/null
-  # kid 는 공개키 지문에서 파생한다 → 키가 바뀌면 kid 도 반드시 바뀐다(JWKS 캐시가 헷갈리지 않게).
-  # ⚠️ printf 로 쓴다. echo 를 쓰면 끝에 개행이 붙고, 그게 그대로 환경변수 값이 되어 kid 가 어긋난다.
-  printf '%s' "shopsaga-$(openssl pkey -in "$SECRETS/auth-jwt-key.pem" -pubout -outform DER 2>/dev/null \
-            | shasum -a 256 | cut -c1-12)" > "$SECRETS/auth-jwt-key-id.txt"
-else
-  echo "▶ auth-jwt-key 이미 존재 — 유지(다시 만들면 기존 토큰이 전부 무효가 된다)"
-fi
+# 별도 스크립트인 이유: **렌더에도 필요**하기 때문이다. CI 는 배포 전에 `kustomize build` 로
+# 이미지 치환 결과를 먼저 검증하는데, 그 시점에도 이 파일이 있어야 한다(문서 §7-⑨).
+"$K8S/bootstrap-secrets.sh"
 
 # ── ② 서드파티: ingress-nginx (Helm 릴리스) ──────────────────────────────────
 # 노드 라벨은 kind-cluster.yaml 이 붙인다. 없으면 컨트롤러가 영원히 Pending 이 되는데

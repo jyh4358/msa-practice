@@ -49,7 +49,8 @@ Spring Boot 는 `optional:file:./config/*/` 를 기본 탐색 경로로 갖고, 
 |---|---|
 | `kind-cluster.yaml` | kind 클러스터 정의(단일 노드 + 포트 매핑 30080·8000 + `ingress-ready` 노드 라벨) |
 | `build-and-load.sh` | bootJar → 도커 이미지 → `kind load` (레지스트리 없이) |
-| `apply.sh` | RSA 키 부트스트랩 + ingress-nginx(Helm) + `kubectl apply -k` |
+| `apply.sh` | 부트스트랩 + ingress-nginx(Helm) + `kubectl apply -k` |
+| `bootstrap-secrets.sh` | auth RSA 키를 `base/.secrets/` 에 생성(멱등). **렌더에도 필요**하므로 분리돼 있다 |
 | `ingress-nginx-values.yaml` | ingress-nginx 차트 값(kind 용 hostPort·nodeSelector·toleration) |
 | `base/kustomization.yaml` | 네임스페이스 변환기 · 공통 라벨 · 리소스 목록 · auth 키 `secretGenerator` |
 | `base/namespace.yaml` | 네임스페이스 `shopsaga` |
@@ -170,7 +171,8 @@ colima stop                                   # VM 까지 (12GB 즉시 회수)
 | `CrashLoopBackOff` 반복 | 의존성이 아직 안 뜸(정상) / 설정 오류(비정상) | `kubectl logs --previous` 로 구분 |
 | Ingress 를 만들었는데 404·연결 거부 | **Ingress 컨트롤러가 없다**(오브젝트만으로는 아무 일도 안 일어남) | `apply.sh` 가 ingress-nginx 를 설치한다 |
 | `security; file '…' is not in or below '…'` | Kustomize 는 kustomization 디렉터리 **밖의 파일**을 못 읽는다 | 그 디렉터리를 스스로 kustomization 루트로 만들고 `resources:` 로 참조 |
-| `evalsymlink failure on '…/.secrets/…'` | 비밀 재료가 없다(`.gitignore` 대상이라 clone 직후엔 없다) | `./deploy/k8s/apply.sh` 를 한 번 돌려 키를 생성 |
+| `evalsymlink failure on '…/.secrets/…'` | 비밀 재료가 없다(`.gitignore` 대상이라 clone 직후엔 없다) | `./deploy/k8s/bootstrap-secrets.sh` — **렌더만 할 때도 필요하다**(CI 가 이걸로 깨졌다) |
+| 스크립트가 CI(리눅스)에서만 실패 | `shasum`(macOS) vs `sha256sum`(리눅스) 처럼 한쪽만 가정 | 둘 다 지원하도록 `command -v` 분기 |
 | `helm upgrade` 가 소유권 오류로 실패 | 같은 리소스를 전에 `kubectl apply` 로 깔았다(Helm 이 모름) | 옛 설치분을 지우고(ns + ClusterRole/Binding + IngressClass + webhook) 다시 |
 | ingress-nginx 파드가 영원히 `Pending` | 노드에 `ingress-ready=true` 라벨이 없다 | 새 `kind-cluster.yaml` 로 클러스터 재생성, 또는 `kubectl label node --all ingress-ready=true` |
 | 안 바꿨는데 Secret 이 매번 `configured` | `stringData`↔`data` 변환 + 생성기의 base64 줄바꿈 (표시상 문제) | `kubectl diff -k` 로 실제 차이 없음을 확인 — 무시해도 된다 |

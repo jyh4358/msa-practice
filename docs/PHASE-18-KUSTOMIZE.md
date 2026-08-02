@@ -625,6 +625,64 @@ $ kubectl diff -k deploy/k8s/overlays/local
 `shopsaga-common`, `*-service-config` 6개, `auth-jwt-key`. 아무도 참조하지 않아 수동 삭제했다.
 마이그레이션 때 한 번 겪고 끝나는 일이지만, (b)와 같은 뿌리다.
 
+### ⑨ ★ 처음 push 했을 때 CI 가 깨졌다 — 내가 만든 결함
+
+로컬에서는 전부 통과했는데 CI 는 스모크 잡의 **세 번째 단계**에서 죽었다.
+
+```
+Error: accumulating resources from '../../base':
+  loading KV pairs: file sources: [private-key=.secrets/auth-jwt-key.pem …]:
+  evalsymlink failure on '…/deploy/k8s/base/.secrets/auth-jwt-key.pem'
+  : no such file or directory
+```
+
+원인은 **단계 순서**다.
+
+```
+CI 스모크 잡
+  ① kind 클러스터
+  ② kustomize 설치
+  ③ 이미지 태그 고정  → 끝에 `kustomize build` 로 렌더를 검증     ← 여기서 죽었다
+  ④ 배포 (apply.sh)   → 여기가 .secrets/ 를 만드는 곳이었다
+```
+
+`.secrets/` 는 `.gitignore` 대상이라 **갓 clone 한 러너에는 없다.** 그런데 렌더에도 그게 필요하다.
+`apply.sh` 안에 키 생성이 들어 있었으니, 배포보다 먼저 렌더를 검증하려는 순간 순서가 뒤집힌 것이다.
+
+**내 잘못이 두 겹이다.**
+① 이 실패 모드를 **문서(§4, README 함정표)에 이미 적어 놨으면서** CI 단계 순서에 반영하지 않았다.
+② 로컬에는 `.secrets/` 가 이미 있어서 **"내 노트북에선 되는데"** 의 전형에 그대로 걸렸다.
+   Phase 17 에서 "CI 가 빨라지자 숨은 경쟁이 드러났다"고 배워 놓고, 이번엔 *깨끗한 체크아웃* 이라는
+   CI 의 또 다른 성질을 놓쳤다.
+
+**고친 방법** — 키 생성을 `deploy/k8s/bootstrap-secrets.sh` 로 분리하고,
+`apply.sh` 와 CI 가 **각각 자기 필요한 시점에** 부른다(멱등이라 두 번 불려도 키는 그대로다).
+
+```yaml
+- name: 비밀 재료 부트스트랩          # ← 새로 추가. 렌더보다 먼저.
+  run: ./deploy/k8s/bootstrap-secrets.sh
+- name: 이미지 태그를 이번 커밋으로 고정
+  run: kustomize edit set image … && kustomize build .
+```
+
+**덤으로 발견한 이식성 버그.** 원래 코드는 kid 를 만들 때 `shasum -a 256` 을 썼는데
+이건 macOS 관용이고 리눅스는 `sha256sum` 이다. 이 코드는 **한 번도 리눅스에서 돈 적이 없어서**
+CI 가 위에서 먼저 죽는 바람에 드러나지도 않았다. 둘 다 지원하도록 고쳤다.
+
+```bash
+if command -v sha256sum >/dev/null 2>&1; then sha256() { sha256sum; }
+else                                          sha256() { shasum -a 256; }; fi
+```
+
+**재현으로 검증했다** — `git archive HEAD | tar -x` 로 CI 와 똑같이 "커밋된 것만" 있는 트리를 만들고:
+
+```
+① 부트스트랩 전 렌더 : ✔ 실패 (evalsymlink failure — CI 와 동일)
+② 부트스트랩 실행     : PKCS#8 키 생성, kid 21바이트(개행 없음)
+③ 부트스트랩 후 렌더 : ✔ 성공
+④ 두 번 실행         : ✔ kid 유지(키를 다시 만들지 않는다)
+```
+
 ---
 
 ## 8. 이번 단계의 한계 → 어디서 해결되나

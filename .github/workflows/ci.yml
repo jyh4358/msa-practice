@@ -230,6 +230,12 @@ jobs:
       # sed 의 문제는 '더럽다'가 아니라 **틀려도 조용하다**는 것이다 — 패턴이 안 맞으면 0건 치환하고
       # exit 0 으로 끝난다. CI 는 초록불인데 옛 이미지로 배포된다.
       # `kustomize edit set image` 는 YAML 을 파싱해서 고치고, 대상이 없으면 확인 가능한 형태로 남는다.
+      # ⚠️ 렌더에도 비밀 '재료'가 필요하다. base/kustomization.yaml 의 secretGenerator 가
+      #    base/.secrets/ 의 파일을 읽는데, 그 디렉터리는 .gitignore 라 갓 clone 한 러너엔 없다.
+      #    이 단계를 빼먹으면 아래 `kustomize build` 가 evalsymlink failure 로 죽는다(실제로 겪음).
+      - name: 비밀 재료 부트스트랩
+        run: ./deploy/k8s/bootstrap-secrets.sh
+
       - name: 이미지 태그를 이번 커밋으로 고정
         working-directory: deploy/k8s/overlays/ci
         run: |
