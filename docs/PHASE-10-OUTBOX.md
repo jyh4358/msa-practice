@@ -117,6 +117,12 @@ class OutboxOrderEventPublisher implements PublishOrderEventPort {   // 포트�
 ```
 `OrderService.placeOrder`는 **한 글자도 안 바뀌었다** — 여전히 `publishOrderEventPort.orderPlaced(...)`만 호출한다. 구현이 “직접 Kafka”에서 “outbox 기록”으로 바뀌었을 뿐(포트/어댑터의 힘).
 
+> (현재는 이름이 다르다 — Phase 12에서 outbox·inbox가 3개 서비스 공유 라이브러리(`shared/outbox`)로 승격되며,
+> 이 클래스는 `OrderEventOutboxPublisher`로 이름이 바뀌었고 `OutboxWriter`(공유 라이브러리)에 위임하는 형태로
+> 다시 쓰였다. 토픽 이름도 `order-placed`에서 **`order-events`**로 바뀌었다(order가 발행하는 여러 사실 이벤트를
+> 한 토픽에 모으는 원칙으로 정리됨). 아래·위 코드의 `OutboxOrderEventPublisher`·`order-placed`는 Phase 10 시점
+> 그대로의 역사적 기록이다. → [PHASE-12-SAGA.md](PHASE-12-SAGA.md) §0·§2.)
+
 ### 4.3 order — 릴레이(@Scheduled): ack 후에만 발행완료
 ```java
 @Component
@@ -229,9 +235,22 @@ outbox:
 | **보상 없음** | 재고 부족이어도 주문은 CONFIRMED(멱등은 “한 번”만 보장, 정합성은 아님) | **Phase 12**(Saga: 재고 해제/주문 취소) |
 | **결제 여전히 동기** | order→payment는 아직 REST | **Phase 12**(이벤트 흐름 전환) |
 | **poison 메시지·무한 재시도** | 계속 실패하는 outbox row가 매 폴링 재시도(`attempts`만 증가) | **Phase 14**(임계치 초과 격리 + DLQ/`*.DLT`) |
-| **outbox 청소 없음** | 발행완료 row가 계속 쌓임 | 운영: 주기적 아카이브/삭제 잡(후속) |
+| **outbox 청소 없음** | 발행완료 row가 계속 쌓임 | 운영: 주기적 아카이브/삭제 잡(후속) — [BACKLOG.md](BACKLOG.md) §8(감사 2026-08-02에서 미수정 결함으로 재확인) |
 | **릴레이가 트랜잭션 열고 Kafka I/O 블로킹** | 단일 노드 학습 규모엔 무해하나 대량엔 커넥션 점유 | **Phase 14**(배치·비동기 ack·풀 튜닝) |
 | **폴링 지연** | 발행이 폴링 간격(≤1s)만큼 지연 | 설계상(트레이드오프); 필요 시 CDC/Debezium(로드맵 밖) |
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+1. `orders` INSERT와 Kafka `send()`를 하나의 `@Transactional` 안에 넣으면 왜 안 되나? 실패 조합 두 가지는?
+   <details><summary>답</summary>Kafka는 DB 트랜잭션에 참여하지 않는 <b>별도 시스템</b>이라 한 커밋으로 묶을 수 없다. ① 커밋 성공 + 발행 실패 = <b>이벤트 유실</b>(재고가 영원히 안 줄어듦). ② 발행 성공 + 롤백 = <b>유령 이벤트</b>(있지도 않은 주문의 재고가 깎임)(§1).</details>
+2. 트랜잭셔널 outbox는 "정확히 한 번(exactly-once)" 전달을 보장하나? 실제로 무엇을 보장하고 무엇은 보장하지 않나?
+   <details><summary>답</summary><b>아니다.</b> outbox+릴레이는 <b>at-least-once</b>만 준다 — ack 표시 직전에 릴레이가 죽으면 같은 row가 다시 발행돼 <b>중복</b>이 생길 수 있다. "정확히 한 번처럼 보이는" 효과(effectively-once)는 outbox가 아니라 <b>소비자의 멱등 처리</b>가 만든다(§2·§6).</details>
+3. inventory가 같은 메시지를 두 번 받으면 재고가 두 번 깎이나? 무엇이 막나?
+   <details><summary>답</summary>안 깎인다. <code>processed_messages.message_id</code>가 <b>PK</b>라서 두 번째 처리 시도가 <code>isAlreadyProcessed</code> 체크에 걸려 부수효과 없이 건너뛴다. 핵심은 dedup 체크·예약·기록이 <b>한 트랜잭션</b>이라는 것 — 기록만 되고 예약이 롤백되면 그 메시지는 영영 처리 안 된 것으로 남는다(§4.5).</details>
+4. `messageId`는 어디서 나와서 어디까지 같은 값으로 흐르나?
+   <details><summary>답</summary><code>outbox.id</code>(발행자가 만든 PK)가 Kafka 헤더 <code>messageId</code>로 실려, 소비자의 <code>processed_messages.message_id</code>까지 <b>같은 값</b>으로 이어진다. 이 상관 ID 하나로 발행-소비 전 구간을 추적할 수 있다(§2·§7).</details>
 
 ---
 
@@ -245,6 +264,8 @@ outbox:
 - **상관 ID(messageId):** 메시지를 고유 식별하는 값(여기선 outbox.id). 헤더로 실려 소비자 dedup에 쓰임.
 - **poison 메시지:** 계속 처리 실패하는 메시지(무한 재시도 유발 → DLQ로 격리).
 - **DLQ(Dead Letter Queue):** 처리 실패 메시지를 보내는 별도 토픽(`*.DLT`).
+- **부분 인덱스(partial index):** 조건을 만족하는 행만 걸어 두는 인덱스(`WHERE published_at IS NULL`). 릴레이가 매번 훑는 대상이 "미발행 row"뿐이라 인덱스도 그만큼만 있으면 된다 — 발행완료 row가 쌓여도 폴링 성능이 안 떨어지는 이유.
+- **JSONB:** PostgreSQL의 이진 저장 JSON 타입. 텍스트 JSON과 달리 파싱된 형태로 저장돼 `payload->>'orderId'`처럼 필드 단위 조회가 가능하다.
 
 ---
 

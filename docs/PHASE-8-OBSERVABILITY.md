@@ -211,6 +211,10 @@ traceId fcdd6f87b774c84c2dfb830f04123800   (root: gateway-service)
 > 빌더를 선언하면 Boot 자동구성 빌더가 물러나며 관측 계측도 함께 빠진다). **`ObservationRegistry`를 주입**해
 > `.observationRegistry(reg)`로 설정하니 order의 CLIENT 스팬이 생기고 `traceparent`가 전파되어 위처럼 한 트레이스가 됐다.
 > → **“자동 계측은 Spring이 만든 빌더를 써야 작동한다”**는 원리를 몸으로 확인.
+>
+> (현재는 order→payment 동기 호출 자체가 **Phase 12**에서 사라지며 `PaymentClientConfig`도 함께 삭제됐다 —
+> 지금 저장소에서 이 클래스명으로 찾으면 없다. 다만 같은 교훈은 그대로 남아, order→inventory 사전 재고 확인 클라이언트
+> `InventoryRestConfig`가 `RestClientBuilderConfigurer`로 이 함정을 되풀이해 피한다(Phase 14, `services/order-service/.../adapter/out/rest/InventoryRestConfig.java` 주석에 이 Phase 8 사건을 직접 인용).)
 
 ### 7.3 메트릭 — 4개 서비스 지표 수집
 otel-lgtm 내부 Prometheus에 **181개 메트릭** 도착. `http_server_requests_*`·`jvm_memory_used_bytes`·`hikaricp_connections`·`system_cpu_usage` 등 표준 지표 확인. 서비스별 HTTP 시계열:
@@ -297,8 +301,23 @@ log.info("주문 확정 orderId={} paymentId={} total={}", order.getId(), paymen
 | **span_id 미수집** | Loki엔 trace_id는 오지만 span_id는 비어 보임(트레이스 단위 상관엔 충분) | 이후(선택) |
 | **게이트웨이 자체 스팬 이슈** | Spring Cloud Gateway 2025.0.x GH#3904(자기 스팬 export 누락 가능, 다운스트림 전파는 정상) | 상류 관찰 |
 | **인프라 서비스 미계측** | discovery·config는 트레이싱/로그 미적용(요청 경로 아님) | 필요 시 후속 |
-| **actuator·Grafana 무인증 노출** | 익명 Grafana(Admin)·상세 health | **Phase 15**(하드닝) |
+| **actuator·Grafana 무인증 노출** | 익명 Grafana·상세 health 미보호 | 미해결(후속) — ⚠️ *과거엔 "Phase 15(하드닝)"로 적었으나 오표기였다: 실제 Phase 15는 계약 테스트·Config Bus([PHASE-15-CONTRACTS.md](PHASE-15-CONTRACTS.md))로, 이 항목을 다루지 않는다. **k8s는 감사(2026-08-02)에서 익명 역할을 Admin→Viewer로 낮췄지만**([AUDIT-2026-08.md](AUDIT-2026-08.md), `deploy/k8s/base/otel-lgtm.yaml`), **compose는 로컬 전용이라 범위 밖으로 두고 Admin을 유지**했다(`deploy/compose/compose.yml`). actuator 상세 health 노출은 [BACKLOG.md](BACKLOG.md)의 하드닝 항목과 같은 갈래로 여전히 미해결. |
 | **비동기 전파 미검증** | Kafka 등 메시지 경계의 trace 전파는 아직 없음 | **Phase 9~12**(`traceparent` 보존) |
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+1. gateway→order→payment가 **하나의 트레이스**로 보이려면 무엇이 같아야 하고, 그것은 어떤 HTTP 헤더로 전달되나?
+   <details><summary>답</summary>같은 <b>traceId</b>를 공유해야 한다. HTTP 구간에서는 W3C 표준 <code>traceparent</code> 헤더로 다음 서비스에 전달된다(§2.1).</details>
+2. 커스텀 `RestClient.builder()`로 만든 클라이언트의 스팬이 Grafana에서 갑자기 안 보인다. 왜 이런 일이 생기고, 무엇을 빠뜨렸을 확률이 큰가?
+   <details><summary>답</summary>Boot 자동구성 빌더를 커스텀 빌더로 대체하면 <b>관측 계측(Observation)이 함께 빠진다</b>. <code>ObservationRegistry</code>를 명시적으로 주입해야 스팬 생성과 <code>traceparent</code> 전파가 되살아난다 — Phase 8이 실제로 겪은 버그다(§6·§7.2).</details>
+3. RED가 각각 무엇의 약자이고, 이 프로젝트의 커스텀 대시보드에서 그 셋은 어떤 PromQL로 그려지나?
+   <details><summary>답</summary>Rate·Errors·Duration. 우리 메트릭 이름 기준으로 <code>rate(http_server_requests_milliseconds_count[1m])</code>(요청률), <code>outcome=~"CLIENT_ERROR|SERVER_ERROR"</code> 필터(에러), <code>histogram_quantile(0.95, ...)</code>(p95 지연)로 그린다(§7B.3).</details>
+4. 메트릭을 앱이 **push**(OTLP)하는 방식과 Prometheus가 **pull**(scrape)하는 방식의 차이는? 이 프로젝트는 왜 push를 택했나?
+   <details><summary>답</summary>push는 앱이 능동적으로 밀어 넣고, pull은 백엔드가 주기적으로 긁어간다. 올인원 백엔드(`otel-lgtm`)엔 스크레이프 대상을 등록할 필요가 없어 push가 가장 단순했기 때문(§6) — 운영에선 서비스 디스커버리와 결합한 pull이 더 흔하다.</details>
+5. 트레이스와 로그가 같은 `trace_id`로 이어지려면, 로그를 **어느 시점에** 남겨야 하나?
+   <details><summary>답</summary>서버 스팬이 살아 있는 동안, 즉 <b>요청 처리 중</b>에 남긴 로그만 그 시점의 트레이스 컨텍스트를 얻어 <code>trace_id</code>가 붙는다. 기동 로그·유휴 로그처럼 트레이스 밖에서 남긴 로그는 상관되지 않는다(§7B.2·§8).</details>
 
 ---
 
@@ -316,6 +335,8 @@ log.info("주문 확정 orderId={} paymentId={} total={}", order.getId(), paymen
 - **자동 계측:** 프레임워크에 관측 지점이 내장돼 코드 변경 없이 스팬/전파가 생기는 것.
 - **push vs pull:** 앱이 밀어 넣기(OTLP) vs 백엔드가 긁어가기(Prometheus scrape).
 - **BOM:** Bill of Materials — 의존성 버전을 한꺼번에 고정하는 목록(Spring Boot BOM).
+- **RED(메트릭):** Rate(요청률)·Errors(에러율)·Duration(지연, 보통 p95). 서비스형 API의 상태를 3개 숫자로 요약하는 관례. §7B.3 커스텀 대시보드의 세 패널이 각각 R·E·D다.
+- **ObservationRegistry:** Micrometer의 관측 진입점 — `RestClient`/`WebClient` 등 클라이언트가 이 레지스트리에 등록돼 있어야 스팬 생성·`traceparent` 전파를 계측한다. 커스텀 빌더는 자동으로 안 붙는다(§6·§7.2 버그 사례).
 
 ---
 

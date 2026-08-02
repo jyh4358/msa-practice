@@ -513,6 +513,24 @@ docker compose -f deploy/compose/compose.infra.yml up -d     <span class="hljs-c
 <h3 id="85-gradle이-jdk-24에서-도는데-java-21-타깃">8.5 Gradle이 JDK 24에서 도는데 Java 21 타깃?</h3>
 <p>Gradle 8.14는 JDK 24 실행을 지원한다. 툴체인(<code>languageVersion = 21</code>)이 컴파일/테스트만 21로 고정하며, 로컬에 JDK 21이 없으면 foojay resolver가 자동으로 내려받는다.</p>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<ol>
+<li><p><code>java -version</code>이 24를 가리키는데 왜 <code>./gradlew :services:order-service:test</code>가 문제없이 Java 21 대상으로 빌드되나?</p>
+<details><summary>답</summary>Gradle 8.14는 JDK 24로 실행되지만, 프로젝트의 툴체인 설정(`languageVersion = 21`)이 **컴파일/테스트 타깃만** 21로 고정한다. 로컬에 JDK 21이 없으면 foojay resolver가 자동으로 받아온다(§8.5, PHASE-0-SCAFFOLD.md §6.3).</details>
+</li>
+<li><p><code>compose.infra.yml</code>이 <code>order-db-data</code>를 <code>/var/lib/postgresql/data</code>가 아니라 <code>/var/lib/postgresql</code>(상위 경로)에 마운트하는 이유는?</p>
+<details><summary>답</summary>PostgreSQL 18부터 데이터 디렉터리가 버전별 하위 경로(`/var/lib/postgresql/18/docker`)로 바뀌었다. 옛 규칙대로 `/data`에 마운트하면 컨테이너가 "unused mount"로 판단해 즉시 종료한다(§5, §8.3).</details>
+</li>
+<li><p><code>POST /orders</code>는 되는데 <code>GET /orders</code>·<code>GET /orders/{id}</code>만 500이 나는 이유는?</p>
+<details><summary>답</summary>`open-in-view: false`라 트랜잭션이 끝나면 세션도 닫혀 LAZY 컬렉션을 더 못 읽는다. POST는 메모리에서 만든 엔티티라 items가 이미 로드된 채라 문제없지만, GET은 DB에서 조회한 엔티티의 LAZY 연관을 트랜잭션 밖에서 직렬화하려다 `LazyInitializationException`이 난다(§8.4).</details>
+</li>
+<li><p><code>colima start</code>에 <code>--arch aarch64</code>를 명시하는 이유는?</p>
+<details><summary>답</summary>Apple Silicon에서 아키텍처를 명시하지 않으면 에뮬레이션(x86_64 → arm64 변환)으로 돌 위험이 있다. `--arch aarch64`로 **네이티브 arm64**를 보장해 성능 저하를 피한다(§2).</details>
+</li>
+<li><p><code>docker compose ... down -v</code> 후 재기동하면 왜 데이터가 다시 채워지나? 이게 뭘 증명하나?</p>
+<details><summary>답</summary>`-v`는 볼륨(DB 데이터)까지 삭제하지만, 스키마 자체는 Flyway 마이그레이션 파일(SQL)에 있다. 재기동 시 Flyway가 `V1__init.sql`을 다시 적용해 스키마를 재생성한다 — "스키마는 코드다"(DB가 통째로 사라져도 SQL 파일만 있으면 똑같이 부활)의 증명이다(§7).</details></li>
+</ol>
+<hr>
 <h2 id="9-정지--정리">9. 정지 / 정리</h2>
 <pre><code class="hljs language-bash"><span class="hljs-comment"># 앱 정지 (CLI로 bootRun 한 경우 포그라운드면 Ctrl+C; 백그라운드면:)</span>
 lsof -ti tcp:8080 | xargs <span class="hljs-built_in">kill</span>
@@ -556,6 +574,7 @@ colima stop
 <li class="toc-h3"><a href="#83-postgres18-컨테이너가-시작-직후-exit1">8.3 postgres:18 컨테이너가 시작 직후 Exit(1)</a></li>
 <li class="toc-h3"><a href="#84-get-ordersget-ordersid-가-500-post는-정상">8.4 GET /orders·GET /orders/{id} 가 500 (POST는 정상)</a></li>
 <li class="toc-h3"><a href="#85-gradle이-jdk-24에서-도는데-java-21-타깃">8.5 Gradle이 JDK 24에서 도는데 Java 21 타깃?</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-정지--정리">9. 정지 / 정리</a></li>
 <li class="toc-h2"><a href="#10-다음-단계">10. 다음 단계</a></li></ul></nav></aside>
 </body>

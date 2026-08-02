@@ -4,6 +4,12 @@
 > 어떻게 동작하는지"를 끝까지 이해하도록 개념 → 그림 → 이 프로젝트의 실제 코드/설정 →
 > 동작 원리 → 검증 → 한계 순으로 정리했습니다. Phase 2는 두 커밋(**2-1 껍데기 분리**,
 > **2-2 실제 원격 연결**)으로 나뉩니다.
+>
+> ⚠️ **이 문서가 설명하는 order→payment 동기 REST 호출은 지금은 없습니다.** `PaymentGatewayPort`/
+> `PaymentGatewayRestAdapter`(§4.6)는 **Phase 12**에서 Kafka 기반 Saga로 대체되며 코드베이스에서
+> 삭제됐습니다(결제는 이제 비동기 커맨드로 구동 — [PHASE-12-SAGA.md](PHASE-12-SAGA.md) 참고). 그래도
+> 이 문서를 남기는 이유는 "왜 분산 트랜잭션·보상이 필요해졌는지"의 출발점이 바로 이 단계에서 드러난
+> 문제들(§6)이기 때문입니다.
 
 ---
 
@@ -226,6 +232,11 @@ public void confirm(UUID paymentId) {
 
 ### 4.6 [2-2] 아웃바운드 포트 + RestClient 어댑터 — 헥사고날의 정석
 
+> ⚠️ **Phase 12 이후 삭제됨.** 아래 `PaymentGatewayPort`/`PaymentGatewayRestAdapter`와
+> `BearerTokenRelayInterceptor`(토큰 전파, → [SECURITY.md](SECURITY.md) §4.4)는 order-service가
+> Saga로 전환되며 코드베이스에서 제거됐다. 지금 order-service의 아웃바운드 포트 목록은
+> `PublishSagaCommandPort`·`SagaStarterPort` 등으로 바뀌어 있다. 아래는 **당시 실제 코드**다.
+
 **포트(애플리케이션 계층, 기술 무관)** `application/port/out/PaymentGatewayPort.java`
 ```java
 /** 아웃바운드 포트: 결제 게이트웨이(원격 payment-service). 통신 수단(REST 등)은 어댑터의 구현 세부.
@@ -287,6 +298,9 @@ ProblemDetail handleGatewayError(...) { return ProblemDetail.forStatusAndDetail(
 ---
 
 ## 5. 요청 흐름 (`POST /orders` 한 방)
+
+> (현재는 이 동기 흐름 자체가 없다 — Phase 12부터 `POST /orders`는 즉시 `PENDING`을 반환하고
+> 재고·결제는 Saga가 비동기로 처리한다. 아래는 Phase 2 당시의 흐름이다.)
 
 ```
 1) 클라이언트 ──POST :8080/orders──▶ order-service
@@ -394,6 +408,25 @@ curl -i -X POST http://localhost:8080/orders -H 'Content-Type: application/json'
 | **무인증 평문 호출** — 누구나 `/payments` 직접 호출 가능 | 보안 | **Phase 5** (JWT 리소스 서버·토큰 전파) |
 | **단일 진입점 없음** — 클라가 8080/8081을 각각 앎 | 라우팅 | **Phase 3** (API Gateway) |
 | **분산 추적 없음** — order→payment 흐름 추적 불가 | 관측성 | **Phase 8** (관측성) |
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+1. Phase 1에서 "공짜"였던 원자성이 Phase 2에서 왜 깨지는가? 정확히 어떤 상황(순서)에서 문제가 되나?
+   <details><summary>답</summary>결제가 order와 다른 DB·다른 트랜잭션으로 나갔기 때문. 재고 차감(로컬)과 결제 캡처(원격)가 하나의 `@Transactional`로 묶이지 않으므로, "결제는 성공했는데 order 저장이 실패"하는 순간(§6) 로컬 롤백이 원격 결제를 되돌리지 못한다.</details>
+
+2. "고아 결제"와 "중복 결제"는 둘 다 §6의 문제지만 원인이 다르다. 각각 무엇이 원인인가?
+   <details><summary>답</summary>고아 결제는 결제 성공 후 order 저장이 실패했는데 원격 결제를 자동으로 되돌릴 방법이 없어서 생긴다(원자성 소실). 중복 결제는 응답 유실로 "실패했나 보다" 판단한 order가 재시도하면서, 사실은 성공했던 결제 위에 결제가 한 번 더 생겨서 발생한다(멱등성 부재).</details>
+
+3. order-service가 `Order.create()`에서 orderId를 DB가 아니라 애플리케이션에서 미리 만드는 이유는? 그 대가는?
+   <details><summary>답</summary>payment-service를 호출할 때 orderId를 넘겨야 하는데 아직 DB에 저장 전이라 `@GeneratedValue` id가 없기 때문. 대가는 `save()`가 persist가 아니라 merge 경로로 빠져, 신규 저장에도 존재 확인용 SELECT가 한 번 더 붙는다(§4.5).</details>
+
+4. 결제 거절(402)과 payment-service 통신 실패(502)를 왜 다른 상태코드로 구분하나?
+   <details><summary>답</summary>402는 "결제 자체가 거절된 비즈니스 결과"(재시도해도 소용없음), 502는 "payment-service에 못 닿은 인프라 문제"(재시도하면 성공할 수도 있음)다. 클라이언트가 이 둘에 다르게 대응해야 하므로 코드로 구분한다.</details>
+
+5. 5번(원격 결제 호출) 동안 재고 비관적 락이 계속 잡혀 있으면 왜 문제가 되나?
+   <details><summary>답</summary>원격 호출이 느려질수록 그 상품 재고 행을 노리는 다른 주문들이 전부 대기(직렬화)한다. 정확성 문제는 아니지만, 원격 지연이 곧바로 처리량 저하로 번진다 — 이게 "동기 블로킹 호출"의 비용이다(§5, §8).</details>
 
 ---
 

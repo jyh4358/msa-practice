@@ -481,14 +481,40 @@ ERROR Outbox 발행 포기 — 격리 messageId=60381a56… topic=order-events  
 | 1 | 엣지 한도가 **인스턴스 로컬** — 게이트웨이를 2개 띄우면 한도도 2배 | Redis 를 들이지 않기 위해 | Phase 16(k8s) 이후 Redis 기반 `RequestRateLimiter` 또는 Ingress 레벨 |
 | 2 | **타임아웃이 회로를 열지 못한다**(현재 aspect 순서) | 학습 계획의 권장 순서를 그대로 체험하기 위해 | 순서 변경 또는 `slow-call-duration-threshold` 사용 — §4.3 |
 | 3 | **DLT 재투입(replay) 도구 없음** — 쌓인 메시지를 사람이 손으로 봐야 함 | 소비 쪽 신뢰성 확보가 우선 | Phase 15(계약/스키마) 이후 관리 API 또는 Kafka Streams |
-| 4 | DLT lag **경보 없음** — 쌓여도 대시보드를 봐야 안다 | 관측 파이프라인은 Phase 8에서 끝 | Phase 18 Grafana Alertmanager |
-| 5 | outbox 격리 row 를 **자동 복구하지 않는다** | 자동 재시도는 같은 실패의 반복 | 운영 절차 + `outbox.stuck` 경보(Phase 18) |
-| 6 | **chaos 엔드포인트가 인증만 통과하면 누구나** 호출 가능 | 학습 전용(`chaos.enabled`) | 운영 프로파일에서 제거 / Phase 15 권한 강화 |
+| 4 | DLT lag **경보 없음** — 쌓여도 대시보드를 봐야 안다 | 관측 파이프라인은 Phase 8에서 끝 | → [BACKLOG.md](BACKLOG.md)("컨슈머/DLT/투영 lag 경보"로 등재 — 감사 후속) |
+| 5 | outbox 격리 row 를 **자동 복구하지 않는다** | 자동 재시도는 같은 실패의 반복 | → [BACKLOG.md](BACKLOG.md)("격리 행 재처리 도구 + `outbox.stuck` 경보"로 등재) |
+| 6 | **chaos 엔드포인트가 인증만 통과하면 누구나** 호출 가능 | 학습 전용(`chaos.enabled`) | → [BACKLOG.md](BACKLOG.md)(운영 프로파일 분리 시 제거 — 과거 "Phase 15 권한 강화"는 오표기: Phase 15는 계약 테스트였다) |
 | 7 | 사전 확인이 **트랜잭션 안에서** 원격 호출 | TimeLimiter 800ms 상한이 있어 허용 | 상한이 없다면 트랜잭션 밖으로 빼야 한다 |
-| 8 | 환불은 **가짜 PG stub** — 실제 결제망 환불 실패는 다루지 않음 | 결제 게이트웨이가 stub | Phase 18(캡스톤) |
+| 8 | 환불은 **가짜 PG stub** — 실제 결제망 환불 실패는 다루지 않음 | 결제 게이트웨이가 stub | → [BACKLOG.md](BACKLOG.md)("PG stub 환불 실연동"으로 등재 — 원래 목적지였던 "Phase 18(캡스톤)"은 Kustomize/Helm으로 재편돼 소멸) |
 | 9 | 스키마 **깨지는 변경**은 여전히 DLT 폭탄 | 계약 검증 장치가 없음 | **Phase 15**(계약 테스트·스키마 진화) |
 
 ---
+
+## 복습 포인트 (스스로 답해보기)
+
+<details>
+<summary>Q1. 보상(compensation)과 롤백은 어떻게 다른가? 고아 결제 환불(§4.8)이 왜 "롤백"이 아니라 "보상"인가?</summary>
+
+롤백은 커밋 전 상태로 되돌리는 DB 연산이다. 고아 결제가 발견되는 시점엔 이미 결제가 `CAPTURED`로 **커밋된 뒤**라 되돌릴 수 없다 — 그래서 `REFUNDED`라는 새로운 사실을 만들어 효과를 **상쇄**한다. 결제 row도 지우지 않고 남긴다: "결제 1건, 환불 1건"이 감사(audit) 기록으로 남아야 하기 때문이다. 같은 이유로 Saga 상태도 되돌리지 않는다 — 되돌리면 "취소됐다가 다시 진행 중"이 되어 sweep 대상으로 되살아난다.
+</details>
+
+<details>
+<summary>Q2. 타임아웃과 서킷브레이커의 <b>적용 순서</b>가 왜 문제가 되는가? 이 프로젝트에서는 어느 쪽이 더 바깥인가?</summary>
+
+aspect 중첩 순서에 따라 회로가 "무엇을 실패로 셀지"가 달라진다. 이 프로젝트는 `TimeLimiter`가 `CircuitBreaker`보다 **바깥**이라(§4.3), 느린 호출은 매번 타임아웃만 나고 **회로 통계에 잡히지 않는다**(§7.1에서 `bufferedCalls`에 미포함으로 실측) — 회로는 CLOSED로 남는다. 타임아웃도 회로 판단에 넣고 싶다면 `circuitBreakerAspectOrder`를 `timeLimiterAspectOrder`보다 작게(더 바깥으로) 두거나, `slow-call-duration-threshold`로 "느린 호출"을 실패로 세는 방법을 쓴다.
+</details>
+
+<details>
+<summary>Q3. Phase 13의 고아 결제 결함은 왜 생겼는가? Phase 14는 왜 그것을 "막지" 않고 "정리"하는 쪽을 택했는가?</summary>
+
+타임아웃은 "참여자가 죽었다"와 "참여자가 느리다"를 구분하지 못한다. sweep이 포기한 뒤 되살아난 payment는 자신이 늦었다는 사실을 모른 채 큐에 남아 있던 지시를 그대로 수행해 버린다. 이를 원천적으로 막으려면 참여자가 커맨드를 처리하기 전 "이 Saga가 아직 살아 있나?"를 매번 확인하거나 커맨드에 만료 시각을 실어야 하는데(§7.2, 이 Phase 범위 밖), 대신 이 프로젝트는 이미 벌어진 일을 사후에 상쇄하는 쪽을 택했다 — "타임아웃 기반 Saga가 공짜가 아니다"라는 교훈을 드러내 놓기 위해서다.
+</details>
+
+<details>
+<summary>Q4. 소비 쪽 poison pill과 발행 쪽(outbox) poison의 공통점과 차이점은?</summary>
+
+공통점: 둘 다 "처리 안 되는 항목이 앞자리를 영구히 차지해 뒤의 정상 항목을 굶긴다"는 head-of-line blocking 문제다. 차이점: 소비 쪽은 재시도 없이 즉시 `<토픽>.DLT`로 옮기지만(격리 대상이 사라진다), 발행 쪽은 `attempts` 상한을 넘긴 row를 **조회에서만** 제외한다 — 지우지 않고 DB에 남겨 `outbox.stuck` 게이지로 사람이 봐야 할 일감임을 알린다. "버려도 되는 이벤트는 없다"는 원칙이 이 비대칭을 만든다.
+</details>
 
 ## 9. 용어사전
 

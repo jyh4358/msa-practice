@@ -398,6 +398,25 @@ curl -s localhost:8080/actuator/flyway | python3 -m json.tool # V1,V2 적용 이
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. `ddl-auto: validate`는 `update`보다 불편한데(SQL을 직접 써야 함) 왜 이걸 선택했나?
+   <details><summary>답</summary>`update`는 편하지만 스키마 표류(운영 DB와 코드가 몰래 어긋나는 것)의 원흉이다. `validate`는 "아는 스키마와 실제가 같은가"만 검증해 표류를 부팅 실패로 즉시 드러낸다 — SQL이 직접 쓰인다는 건 그 자체가 문서이자 이력이 된다(§6.2).</details>
+
+2. Spring Boot와 Spring Cloud 버전을 왜 독립적으로 고르면 안 되나?
+   <details><summary>답</summary>둘은 짝이 맞아야 하는 BOM 관계다(3.5.15 ↔ 2025.0.3 = Northfields). 짝이 안 맞으면 클래스패스 오류가 난다 — 그래서 Spring Cloud 쪽은 항상 그 Boot 버전의 공식 짝 코드네임 버전을 쓴다(§4.3).</details>
+
+3. 개발자 머신엔 JDK 24가 깔려 있고 Gradle도 24로 도는데, 빌드 산출물은 왜 "Java 21"인가?
+   <details><summary>답</summary>**빌드를 실행하는 JDK**(24)와 **컴파일 타깃 JDK**(21)는 별개다. Gradle 툴체인이 컴파일/테스트만 21로 고정하므로, 24는 그저 빌드를 돌리는 실행기일 뿐 산출물은 항상 21이다(§6.3).</details>
+
+4. 빌드 캐시(build cache)와 configuration-cache는 뭐가 다르고, 이 프로젝트는 왜 후자만 끄나?
+   <details><summary>답</summary>빌드 캐시는 태스크의 *산출물*을 재사용(다시 안 만듦), configuration-cache는 빌드 *설정 단계* 자체의 결과를 재사용한다. `io.spring.dependency-management` 플러그인이 configuration-cache와 아직 비호환이라 그것만 끄고, 빌드 캐시·parallel은 유지한다(§6.5).</details>
+
+5. `.gitignore`는 보통 빌드 산출물을 무시하는데, `gradle-wrapper.jar`는 왜 예외로 커밋하나?
+   <details><summary>답</summary>이게 있어야 `git clone` 직후 아무것도 설치하지 않고 `./gradlew`만으로 지정된 Gradle 버전(8.14)을 받아 바로 빌드할 수 있다. 없으면 "일단 Gradle부터 설치하라"는 재현성 깨는 전제가 생긴다(§6.4).</details>
+
+---
+
 ## 9. 용어 사전
 
 - **모노레포**: 여러 서비스를 한 git 저장소에서 관리.
@@ -421,6 +440,7 @@ curl -s localhost:8080/actuator/flyway | python3 -m json.tool # V1,V2 적용 이
 - **빌드 캐시 vs configuration-cache**: 전자는 태스크 *산출물* 재사용, 후자는 빌드 *설정 단계* 결과 재사용. Phase 0에선 후자만 끈다.
 - **graceful shutdown**: 진행 중 요청을 끝내고 종료.
 - **wrapper**: `./gradlew` — 지정된 Gradle 버전을 자동으로 받아 실행하는 스크립트.
+- **하이브리드 개발 루프**: DB만 컨테이너로 띄우고 앱은 IDE/CLI에서 직접 실행하는 개발 방식. 컨테이너 오버헤드 없이 핫 리로드·디버거를 쓰기 위함(§6.6).
 
 ---
 

@@ -818,6 +818,31 @@ spring-kafka 의 <code>JsonDeserializer</code> 가 실제로 쓰는 것은 <code
 </tr>
 </tbody></table>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<details>
+<summary>Q1. 계약 테스트는 정확히 무엇을 잡고, 무엇을 못 잡는가?</summary>
+
+<p>잡는 것: 인터페이스의 <strong>모양</strong>(필드 존재·타입)이 프로듀서·소비자 양쪽에서 일치하는지를 <strong>배포 전 빌드 시점</strong>에 잡는다. §7.3에서 실측했듯, 소비자가 누락된 필드를 <code>int</code> 기본값 <code>0</code>으로 조용히 삼키던 결함을 계약 테스트가 실제로 잡아냈다. 못 잡는 것: <strong>브로커까지의 실제 왕복</strong>(파티션 키·헤더·릴레이 동작, §4.5) — 이벤트 계약은 Kafka 를 거치지 않고 outbox 발신함의 페이로드까지만 대조한다. DB·Kafka·Eureka 를 아우르는 통합 신뢰성은 여전히 Phase 12~14 의 compose 실증이 담당한다.</p>
+</details>
+
+<details>
+<summary>Q2. "계약은 값이 아니라 모양을 못 박아야 한다"(§6.3)는 말은 무슨 뜻인가?</summary>
+
+<p><code>availableQuantity: 100</code> 처럼 구체적인 값을 계약하면, 프로듀서가 테스트 시드 데이터만 바꿔도 계약이 깨진다 — 계약이 인터페이스가 아니라 우연히 그 순간의 값에 결합돼 버린다. <code>type: by_regex, predefined: number</code> 처럼 <strong>타입/형식만</strong> 계약하면 실제 값이 바뀌어도 계약은 안정적으로 유지된다.</p>
+</details>
+
+<details>
+<summary>Q3. 스키마 진화의 네 가지 변경(§4.6) 중 "개명(rename)"이 가장 위험한 이유는?</summary>
+
+<p>타입 변경은 <code>InvalidFormatException</code>을 던져 시끄럽게 실패하고 DLT에 증거를 남긴다 — 실패가 눈에 보인다. 하지만 개명은 예외 없이 값만 <code>null</code>이 된다 — 시스템은 정상 동작하는 것처럼 보이면서 <strong>조용히 데이터를 잃는다</strong>. &quot;개명 = 제거 + 추가&quot;이므로, 안전하게 하려면 &quot;새 필드 추가 → 소비자 전환 → 옛 필드 제거&quot;의 3단계를 거쳐야 한다.</p>
+</details>
+
+<details>
+<summary>Q4. Tolerant reader가 "관대함"에서 "데이터 유실"로 넘어가는 경계는 어디인가?</summary>
+
+<p>Tolerant reader는 &quot;<strong>모르는</strong> 필드를 무시한다&quot;는 뜻이지 &quot;<strong>필요한</strong> 필드가 없어도 괜찮다&quot;는 뜻이 아니다. §7.3의 결함이 정확히 이 경계를 넘은 사례다 — 필수 필드가 <code>int</code>(원시타입)였기 때문에 필드가 사라지자 Jackson이 <code>0</code>이라는 그럴듯한 거짓값으로 채워 조용히 흘려보냈다. <code>Integer</code>(박싱 타입)로 받고 <code>null</code>을 명시적으로 거부해야 관대함이 유실로 번지지 않는다.</p>
+</details>
+
 <h2 id="9-용어사전">9. 용어사전</h2>
 <table>
 <thead>
@@ -861,6 +886,14 @@ spring-kafka 의 <code>JsonDeserializer</code> 가 실제로 쓰는 것은 <code
 <tr>
 <td><strong>조용한 데이터 유실</strong></td>
 <td>예외 없이 값만 사라지는 실패 — 스키마 사고 중 가장 위험</td>
+</tr>
+<tr>
+<td><strong>하위 호환(backward compatible)</strong></td>
+<td>새 버전의 프로듀서가 <strong>옛 소비자</strong>와도 문제없이 동작한다(예: 필드 추가 — 옛 소비자는 모르는 필드를 무시한다)</td>
+</tr>
+<tr>
+<td><strong>상위 호환(forward compatible)</strong></td>
+<td>옛 버전의 프로듀서가 <strong>새 소비자</strong>와도 문제없이 동작한다(예: 리플레이로 되살아난 과거 이벤트를 새 소비자가 null 허용 등으로 견딘다)</td>
 </tr>
 </tbody></table>
 <hr>
@@ -910,6 +943,7 @@ spring-kafka 의 <code>JsonDeserializer</code> 가 실제로 쓰는 것은 <code
 <li class="toc-h3"><a href="#74-스키마-진화--4가지-변경의-결과">7.4 스키마 진화 — 4가지 변경의 결과</a></li>
 <li class="toc-h3"><a href="#75-자동-테스트-총-87개-통과">7.5 자동 테스트 (총 87개 통과)</a></li>
 <li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
 <li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
 </body>

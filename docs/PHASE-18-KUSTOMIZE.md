@@ -705,6 +705,46 @@ else                                          sha256() { shasum -a 256; }; fi
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+<details><summary>Q1. ConfigMap 의 해시 접미사가 어떻게 무중단 롤아웃을 만드나?</summary>
+
+Deployment 컨트롤러는 **파드 템플릿의 해시**로 ReplicaSet 을 식별한다(§6-①). ConfigMap 의 *내용*은
+템플릿에 없고 *이름*만 있으므로, 내용만 바꾸면 템플릿이 그대로라 아무 일도 안 일어난다(Phase 16b 의
+문제). `configMapGenerator` 는 내용 해시를 **이름에 실어** 템플릿 안으로 밀어 넣는다 —
+`common.yml` 한 글자 → 해시 바뀜 → ConfigMap 이름 바뀜 → 파드 템플릿이 바뀜 → 롤링 업데이트가
+저절로 일어난다(§4-②). readinessProbe 가 새 파드를 확인한 뒤에야 헌 파드를 내리므로 무중단이다.
+</details>
+
+<details><summary>Q2. Kustomize 의 로드 제한(load restriction)은 무엇을 막고, 이 프로젝트는 어떻게 우회했나?</summary>
+
+기본값 `LoadRestrictionsRootOnly` 는 kustomization 디렉터리 **바깥의 파일**을 못 읽게 막는다 —
+남의 kustomization 을 받아 빌드했을 때 `~/.ssh/id_rsa` 같은 걸 ConfigMap 으로 빨아가지 못하게
+하는 공급망 공격 방지 장치다(§4-①). 안전장치를 끄는 대신, `deploy/config/` 를 **스스로
+kustomization 루트**로 만들어(자기 파일을 자기 루트 안에서 읽게) 이 제한에 애초에 걸리지 않게 했다.
+상위 `base/kustomization.yaml` 은 그 디렉터리를 `resources: [../../config]` 로 통째로 끌어온다 —
+디렉터리 참조는 '새 루트'로 취급돼 허용된다.
+</details>
+
+<details><summary>Q3. DB 비밀번호는 secretGenerator 로 옮기지 않았는데 왜인가?</summary>
+
+PostgreSQL 은 비밀번호를 PVC 안 데이터 디렉터리에 **초기화 시 한 번** 굽는다. Secret 을 생성기로
+바꾸면 비밀번호를 고치는 순간 이름이 바뀌어 DB 파드가 재시작되지만, DB 안의 비밀번호는 그대로라
+앱이 인증 실패로 죽는다(§4-③). "재시작이 곧 반영인 값은 생성기로, 재시작으로 반영되지 않는 값은
+일반 리소스로" — 자동 롤아웃이 여기서는 도움이 아니라 함정이다.
+</details>
+
+<details><summary>Q4. "내 것은 Kustomize, 남의 것은 Helm"의 근거는 무엇인가?</summary>
+
+ingress-nginx 하나만 깔아도 Deployment·Service·RBAC·ValidatingWebhookConfiguration·인증서 발급
+Job 까지 수십 개가 한 덩어리로 움직이고, 그 조합은 업스트림이 정한다(§6-④). 반대로 내 앱의
+매니페스트는 내가 전부 이해하고 바꾸고 싶은 곳도 몇 군데뿐이다 — **완성된 YAML 을 그대로 두고
+덧칠**하는 Kustomize 쪽이 읽기 쉽다. Helm 은 "파라미터를 채워 넣는 템플릿"이라 원본 자체가
+유효한 YAML 이 아니라는 점이 근본적으로 다르다(§2).
+</details>
+
+---
+
 ## 9. 용어
 
 | 용어 | 뜻 |
@@ -717,6 +757,7 @@ else                                          sha256() { shasum -a 256; }; fi
 | **3-way merge** | `last-applied` 어노테이션 · 현재 클러스터 상태 · 새 매니페스트 셋을 비교해 패치를 만드는 방식 |
 | **EndpointSlice** | Service 뒤에 실제로 어떤 파드 IP 가 붙어 있는지 담는 객체 |
 | **admission webhook** | 리소스를 만들 때 apiserver 가 호출해 검증·변형하는 외부 훅 |
+| **IngressClass** | 클러스터에 Ingress 컨트롤러가 여럿일 때 "이 Ingress 는 어떤 컨트롤러가 처리하나"를 정하는 리소스. ingress-nginx Helm 차트가 설치 시 자동으로 만든다(§7-② `IngressClass/nginx`) |
 | **hostPort** | 파드가 노드의 특정 포트를 직접 점유하는 것. 노드당 하나만 가능 |
 | **toleration / taint** | taint 는 노드가 거는 "출입 금지", toleration 은 파드가 가진 "출입증" |
 

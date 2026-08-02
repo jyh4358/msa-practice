@@ -928,19 +928,19 @@ ERROR Outbox 발행 포기 — 격리 messageId=60381a56… topic=order-events  
 <td>4</td>
 <td>DLT lag <strong>경보 없음</strong> — 쌓여도 대시보드를 봐야 안다</td>
 <td>관측 파이프라인은 Phase 8에서 끝</td>
-<td>Phase 18 Grafana Alertmanager</td>
+<td>→ <a href="BACKLOG.html">BACKLOG.md</a>(&quot;컨슈머/DLT/투영 lag 경보&quot;로 등재 — 감사 후속)</td>
 </tr>
 <tr>
 <td>5</td>
 <td>outbox 격리 row 를 <strong>자동 복구하지 않는다</strong></td>
 <td>자동 재시도는 같은 실패의 반복</td>
-<td>운영 절차 + <code>outbox.stuck</code> 경보(Phase 18)</td>
+<td>→ <a href="BACKLOG.html">BACKLOG.md</a>(&quot;격리 행 재처리 도구 + <code>outbox.stuck</code> 경보&quot;로 등재)</td>
 </tr>
 <tr>
 <td>6</td>
 <td><strong>chaos 엔드포인트가 인증만 통과하면 누구나</strong> 호출 가능</td>
 <td>학습 전용(<code>chaos.enabled</code>)</td>
-<td>운영 프로파일에서 제거 / Phase 15 권한 강화</td>
+<td>→ <a href="BACKLOG.html">BACKLOG.md</a>(운영 프로파일 분리 시 제거 — 과거 &quot;Phase 15 권한 강화&quot;는 오표기: Phase 15는 계약 테스트였다)</td>
 </tr>
 <tr>
 <td>7</td>
@@ -952,7 +952,7 @@ ERROR Outbox 발행 포기 — 격리 messageId=60381a56… topic=order-events  
 <td>8</td>
 <td>환불은 <strong>가짜 PG stub</strong> — 실제 결제망 환불 실패는 다루지 않음</td>
 <td>결제 게이트웨이가 stub</td>
-<td>Phase 18(캡스톤)</td>
+<td>→ <a href="BACKLOG.html">BACKLOG.md</a>(&quot;PG stub 환불 실연동&quot;으로 등재 — 원래 목적지였던 &quot;Phase 18(캡스톤)&quot;은 Kustomize/Helm으로 재편돼 소멸)</td>
 </tr>
 <tr>
 <td>9</td>
@@ -962,6 +962,31 @@ ERROR Outbox 발행 포기 — 격리 messageId=60381a56… topic=order-events  
 </tr>
 </tbody></table>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<details>
+<summary>Q1. 보상(compensation)과 롤백은 어떻게 다른가? 고아 결제 환불(§4.8)이 왜 "롤백"이 아니라 "보상"인가?</summary>
+
+<p>롤백은 커밋 전 상태로 되돌리는 DB 연산이다. 고아 결제가 발견되는 시점엔 이미 결제가 <code>CAPTURED</code>로 <strong>커밋된 뒤</strong>라 되돌릴 수 없다 — 그래서 <code>REFUNDED</code>라는 새로운 사실을 만들어 효과를 <strong>상쇄</strong>한다. 결제 row도 지우지 않고 남긴다: &quot;결제 1건, 환불 1건&quot;이 감사(audit) 기록으로 남아야 하기 때문이다. 같은 이유로 Saga 상태도 되돌리지 않는다 — 되돌리면 &quot;취소됐다가 다시 진행 중&quot;이 되어 sweep 대상으로 되살아난다.</p>
+</details>
+
+<details>
+<summary>Q2. 타임아웃과 서킷브레이커의 <b>적용 순서</b>가 왜 문제가 되는가? 이 프로젝트에서는 어느 쪽이 더 바깥인가?</summary>
+
+<p>aspect 중첩 순서에 따라 회로가 &quot;무엇을 실패로 셀지&quot;가 달라진다. 이 프로젝트는 <code>TimeLimiter</code>가 <code>CircuitBreaker</code>보다 <strong>바깥</strong>이라(§4.3), 느린 호출은 매번 타임아웃만 나고 <strong>회로 통계에 잡히지 않는다</strong>(§7.1에서 <code>bufferedCalls</code>에 미포함으로 실측) — 회로는 CLOSED로 남는다. 타임아웃도 회로 판단에 넣고 싶다면 <code>circuitBreakerAspectOrder</code>를 <code>timeLimiterAspectOrder</code>보다 작게(더 바깥으로) 두거나, <code>slow-call-duration-threshold</code>로 &quot;느린 호출&quot;을 실패로 세는 방법을 쓴다.</p>
+</details>
+
+<details>
+<summary>Q3. Phase 13의 고아 결제 결함은 왜 생겼는가? Phase 14는 왜 그것을 "막지" 않고 "정리"하는 쪽을 택했는가?</summary>
+
+<p>타임아웃은 &quot;참여자가 죽었다&quot;와 &quot;참여자가 느리다&quot;를 구분하지 못한다. sweep이 포기한 뒤 되살아난 payment는 자신이 늦었다는 사실을 모른 채 큐에 남아 있던 지시를 그대로 수행해 버린다. 이를 원천적으로 막으려면 참여자가 커맨드를 처리하기 전 &quot;이 Saga가 아직 살아 있나?&quot;를 매번 확인하거나 커맨드에 만료 시각을 실어야 하는데(§7.2, 이 Phase 범위 밖), 대신 이 프로젝트는 이미 벌어진 일을 사후에 상쇄하는 쪽을 택했다 — &quot;타임아웃 기반 Saga가 공짜가 아니다&quot;라는 교훈을 드러내 놓기 위해서다.</p>
+</details>
+
+<details>
+<summary>Q4. 소비 쪽 poison pill과 발행 쪽(outbox) poison의 공통점과 차이점은?</summary>
+
+<p>공통점: 둘 다 &quot;처리 안 되는 항목이 앞자리를 영구히 차지해 뒤의 정상 항목을 굶긴다&quot;는 head-of-line blocking 문제다. 차이점: 소비 쪽은 재시도 없이 즉시 <code>&lt;토픽&gt;.DLT</code>로 옮기지만(격리 대상이 사라진다), 발행 쪽은 <code>attempts</code> 상한을 넘긴 row를 <strong>조회에서만</strong> 제외한다 — 지우지 않고 DB에 남겨 <code>outbox.stuck</code> 게이지로 사람이 봐야 할 일감임을 알린다. &quot;버려도 되는 이벤트는 없다&quot;는 원칙이 이 비대칭을 만든다.</p>
+</details>
+
 <h2 id="9-용어사전">9. 용어사전</h2>
 <table>
 <thead>
@@ -1083,6 +1108,7 @@ ERROR Outbox 발행 포기 — 격리 messageId=60381a56… topic=order-events  
 <li class="toc-h3"><a href="#76-outbox-격리-발행-쪽-poison">7.6 outbox 격리 (발행 쪽 poison)</a></li>
 <li class="toc-h3"><a href="#77-회귀-가드-자동-테스트-76개-통과">7.7 회귀 가드 (자동 테스트 76개 통과)</a></li>
 <li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
 <li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
 </body>

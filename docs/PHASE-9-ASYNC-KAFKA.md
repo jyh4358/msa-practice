@@ -112,6 +112,11 @@ void on(OrderPlacedEvent event) {
 ```
 브로커에 `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false` → 토픽은 이 `NewTopic`으로만 생김. **소비자(inventory)가 토픽을 선언**(브로커 healthy 후 기동하므로 생성 타이밍이 안전).
 
+> (현재는 다르다 — Phase 12에서 "각 서비스는 **자기가 발행하는 토픽만** 선언한다"는 원칙으로 정리되며, 토픽 선언이
+> 소비자(inventory)에서 **발행자(order)** 쪽 `KafkaTopicConfig`로 옮겨갔다. 토픽 이름도 `order-placed` 단수 이벤트용에서
+> **`order-events`**(order가 내는 여러 사실 이벤트를 한 토픽에)로 바뀌었다 — 아래 코드의 `order-placed`·`orderPlacedTopic`은
+> 9a 시점 그대로의 역사적 기록이다. → [PHASE-12-SAGA.md](PHASE-12-SAGA.md) §2·§4.)
+
 ### 4.5 설정 (`config-repo/application.yml`, 공통)
 ```yaml
 spring:
@@ -189,6 +194,20 @@ kafka:
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. 동기 호출의 결합 두 가지(시간적 결합·장애 전파)를 각각 한 문장으로 설명하면?
+   <details><summary>답</summary><b>시간적 결합</b>: 재고/결제 중 하나가 느리면 주문 전체가 그만큼 느려진다. <b>장애 전파</b>: 하나가 죽으면 그 실패가 호출자까지 번져 주문 자체가 실패한다(§1).</details>
+2. 토픽·파티션·컨슈머 그룹·오프셋은 각각 무엇이고, "순서"는 어디까지만 보장되나?
+   <details><summary>답</summary>토픽=이름 있는 로그, 파티션=토픽을 나눈 병렬 단위, 오프셋=파티션 안 메시지의 위치, 컨슈머 그룹=오프셋을 공유하며 파티션을 나눠 읽는 소비자 묶음. <b>순서는 같은 파티션 안에서만</b> 보장된다(§2) — 그래서 같은 주문의 이벤트는 key=orderId로 같은 파티션에 몰아넣는다.
+</details>
+3. inventory가 잠깐 죽었다가 다시 살아나면 그동안 발행된 이벤트는 어떻게 되나? 그게 가능한 이유는?
+   <details><summary>답</summary>Kafka가 메시지를 지우지 않고 로그로 보관하므로, inventory는 다시 살아나서 <b>못 읽은 오프셋부터 이어서(재생)</b> 소비한다. 실측에서도 중단 중 쌓인 2건이 재기동 후 그대로 처리됐다(§7 "내구성/리플레이").</details>
+4. `order-placed`라는 토픽 이름과 "소비자가 토픽을 선언한다"는 원칙은 지금도 그대로인가?
+   <details><summary>답</summary>아니다. Phase 12에서 "각 서비스가 자기 발행 토픽만 선언"하는 원칙으로 바뀌며 <b>토픽 이름은 <code>order-events</code>로, 선언 주체는 order-service로</b> 옮겨갔다(§4.4 참고 — 9a 당시의 <code>order-placed</code>/inventory 선언은 그 시점의 사실이다).</details>
+
+---
+
 ## 9. 용어사전
 
 - **이벤트/명령:** 일어난 사실 / 시켜야 할 일. 이벤트 발행자는 소비자를 모른다.
@@ -201,6 +220,8 @@ kafka:
 - **이중 쓰기(dual-write):** DB와 메시지를 한 메서드에서 둘 다 쓰는 안티패턴(원자적일 수 없음 → outbox).
 - **멱등성(idempotency):** 같은 입력을 여러 번 처리해도 결과가 한 번과 같음.
 - **`traceparent`:** W3C 트레이스 컨텍스트 헤더. Kafka 헤더로 실려 트레이스가 이어짐.
+- **브로커(broker):** 메시지를 받아 topic·partition에 저장하고 소비자에게 내주는 Kafka 서버 프로세스. 이 프로젝트는 KRaft 단일 노드 브로커 1개.
+- **비관적 락(pessimistic lock):** "충돌이 날 것"을 가정하고 읽을 때부터 행을 잠그는 방식(`SELECT … FOR UPDATE`). 재고 예약처럼 동시에 같은 행을 깎는 연산의 정합성을 보장한다.
 
 ---
 

@@ -135,6 +135,9 @@ switch (reply.kind()) {
 ```
 **이 파일 하나만 읽으면 흐름을 안다.** 이것이 Phase 13에서 얻는 가장 큰 것이다.
 
+> ⚠️ **이후 갱신:** 실제 스위치문에는 `PAYMENT_REFUNDED` 케이스가 하나 더 있다(고아 결제 환불 완료를 로그로만 남긴다) —
+> Phase 14가 §7.2의 고아 결제 결함을 갚으며 추가했다. 이 Phase가 처음 쓰였을 땐 위 5개가 전부였다. → [PHASE-14 §4.8](PHASE-14-RESILIENCE.md)
+
 주목할 차이 — 결제 거절 처리:
 ```java
 private void onPaymentDeclined(SagaInstance saga, ...) {
@@ -389,6 +392,32 @@ Phase 12에서는 order와 inventory가 `PaymentDeclined` 를 **동시에** 듣�
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+<details>
+<summary>Q1. 메시지 멱등(Phase 10의 <code>processed_messages</code>)과 커맨드 멱등(<code>processed_commands</code>, §4.4)은 왜 별개의 문제인가?</summary>
+
+메시지 멱등은 **메시지 id**로 중복 배달을 거른다. 그런데 타임아웃 sweep이 커맨드를 재전송하면 outbox가 **새 메시지 id**를 발급하므로 — 같은 지시인데도 메시지 id 기반 dedup을 통과해 버려 재고를 두 번 잡거나 결제를 두 번 하게 된다. 그래서 메시지의 정체성과 무관하게 "같은 지시"임을 알아보는 **결정적 커맨드 키**(`(sagaId, 커맨드타입)`에서 계산)가 따로 필요하다. 둘은 막는 계층이 다르다 — 메시지 멱등은 "전송 계층의 중복", 커맨드 멱등은 "업무 지시의 중복"을 막는다.
+</details>
+
+<details>
+<summary>Q2. 왜 중복 커맨드를 조용히 무시하면 안 되는가? 재전송 리플라이는 왜 "저장한 그대로"여야 하는가?</summary>
+
+조정자는 리플라이를 기다리며 대기하는 상태(`AWAITING_*`)에 머물러 있다. 무시하면 조정자는 영원히 응답을 못 받고, sweep이 계속 재촉하다 결국 포기(`giveUp`)해 버린다. 그런데 응답을 그 자리에서 **다시 계산**해서 보내면, 예를 들어 결제 청구의 `paymentId`처럼 최초 처리 시점에만 결정됐던 값을 재현할 수 없다 — 그래서 반드시 **처음 처리할 때 저장해 둔 결과**(`reply_kind`·`paymentId`·`reason`)를 그대로 재생해야 한다. 감사(2026-08-02)의 H1이 정확히 이 지점의 결함이었다: `processed_commands`가 처리 여부만 기억하고 `payment_id`는 저장하지 않아, 재전송 리플라이가 `null` paymentId로 나가고 → `Order.confirm(null)`이 실패하고 → 결제는 이미 청구됐는데 확정도 환불도 안 되는 고아 결제가 남았다. → [AUDIT-2026-08.md](AUDIT-2026-08.md)
+</details>
+
+<details>
+<summary>Q3. 왜 결제 대기(<code>AWAITING_PAYMENT</code>) 중 포기는 곧바로 주문을 취소하지 않고 재고 해제부터 지시하는가?</summary>
+
+그 시점엔 이미 재고를 확보한 상태이기 때문이다. 그냥 취소해 버리면 잡아둔 재고가 영영 잠긴 채 남는다(재고 누수). 그래서 `giveUp`은 `AWAITING_PAYMENT`에서는 `COMPENSATING_INVENTORY`로 전이해 `ReleaseStock`을 먼저 지시하고, 보상이 끝난 뒤에야 주문을 취소한다 — "포기에도 보상이 필요하다."
+</details>
+
+<details>
+<summary>Q4. 오케스트레이션이 코레오그래피보다 "멈춰 선 Saga"를 더 잘 다루는 근본적인 이유는?</summary>
+
+조정자가 각 Saga의 상태와 **마지막으로 움직인 시각**을 자기 DB(`saga_instance`)에 들고 있기 때문이다. 코레오그래피에는 "누가 얼마나 기다렸는지" 아는 주체 자체가 없다 — 그래서 타임아웃이라는 개념을 구현할 자리가 없다. 오케스트레이션은 그 자리를 조정자가 대신 채운다.
+</details>
+
 ## 9. 용어사전
 
 - **오케스트레이션/코레오그래피:** 중앙 조정자가 지시 / 각자 이벤트에 반응.
@@ -399,6 +428,8 @@ Phase 12에서는 order와 inventory가 `PaymentDeclined` 를 **동시에** 듣�
 - **결정적 커맨드 키:** (sagaId, 커맨드타입)에서 계산한 dedup 키 — 재전송해도 같다.
 - **멍청한 참여자:** 판단하지 않고 지시만 수행하는 서비스.
 - **부분 인덱스:** 조건에 맞는 행만 담는 인덱스(여기선 진행 중 Saga만).
+- **멱등(idempotent):** 같은 리플라이·커맨드가 중복 도착해도 결과가 한 번 처리된 것과 같게 만드는 성질. 여기서는 상태 전이가 `boolean`을 돌려주는 방식(§4.1)과 중복 커맨드에 저장된 결과로 재응답하는 방식(§4.4) 두 가지로 구현된다 — 서로 다른 층의 멱등이다.
+- **고아 결제(orphan payment):** 타임아웃 sweep이 포기해 Saga가 이미 `CANCELLED`로 끝난 뒤, 되살아난 참여자가 지시(`ChargePayment`)를 뒤늦게 수행해 "취소된 주문에 결제만 남는" 상태(§7.2에서 실측). [Phase 14](PHASE-14-RESILIENCE.md)에서 환불 보상으로 해결.
 
 ---
 

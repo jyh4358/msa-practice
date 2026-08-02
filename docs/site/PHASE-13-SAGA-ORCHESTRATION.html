@@ -490,6 +490,10 @@ code.hljs {
     <span class="hljs-keyword">case</span> STOCK_RELEASED           -&gt; onStockReleased(...);                <span class="hljs-comment">// → 주문 취소(보상 완료)</span>
 }
 </code></pre><p><strong>이 파일 하나만 읽으면 흐름을 안다.</strong> 이것이 Phase 13에서 얻는 가장 큰 것이다.</p>
+<blockquote>
+<p>⚠️ <strong>이후 갱신:</strong> 실제 스위치문에는 <code>PAYMENT_REFUNDED</code> 케이스가 하나 더 있다(고아 결제 환불 완료를 로그로만 남긴다) —
+Phase 14가 §7.2의 고아 결제 결함을 갚으며 추가했다. 이 Phase가 처음 쓰였을 땐 위 5개가 전부였다. → <a href="PHASE-14-RESILIENCE.html">PHASE-14 §4.8</a></p>
+</blockquote>
 <p>주목할 차이 — 결제 거절 처리:</p>
 <pre><code class="hljs language-java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onPaymentDeclined</span><span class="hljs-params">(SagaInstance saga, ...)</span> {
     saga.startCompensation(now);                       <span class="hljs-comment">// COMPENSATING_INVENTORY</span>
@@ -770,6 +774,31 @@ saga=CANCELLED                 order=CANCELLED            ← 보상 완료를 �
 </tr>
 </tbody></table>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<details>
+<summary>Q1. 메시지 멱등(Phase 10의 <code>processed_messages</code>)과 커맨드 멱등(<code>processed_commands</code>, §4.4)은 왜 별개의 문제인가?</summary>
+
+<p>메시지 멱등은 <strong>메시지 id</strong>로 중복 배달을 거른다. 그런데 타임아웃 sweep이 커맨드를 재전송하면 outbox가 <strong>새 메시지 id</strong>를 발급하므로 — 같은 지시인데도 메시지 id 기반 dedup을 통과해 버려 재고를 두 번 잡거나 결제를 두 번 하게 된다. 그래서 메시지의 정체성과 무관하게 &quot;같은 지시&quot;임을 알아보는 <strong>결정적 커맨드 키</strong>(<code>(sagaId, 커맨드타입)</code>에서 계산)가 따로 필요하다. 둘은 막는 계층이 다르다 — 메시지 멱등은 &quot;전송 계층의 중복&quot;, 커맨드 멱등은 &quot;업무 지시의 중복&quot;을 막는다.</p>
+</details>
+
+<details>
+<summary>Q2. 왜 중복 커맨드를 조용히 무시하면 안 되는가? 재전송 리플라이는 왜 "저장한 그대로"여야 하는가?</summary>
+
+<p>조정자는 리플라이를 기다리며 대기하는 상태(<code>AWAITING_*</code>)에 머물러 있다. 무시하면 조정자는 영원히 응답을 못 받고, sweep이 계속 재촉하다 결국 포기(<code>giveUp</code>)해 버린다. 그런데 응답을 그 자리에서 <strong>다시 계산</strong>해서 보내면, 예를 들어 결제 청구의 <code>paymentId</code>처럼 최초 처리 시점에만 결정됐던 값을 재현할 수 없다 — 그래서 반드시 <strong>처음 처리할 때 저장해 둔 결과</strong>(<code>reply_kind</code>·<code>paymentId</code>·<code>reason</code>)를 그대로 재생해야 한다. 감사(2026-08-02)의 H1이 정확히 이 지점의 결함이었다: <code>processed_commands</code>가 처리 여부만 기억하고 <code>payment_id</code>는 저장하지 않아, 재전송 리플라이가 <code>null</code> paymentId로 나가고 → <code>Order.confirm(null)</code>이 실패하고 → 결제는 이미 청구됐는데 확정도 환불도 안 되는 고아 결제가 남았다. → <a href="AUDIT-2026-08.html">AUDIT-2026-08.md</a></p>
+</details>
+
+<details>
+<summary>Q3. 왜 결제 대기(<code>AWAITING_PAYMENT</code>) 중 포기는 곧바로 주문을 취소하지 않고 재고 해제부터 지시하는가?</summary>
+
+<p>그 시점엔 이미 재고를 확보한 상태이기 때문이다. 그냥 취소해 버리면 잡아둔 재고가 영영 잠긴 채 남는다(재고 누수). 그래서 <code>giveUp</code>은 <code>AWAITING_PAYMENT</code>에서는 <code>COMPENSATING_INVENTORY</code>로 전이해 <code>ReleaseStock</code>을 먼저 지시하고, 보상이 끝난 뒤에야 주문을 취소한다 — &quot;포기에도 보상이 필요하다.&quot;</p>
+</details>
+
+<details>
+<summary>Q4. 오케스트레이션이 코레오그래피보다 "멈춰 선 Saga"를 더 잘 다루는 근본적인 이유는?</summary>
+
+<p>조정자가 각 Saga의 상태와 <strong>마지막으로 움직인 시각</strong>을 자기 DB(<code>saga_instance</code>)에 들고 있기 때문이다. 코레오그래피에는 &quot;누가 얼마나 기다렸는지&quot; 아는 주체 자체가 없다 — 그래서 타임아웃이라는 개념을 구현할 자리가 없다. 오케스트레이션은 그 자리를 조정자가 대신 채운다.</p>
+</details>
+
 <h2 id="9-용어사전">9. 용어사전</h2>
 <ul>
 <li><strong>오케스트레이션/코레오그래피:</strong> 중앙 조정자가 지시 / 각자 이벤트에 반응.</li>
@@ -780,6 +809,8 @@ saga=CANCELLED                 order=CANCELLED            ← 보상 완료를 �
 <li><strong>결정적 커맨드 키:</strong> (sagaId, 커맨드타입)에서 계산한 dedup 키 — 재전송해도 같다.</li>
 <li><strong>멍청한 참여자:</strong> 판단하지 않고 지시만 수행하는 서비스.</li>
 <li><strong>부분 인덱스:</strong> 조건에 맞는 행만 담는 인덱스(여기선 진행 중 Saga만).</li>
+<li><strong>멱등(idempotent):</strong> 같은 리플라이·커맨드가 중복 도착해도 결과가 한 번 처리된 것과 같게 만드는 성질. 여기서는 상태 전이가 <code>boolean</code>을 돌려주는 방식(§4.1)과 중복 커맨드에 저장된 결과로 재응답하는 방식(§4.4) 두 가지로 구현된다 — 서로 다른 층의 멱등이다.</li>
+<li><strong>고아 결제(orphan payment):</strong> 타임아웃 sweep이 포기해 Saga가 이미 <code>CANCELLED</code>로 끝난 뒤, 되살아난 참여자가 지시(<code>ChargePayment</code>)를 뒤늦게 수행해 &quot;취소된 주문에 결제만 남는&quot; 상태(§7.2에서 실측). <a href="PHASE-14-RESILIENCE.html">Phase 14</a>에서 환불 보상으로 해결.</li>
 </ul>
 <hr>
 <h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
@@ -817,6 +848,7 @@ saga=CANCELLED                 order=CANCELLED            ← 보상 완료를 �
 <li class="toc-h3"><a href="#71-라이브-검증-결과---profile-async-15컨테이너">7.1 라이브 검증 결과 (--profile async, 15컨테이너)</a></li>
 <li class="toc-h3"><a href="#72-️-검증이-드러낸-결함--고아-결제orphan-payment">7.2 ⚠️ 검증이 드러낸 결함 — 고아 결제(orphan payment)</a></li>
 <li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
 <li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
 </body>

@@ -382,6 +382,11 @@ code.hljs {
 어떻게 동작하는지&quot;를 끝까지 이해하도록 개념 → 그림 → 이 프로젝트의 실제 코드/설정 →
 동작 원리 → 검증 → 한계 순으로 정리했습니다. Phase 2는 두 커밋(<strong>2-1 껍데기 분리</strong>,
 <strong>2-2 실제 원격 연결</strong>)으로 나뉩니다.</p>
+<p>⚠️ <strong>이 문서가 설명하는 order→payment 동기 REST 호출은 지금은 없습니다.</strong> <code>PaymentGatewayPort</code>/
+<code>PaymentGatewayRestAdapter</code>(§4.6)는 <strong>Phase 12</strong>에서 Kafka 기반 Saga로 대체되며 코드베이스에서
+삭제됐습니다(결제는 이제 비동기 커맨드로 구동 — <a href="PHASE-12-SAGA.html">PHASE-12-SAGA.md</a> 참고). 그래도
+이 문서를 남기는 이유는 &quot;왜 분산 트랜잭션·보상이 필요해졌는지&quot;의 출발점이 바로 이 단계에서 드러난
+문제들(§6)이기 때문입니다.</p>
 </blockquote>
 <hr>
 <h2 id="0-한-줄-요약">0. 한 줄 요약</h2>
@@ -564,6 +569,12 @@ INSERT 전에 SELECT로 존재 여부를 한 번 확인한다(이를 JPA의 <str
 SELECT 1회가 더 붙는다 — 정확성엔 문제없고 약간의 오버헤드일 뿐(<code>OrderJpaEntity</code> 주석에 명시).</p>
 </blockquote>
 <h3 id="46-2-2-아웃바운드-포트--restclient-어댑터--헥사고날의-정석">4.6 [2-2] 아웃바운드 포트 + RestClient 어댑터 — 헥사고날의 정석</h3>
+<blockquote>
+<p>⚠️ <strong>Phase 12 이후 삭제됨.</strong> 아래 <code>PaymentGatewayPort</code>/<code>PaymentGatewayRestAdapter</code>와
+<code>BearerTokenRelayInterceptor</code>(토큰 전파, → <a href="SECURITY.html">SECURITY.md</a> §4.4)는 order-service가
+Saga로 전환되며 코드베이스에서 제거됐다. 지금 order-service의 아웃바운드 포트 목록은
+<code>PublishSagaCommandPort</code>·<code>SagaStarterPort</code> 등으로 바뀌어 있다. 아래는 <strong>당시 실제 코드</strong>다.</p>
+</blockquote>
 <p><strong>포트(애플리케이션 계층, 기술 무관)</strong> <code>application/port/out/PaymentGatewayPort.java</code></p>
 <pre><code class="hljs language-java"><span class="hljs-comment">/** 아웃바운드 포트: 결제 게이트웨이(원격 payment-service). 통신 수단(REST 등)은 어댑터의 구현 세부.
  *  성공 시 paymentId 반환. 거절 → PaymentDeclinedException, 통신 실패 → PaymentGatewayException. */</span>
@@ -616,6 +627,10 @@ ProblemDetail <span class="hljs-title function_">handleGatewayError</span><span 
 </blockquote>
 <hr>
 <h2 id="5-요청-흐름-post-orders-한-방">5. 요청 흐름 (<code>POST /orders</code> 한 방)</h2>
+<blockquote>
+<p>(현재는 이 동기 흐름 자체가 없다 — Phase 12부터 <code>POST /orders</code>는 즉시 <code>PENDING</code>을 반환하고
+재고·결제는 Saga가 비동기로 처리한다. 아래는 Phase 2 당시의 흐름이다.)</p>
+</blockquote>
 <pre><code>1) 클라이언트 ──POST :8080/orders──▶ order-service
 2) OrderService.placeOrder() 시작 [로컬 @Transactional 열림]
 3) Order.create() → 앱에서 orderId(UUID) 생성
@@ -750,6 +765,24 @@ curl -i -X POST http://localhost:8080/orders -H <span class="hljs-string">&#x27;
 </tr>
 </tbody></table>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<ol>
+<li><p>Phase 1에서 &quot;공짜&quot;였던 원자성이 Phase 2에서 왜 깨지는가? 정확히 어떤 상황(순서)에서 문제가 되나?</p>
+<details><summary>답</summary>결제가 order와 다른 DB·다른 트랜잭션으로 나갔기 때문. 재고 차감(로컬)과 결제 캡처(원격)가 하나의 `@Transactional`로 묶이지 않으므로, "결제는 성공했는데 order 저장이 실패"하는 순간(§6) 로컬 롤백이 원격 결제를 되돌리지 못한다.</details>
+</li>
+<li><p>&quot;고아 결제&quot;와 &quot;중복 결제&quot;는 둘 다 §6의 문제지만 원인이 다르다. 각각 무엇이 원인인가?</p>
+<details><summary>답</summary>고아 결제는 결제 성공 후 order 저장이 실패했는데 원격 결제를 자동으로 되돌릴 방법이 없어서 생긴다(원자성 소실). 중복 결제는 응답 유실로 "실패했나 보다" 판단한 order가 재시도하면서, 사실은 성공했던 결제 위에 결제가 한 번 더 생겨서 발생한다(멱등성 부재).</details>
+</li>
+<li><p>order-service가 <code>Order.create()</code>에서 orderId를 DB가 아니라 애플리케이션에서 미리 만드는 이유는? 그 대가는?</p>
+<details><summary>답</summary>payment-service를 호출할 때 orderId를 넘겨야 하는데 아직 DB에 저장 전이라 `@GeneratedValue` id가 없기 때문. 대가는 `save()`가 persist가 아니라 merge 경로로 빠져, 신규 저장에도 존재 확인용 SELECT가 한 번 더 붙는다(§4.5).</details>
+</li>
+<li><p>결제 거절(402)과 payment-service 통신 실패(502)를 왜 다른 상태코드로 구분하나?</p>
+<details><summary>답</summary>402는 "결제 자체가 거절된 비즈니스 결과"(재시도해도 소용없음), 502는 "payment-service에 못 닿은 인프라 문제"(재시도하면 성공할 수도 있음)다. 클라이언트가 이 둘에 다르게 대응해야 하므로 코드로 구분한다.</details>
+</li>
+<li><p>5번(원격 결제 호출) 동안 재고 비관적 락이 계속 잡혀 있으면 왜 문제가 되나?</p>
+<details><summary>답</summary>원격 호출이 느려질수록 그 상품 재고 행을 노리는 다른 주문들이 전부 대기(직렬화)한다. 정확성 문제는 아니지만, 원격 지연이 곧바로 처리량 저하로 번진다 — 이게 "동기 블로킹 호출"의 비용이다(§5, §8).</details></li>
+</ol>
+<hr>
 <h2 id="9-용어-사전">9. 용어 사전</h2>
 <ul>
 <li><strong>애그리거트(aggregate) / 애그리거트 루트</strong>: 하나의 트랜잭션·불변식 단위로 함께 다뤄지는 도메인 객체 묶음, 그리고 그 대표(진입점)가 루트. Phase 1에선 Order가 루트, Payment가 그 안. DDD 용어(→ HEXAGONAL.md).</li>
@@ -809,6 +842,7 @@ curl -i -X POST http://localhost:8080/orders -H <span class="hljs-string">&#x27;
 <li class="toc-h2"><a href="#6-동작-원리-더-깊게--트레이드오프--사라진-acid">6. 동작 원리 더 깊게 / 트레이드오프 — 사라진 ACID</a></li>
 <li class="toc-h2"><a href="#7-검증-그-당시-어떻게-확인했나">7. 검증 (그 당시 어떻게 확인했나)</a></li>
 <li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어-사전">9. 용어 사전</a></li>
 <li class="toc-h2"><a href="#10-더-알아보기">10. 더 알아보기</a></li></ul></nav></aside>
 </body>

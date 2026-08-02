@@ -527,6 +527,15 @@ Map&lt;String,Object&gt; <span class="hljs-title function_">jwks</span><span cla
 <pre><code class="hljs language-java"><span class="hljs-meta">@GetMapping</span> <span class="hljs-meta">@PreAuthorize(&quot;hasRole(&#x27;ADMIN&#x27;)&quot;)</span>   <span class="hljs-comment">// ROLE_ADMIN 필요 → USER 토큰이면 403</span>
 List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="hljs-params">()</span> { ... }
 </code></pre><h3 id="44-토큰-전파--order--payment">4.4 토큰 전파 — order → payment</h3>
+<blockquote>
+<p>⚠️ <strong>지금은 없다.</strong> order→payment 동기 호출 자체가 Phase 12에서 Kafka Saga로 대체되면서
+<code>BearerTokenRelayInterceptor</code>와 이 절이 쓰던 <code>RestClient</code> 인터셉터 배선이 코드베이스에서
+삭제됐다(→ <a href="PHASE-2-SPLIT-PAYMENT.html">PHASE-2-SPLIT-PAYMENT.md</a> §4.6). Saga 커맨드는 Kafka
+메시지라 HTTP <code>Authorization</code> 헤더가 없고, 서비스 간 신원 검증은 아직 별도로 구현되지 않았다
+(→ <a href="BACKLOG.html">BACKLOG.md</a> &quot;서비스 신원&quot; 항목). 다만 order→inventory의 재고 사전 확인(Phase 14,
+<code>InventoryRestConfig</code>)은 동기 호출이지만 <strong>토큰을 전파하지 않는다</strong> — 아래는 Phase 5 당시,
+order→payment가 아직 동기였을 때의 실제 코드다.</p>
+</blockquote>
 <p><code>adapter/out/payment/BearerTokenRelayInterceptor.java</code>:</p>
 <pre><code class="hljs language-java"><span class="hljs-type">Authentication</span> <span class="hljs-variable">auth</span> <span class="hljs-operator">=</span> SecurityContextHolder.getContext().getAuthentication();
 <span class="hljs-keyword">if</span> (auth != <span class="hljs-literal">null</span> &amp;&amp; auth.getCredentials() <span class="hljs-keyword">instanceof</span> AbstractOAuth2Token token)
@@ -581,6 +590,12 @@ List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="
   → order: 다시 검증 → 재고 차감 → payment 호출 시 인터셉터가 같은 Bearer 전파
   → payment: 다시 검증 → 결제 캡처 → 201
 </code></pre><p>토큰이 없거나 위조/만료면 게이트웨이(또는 서비스)가 <strong>401</strong>. 역할이 모자라면 <strong>403</strong>.</p>
+<blockquote>
+<p>⚠️ 위 흐름은 Phase 5 당시(order→payment 동기 호출) 기준이다. 지금은 order가 payment를 직접
+부르지 않는다 — <code>POST /orders</code>는 즉시 <code>PENDING</code>(201)을 반환하고, 결제는 Saga가 Kafka 커맨드로
+비동기 처리한다. 게이트웨이 엣지 인증·order/payment 각자의 리소스 서버 검증이라는 <strong>원리</strong>는
+그대로지만, &quot;payment 호출 시 토큰 전파&quot;라는 구체적 메커니즘은 §4.4 참고.</p>
+</blockquote>
 <hr>
 <h2 id="6-동작-원리-더-깊게">6. 동작 원리 더 깊게</h2>
 <ul>
@@ -606,6 +621,9 @@ List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="
 9) /actuator/health → 200 (공개)                         ✅
 </code></pre><blockquote>
 <p>#6(201)과 #7(401)의 조합이 <strong>토큰 전파가 실제로 동작</strong>한다는 결정적 증거다.</p>
+<p>⚠️ 이 스모크는 Phase 5 시점 기록이다. 지금 6번을 재현하면 <code>POST /orders</code>는 <code>201 PENDING</code>을
+반환한다(paymentId 없음, 최종 상태는 조회로 확인 — §4.4·§5.2 참고). 7번(<code>payment</code> 직접 호출 → 401)은
+지금도 그대로 유효하다 — payment-service는 여전히 자체 리소스 서버라 무토큰 호출을 막는다.</p>
 </blockquote>
 <p>데모 계정: <code>alice/secret</code>(USER), <code>admin/admin123</code>(USER+ADMIN).</p>
 <hr>
@@ -637,12 +655,12 @@ List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="
 <tr>
 <td>게이트웨이 <code>permitAll(/auth/**)</code>가 <code>/auth/login</code>보다 넓음(현재 노출 없음, 잠재적)</td>
 <td>하드닝</td>
-<td><strong>Phase 15</strong> (정확히 <code>/auth/login</code>만)</td>
+<td>→ <a href="BACKLOG.html">BACKLOG.md</a> (Phase 15는 계약 테스트·Bus였고 이 항목을 다루지 않음 — 감사에서 화살표 정정)</td>
 </tr>
 <tr>
-<td><code>/actuator/health</code> <code>show-details: always</code> 공개</td>
+<td><code>/actuator/health</code> <code>show-details: always</code> 공개 — 인증 없이 DB·디스크·서킷 상태가 보임</td>
 <td>하드닝/관측성</td>
-<td><strong>Phase 8/15</strong></td>
+<td>→ <a href="BACKLOG.html">BACKLOG.md</a> (Phase 8/15 어느 쪽도 다루지 않음 — 감사에서 화살표 정정)</td>
 </tr>
 <tr>
 <td>DB 비밀번호·인메모리 키가 코드/설정에 하드코딩(재시작 시 키 회전)</td>
@@ -660,6 +678,24 @@ List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="
 운영 보안을 끄지 않음, auth-service가 리소스 서버로 오작동하지 않음, 토큰 전파 스레드 안전성.</p>
 </blockquote>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<ol>
+<li><p>HS256(대칭키) 대신 RS256(비대칭키)을 쓴 이유는? 검증 서비스가 늘어날수록 왜 더 중요해지나?</p>
+<details><summary>답</summary>HS256은 발급자·검증자가 같은 비밀키를 공유해야 하는데, 검증 서비스(gateway·order·payment)가 늘수록 그 비밀키가 여러 곳에 복사돼 유출 위험이 커진다. RS256은 검증자가 공개키만 가지므로 서명 자체는 못 하고 검증만 할 수 있어 더 안전하다(§2.3).</details>
+</li>
+<li><p>토큰의 <code>roles</code> 클레임엔 <code>&quot;USER&quot;</code>처럼 접두사가 없는데, <code>hasRole(&#39;ADMIN&#39;)</code>은 왜 동작하나?</p>
+<details><summary>답</summary>Spring Security의 `hasRole()`은 내부적으로 `ROLE_ADMIN`을 찾는다. 토큰엔 순수 역할명만 담고, **검증하는 쪽**(`JwtGrantedAuthoritiesConverter`)이 `ROLE_` 접두사를 붙이도록 설정했기 때문이다(§2.5, §4.3).</details>
+</li>
+<li><p>게이트웨이 보안 설정은 <code>ServerHttpSecurity</code>/<code>authorizeExchange</code>를 쓰고 order/payment는 <code>HttpSecurity</code>/<code>authorizeHttpRequests</code>를 쓴다. 왜 API가 다른가? 검증 개념도 다른가?</p>
+<details><summary>답</summary>게이트웨이는 리액티브(WebFlux) 스택, order/payment는 서블릿(MVC) 스택이라 설정 API 이름만 다르다. 개념(JWKS로 서명 검증하는 Resource Server)은 완전히 동일하다(§2.4).</details>
+</li>
+<li><p>auth-service가 재시작돼 새 <code>kid</code>로 토큰을 발급했다. order-service를 재시작하지 않아도 그 토큰을 검증할 수 있나?</p>
+<details><summary>답</summary>있다. 리소스 서버는 모르는 `kid`가 오면 JWKS를 다시 가져와 캐시를 갱신한다(lazy fetch, §6). 그래서 auth-service가 부팅 시 잠깐 꺼져 있어도 다른 서비스는 정상 기동하고, 새 키가 필요해지는 시점에 알아서 받아온다.</details>
+</li>
+<li><p>이 프로젝트는 왜 CSRF 보호를 꺼두나(<code>csrf().disable()</code>)? 이게 보안 후퇴 아닌가?</p>
+<details><summary>답</summary>CSRF는 브라우저가 쿠키 기반 세션을 자동으로 실어 보내는 상황을 노린 공격이다. 이 프로젝트는 `stateless`(세션 없음) + Bearer 토큰(요청마다 명시적으로 헤더에 실음) 방식이라 애초에 CSRF의 공격 전제(쿠키 자동 첨부)가 성립하지 않는다 — Bearer 토큰 API의 정석이다(§6).</details></li>
+</ol>
+<hr>
 <h2 id="9-용어-사전">9. 용어 사전</h2>
 <ul>
 <li><strong>JWT</strong>: 서명된 토큰(신원 증명서). <code>header.payload.signature</code>.</li>
@@ -668,6 +704,9 @@ List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="
 <li><strong>Resource Server</strong>: JWT를 검증해 접근을 보호하는 서비스.</li>
 <li><strong>엣지 인증</strong>: 진입점(게이트웨이)에서의 1차 인증.</li>
 <li><strong>토큰 전파(relay)</strong>: 인바운드 토큰을 다운스트림 호출로 넘김.</li>
+<li><strong>defense in depth(심층 방어)</strong>: 앞단(게이트웨이) 하나만 믿지 않고 각 서비스도 자체적으로 다시 검증하는 원칙. 게이트웨이가 우회되거나 뚫려도 뒷단이 방어선이 된다.</li>
+<li><strong><code>ROLE_</code> 접두사 규약</strong>: 토큰에는 순수 역할명(<code>USER</code>, <code>ADMIN</code>)만 담고, 검증하는 쪽이 <code>hasRole()</code>이 찾는 <code>ROLE_</code> 접두사를 붙인다(§2.5).</li>
+<li><strong>메서드 시큐리티(<code>@PreAuthorize</code>)</strong>: 컨트롤러 메서드 단위로 권한을 선언하는 방식(<code>@EnableMethodSecurity</code>로 활성화). URL 경로가 아니라 메서드에 규칙을 건다.</li>
 <li><strong>stateless</strong>: 서버가 세션을 저장하지 않음(토큰이 상태).</li>
 <li><strong>인증/인가</strong>: 누구인지 / 무엇을 할 수 있는지.</li>
 <li><strong>IDOR</strong>: 소유권 검증 없이 ID로 남의 자원 접근.</li>
@@ -717,6 +756,7 @@ List&lt;OrderView&gt; <span class="hljs-title function_">all</span><span class="
 <li class="toc-h2"><a href="#6-동작-원리-더-깊게">6. 동작 원리 더 깊게</a></li>
 <li class="toc-h2"><a href="#7-검증-실제로-실행한-스모크">7. 검증 (실제로 실행한 스모크)</a></li>
 <li class="toc-h2"><a href="#8-알려진-한계--해결-phase-적대적-보안-리뷰-결과">8. 알려진 한계 → 해결 Phase (적대적 보안 리뷰 결과)</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어-사전">9. 용어 사전</a></li>
 <li class="toc-h2"><a href="#10-더-알아보기-공식-문서">10. 더 알아보기 (공식 문서)</a></li></ul></nav></aside>
 </body>

@@ -437,6 +437,25 @@ curl -X POST http://localhost:8000/orders -H 'Content-Type: application/json' \
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. 이 프로젝트는 클라이언트 사이드 디스커버리를 쓴다. 서버 사이드와 비교했을 때 얻는 것과 잃는 것은?
+   <details><summary>답</summary>얻는 것: 중간 LB 홉이 없어 빠르고, LB 자체가 단일 장애점이 되지 않는다. 잃는 것: 호출하는 쪽(게이트웨이·order)마다 LB 로직(라이브러리)이 필요하다 — Spring Cloud LoadBalancer가 그 역할을 대신한다(§2.2).</details>
+
+2. 게이트웨이 라우트는 `lb://order-service`, RestClient는 `http://payment-service`다. 왜 스킴이 다른가? 서로 바꿔 쓰면 어떻게 되나?
+   <details><summary>답</summary>둘은 서로 다른 라이브러리가 처리한다 — 게이트웨이는 Spring Cloud Gateway의 `ReactiveLoadBalancerClientFilter`(`lb://` 스킴 인식), RestClient는 `@LoadBalanced` 인터셉터(평범한 `http://이름` 인식)다. 바꿔 쓰면 해당 스킴/이름을 해석하는 주체가 없어 동작하지 않는다(§4.5).</details>
+
+3. 방금 뜬 새 인스턴스가 바로 호출 대상에 들어가지 못하고 잠깐(수 초~수십 초) 빠져 있는 이유는?
+   <details><summary>답</summary>등록·해제가 하트비트/캐시 주기(각 30초)만큼 늦게 퍼지는 **최종 일관성** 때문이다(§6.4). 등록은 즉시 되지만, 호출하는 쪽이 그 정보를 캐시에 반영하기까지 시간이 걸린다.</details>
+
+4. Eureka의 self-preservation은 무엇이고, 개발 중에 왜 헷갈리는 원인이 되나?
+   <details><summary>답</summary>짧은 시간에 하트비트가 대량으로 끊기면 "네트워크 장애지 인스턴스가 다 죽은 건 아닐 것"이라 보고 서버가 일부러 인스턴스 제거를 멈추는 보수적 모드다(§6.3). 그래서 로컬에서 서비스를 강제 종료해도 장부에는 한동안 "UP"으로 남아, "죽었는데 왜 아직 보이지?"라는 혼란을 준다.</details>
+
+5. `defaultZone`을 `default-zone`(케밥케이스)으로 적으면 왜 인식되지 않나?
+   <details><summary>답</summary>보통 Spring 설정은 relaxed binding으로 케밥케이스도 자동 변환되지만, `defaultZone`은 내부적으로 `Map<String, String>`의 **키**라서 이 변환이 적용되지 않는다. 반드시 `defaultZone` 그대로 적어야 한다(§4.1).</details>
+
+---
+
 ## 10. 용어 사전
 
 - **게이트웨이(API Gateway)**: 모든 외부 요청이 거쳐가는 단일 진입점. 경로(Path)를 보고 어느 내부 서비스로 보낼지 라우팅한다.
@@ -451,6 +470,8 @@ curl -X POST http://localhost:8000/orders -H 'Content-Type: application/json' \
 - **lease 만료/eviction**: 신호가 끊긴 인스턴스를 장부에서 제거.
 - **디스커버리(fetch)**: 호출하는 쪽이 장부를 받아오는 것(보통 캐싱).
 - **클라이언트 사이드 LB**: 호출자가 직접 인스턴스를 고름(Spring Cloud LoadBalancer).
+- **서버 사이드 디스커버리**: 로드밸런싱을 중간 인프라(LB/프록시)가 대신하는 방식(예: AWS ELB, k8s Service). 호출자는 LB 주소 하나만 안다 — 클라이언트 사이드의 반대(§2.2).
+- **`defaultZone`**: Eureka 클라이언트/서버가 레지스트리 URL을 가리키는 설정 키. `Map<String,String>`의 키라서 relaxed binding이 적용되지 않아 반드시 camelCase여야 한다.
 - **VIP(serviceId)**: 장부에 등록되는 서비스 이름. 각 서비스의 `spring.application.name` 값이 그대로 이 이름이 된다(예: `order-service`).
 - **`lb://`**: 게이트웨이에서 "이 호스트는 서비스 이름이니 로드밸런싱해라"는 스킴.
 - **서킷브레이커(circuit breaker)**: 특정 대상에 호출 실패가 반복되면 잠시 호출 자체를 차단해 장애 확산을 막는 장치(Phase 13~14).

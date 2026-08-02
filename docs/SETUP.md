@@ -196,6 +196,25 @@ Gradle 8.14는 JDK 24 실행을 지원한다. 툴체인(`languageVersion = 21`)�
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. `java -version`이 24를 가리키는데 왜 `./gradlew :services:order-service:test`가 문제없이 Java 21 대상으로 빌드되나?
+   <details><summary>답</summary>Gradle 8.14는 JDK 24로 실행되지만, 프로젝트의 툴체인 설정(`languageVersion = 21`)이 **컴파일/테스트 타깃만** 21로 고정한다. 로컬에 JDK 21이 없으면 foojay resolver가 자동으로 받아온다(§8.5, PHASE-0-SCAFFOLD.md §6.3).</details>
+
+2. `compose.infra.yml`이 `order-db-data`를 `/var/lib/postgresql/data`가 아니라 `/var/lib/postgresql`(상위 경로)에 마운트하는 이유는?
+   <details><summary>답</summary>PostgreSQL 18부터 데이터 디렉터리가 버전별 하위 경로(`/var/lib/postgresql/18/docker`)로 바뀌었다. 옛 규칙대로 `/data`에 마운트하면 컨테이너가 "unused mount"로 판단해 즉시 종료한다(§5, §8.3).</details>
+
+3. `POST /orders`는 되는데 `GET /orders`·`GET /orders/{id}`만 500이 나는 이유는?
+   <details><summary>답</summary>`open-in-view: false`라 트랜잭션이 끝나면 세션도 닫혀 LAZY 컬렉션을 더 못 읽는다. POST는 메모리에서 만든 엔티티라 items가 이미 로드된 채라 문제없지만, GET은 DB에서 조회한 엔티티의 LAZY 연관을 트랜잭션 밖에서 직렬화하려다 `LazyInitializationException`이 난다(§8.4).</details>
+
+4. `colima start`에 `--arch aarch64`를 명시하는 이유는?
+   <details><summary>답</summary>Apple Silicon에서 아키텍처를 명시하지 않으면 에뮬레이션(x86_64 → arm64 변환)으로 돌 위험이 있다. `--arch aarch64`로 **네이티브 arm64**를 보장해 성능 저하를 피한다(§2).</details>
+
+5. `docker compose ... down -v` 후 재기동하면 왜 데이터가 다시 채워지나? 이게 뭘 증명하나?
+   <details><summary>답</summary>`-v`는 볼륨(DB 데이터)까지 삭제하지만, 스키마 자체는 Flyway 마이그레이션 파일(SQL)에 있다. 재기동 시 Flyway가 `V1__init.sql`을 다시 적용해 스키마를 재생성한다 — "스키마는 코드다"(DB가 통째로 사라져도 SQL 파일만 있으면 똑같이 부활)의 증명이다(§7).</details>
+
+---
+
 ## 9. 정지 / 정리
 
 ```bash

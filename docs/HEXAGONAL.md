@@ -134,7 +134,7 @@ com.shopsaga.<service>
 | 인바운드 포트(쿼리) | `application/port/in/GetOrderQuery.java` |
 | 아웃바운드 포트 | `application/port/out/{SaveOrderPort,LoadOrderPort}.java` |
 | 유스케이스 구현 | `application/service/OrderService.java` (@UseCase, @Transactional) |
-| 웹 어댑터 | `adapter/in/web/{OrderController,PlaceOrderRequest,OrderResponse,ApiExceptionHandler}.java` |
+| 웹 어댑터 | `adapter/in/web/{OrderController,PlaceOrderRequest,ApiExceptionHandler}.java`(응답 DTO 없음 — 인바운드 포트가 반환한 `OrderView`를 그대로 응답) |
 | 영속 어댑터 | `adapter/out/persistence/{OrderJpaEntity,OrderItemJpaEntity,OrderJpaRepository,OrderPersistenceAdapter,OrderMapper}.java` |
 
 ---
@@ -148,3 +148,48 @@ com.shopsaga.<service>
 6. Flyway `V1__init.sql`로 스키마. `ddl-auto=validate`.
 7. (메시징 단계) `adapter/in|out/messaging` + `shared/events`.
 8. 빌드·단위테스트 → DB 띄우고 API 검증.
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+1. `domain/` 패키지가 `java.*` 외 import를 금지하는 이유는? Spring 애노테이션 하나 정도는 괜찮지 않나?
+   <details><summary>답</summary>도메인이 프레임워크를 알면 "바깥 기술은 갈아끼울 수 있는 세부사항"이라는 헥사고날의 전제가 깨진다. Spring이나 JPA를 하나라도 들이면 DB·프레임워크 없이 순수 단위 테스트를 할 수 없게 되고, 의존성 방향(바깥→안쪽)이 역전된다(§1, §2).</details>
+
+2. 애그리거트 루트에 `create()`와 `restore()` 팩토리를 **둘 다** 두는 이유는? 각각 언제 쓰나?
+   <details><summary>답</summary>`create()`는 신규 생성(id 없음, 웹 요청 등 바깥 입력을 통해 도메인이 태어나는 경로)이고, `restore()`는 DB에서 읽어온 값으로 도메인 객체를 복원하는 경로(영속 어댑터 전용)다. 하나로 합치면 "신규인지 기존인지"를 생성자 인자만으로 구분해야 해 실수하기 쉽다(§1).</details>
+
+3. 애플리케이션 서비스가 도메인 애그리거트(`Order`)를 그대로 반환하지 않고 `OrderView`로 변환해 반환하는 이유는?
+   <details><summary>답</summary>가변 도메인 객체를 그대로 내보내면 어댑터가 실수로 도메인의 변경 메서드를 호출하거나, 도메인이 어댑터(웹·JSON 직렬화)에 종속될 위험이 생긴다. 불변 뷰로 한 번 감싸면 도메인이 바깥으로 새지 않는다(§2 application 규칙).</details>
+
+4. 기존 애그리거트의 상태를 바꿔 저장할 때(`PENDING`→`PAID`) 왜 새 엔티티를 만들어 `save()`하면 안 되나?
+   <details><summary>답</summary>새 엔티티로 `save()`하면 JPA가 그걸 신규로 오인해 **새 행을 INSERT**할 수 있다(§3.3). 기존 행을 갱신하려면 **load-then-mutate**(관리 엔티티를 로드해 필드를 직접 바꾸고 dirty checking으로 UPDATE)를 써야 한다.</details>
+
+5. 커스텀 조회에 리포지토리 `@Query`/`@Lock` 대신 QueryDSL을 쓰는 이유는? `@OneToMany` 컬렉션을 fetch join할 때 무엇을 조심해야 하나?
+   <details><summary>답</summary>쿼리 로직을 어댑터의 QueryDSL 클래스 한 곳에 모아 타입세이프하게 관리하기 위해서다(§3.4). 컬렉션을 fetch join하면서 목록을 조회하면 카테시안 곱으로 루트가 중복되므로 `.distinct()`가 필요하고, 컬렉션 fetch join은 **한 번에 하나만** 가능하다(둘이면 `MultipleBagFetchException`).</details>
+
+---
+
+## 10. 용어 사전
+
+- **헥사고날 아키텍처(Ports & Adapters)**: 의존성이 항상 안쪽(도메인)을 향하게 하고, 바깥 기술(DB·웹·메시징)은 갈아끼울 수 있는 "어댑터"로 다루는 아키텍처 스타일.
+- **포트(Port)**: 유스케이스가 바깥과 대화하는 기술 무관 인터페이스. 인바운드 포트(들어오는 진입점 계약)와 아웃바운드 포트(DB·외부로 나가는 계약)로 나뉜다.
+- **어댑터(Adapter)**: 포트의 실제 구현(기술 세부). 인바운드 어댑터(웹 컨트롤러 등)와 아웃바운드 어댑터(JPA 영속화 등).
+- **애그리거트(Aggregate) / 애그리거트 루트**: 일관성 경계를 가진 도메인 객체 묶음과 그 대표(진입점). DDD 용어.
+- **값 객체(Value Object)**: 식별자 없이 값 자체로 동일성이 판단되는 도메인 객체. 생성자에서 불변식을 검증한다.
+- **불변식(invariant)**: 객체가 항상 지켜야 하는 규칙(예: 재고는 음수가 될 수 없음). 도메인이 스스로 보호해야 한다.
+- **유스케이스(UseCase)**: 한 트랜잭션 단위의 비즈니스 로직. `@UseCase`(=@Component)로 표시.
+- **출력 모델(`*View`)**: 유스케이스가 가변 도메인 대신 반환하는 불변 read model. 도메인이 어댑터로 새는 것을 막는다.
+- **JPA 엔티티**: DB 테이블에 매핑되는 클래스. 도메인 객체와 분리해(`OrderJpaEntity` ≠ `Order`) 영속 애노테이션이 도메인을 오염시키지 않게 한다.
+- **영속성 컨텍스트(persistence context) / managed(관리) 엔티티**: 트랜잭션 동안 조회한 엔티티를 관리하는 JPA의 캐시, 그리고 그 안에서 추적되는 엔티티.
+- **dirty checking**: JPA가 managed 엔티티의 필드 변경을 감지해 커밋 시 자동으로 UPDATE를 발행하는 메커니즘.
+- **load-then-mutate**: 관리 엔티티를 로드해 직접 수정 → dirty checking으로 UPDATE. 새 엔티티를 `merge`하는 방식과 대비된다(§3.3).
+- **persist vs merge**: `persist`는 id 없는 신규 엔티티를 곧장 INSERT, `merge`는 이미 id가 있어 신규 확신이 안 될 때 INSERT 전에 SELECT로 존재를 확인하는 경로.
+- **QueryDSL / Q타입**: 타입세이프 쿼리 라이브러리. `QOrderJpaEntity` 같은 Q타입은 애노테이션 프로세서가 엔티티로부터 컴파일 타임에 생성한다.
+- **fetch join**: 연관 엔티티를 지연 로딩 대신 즉시 함께 로드하는 쿼리 방식. `open-in-view: false` 환경에서 트랜잭션 밖 지연 로딩 예외를 피하려 쓴다.
+- **비관적 락(PESSIMISTIC_WRITE)**: 행을 읽는 시점부터 DB 레벨에서 잠가 다른 트랜잭션의 동시 수정을 막는 방식(`SELECT … FOR UPDATE`).
+- **전역 정렬 순서(락 순서 통일)**: 여러 행을 잠글 때 항상 같은 순서(예: id 정렬)로 잠가 교착(deadlock)을 회피하는 규칙.
+- **Flyway / `ddl-auto=validate`**: 번호 붙은 SQL로 스키마를 버전 관리하는 도구, 그리고 Hibernate가 스키마를 만들지 않고 검증만 하게 하는 설정.
+- **outbox**: 이벤트 발행을 DB 트랜잭션과 같은 커밋에 묶어 유실을 막는 패턴(테이블은 서비스별 자기 DB, Phase 9+ 대비).
+- **스테레오타입(`@UseCase` 등)**: 계층의 역할을 이름으로 드러내는 커스텀 애노테이션(내부적으로 `@Component`).
+- **package-private**: 같은 패키지 안에서만 보이는 접근 제한자. 유스케이스 구현체·어댑터처럼 "포트로만 노출되면 충분한" 클래스에 붙여 외부 결합을 줄인다.

@@ -813,13 +813,13 @@ CI 봇이 <code>main</code> 에 커밋하므로, CI 가 한 번 돌 때마다 <s
 <td>3</td>
 <td><strong>키 교체 시 자동 롤아웃 없음</strong></td>
 <td>secretGenerator 를 잃어 해시 접미사가 없다</td>
-<td><strong>Sealed Secrets / External Secrets Operator</strong></td>
+<td><strong>Sealed Secrets / External Secrets Operator</strong> → <a href="BACKLOG.html">BACKLOG.md</a></td>
 </tr>
 <tr>
 <td>4</td>
 <td><strong>DB 비밀번호가 Git 에 평문</strong></td>
 <td>dev 값이라 감수</td>
-<td>위와 같음</td>
+<td>위와 같음 → <a href="BACKLOG.html">BACKLOG.md</a></td>
 </tr>
 <tr>
 <td>5</td>
@@ -861,15 +861,52 @@ CI 봇이 <code>main</code> 에 커밋하므로, CI 가 한 번 돌 때마다 <s
 <td>11</td>
 <td>컨테이너 root 실행 · NetworkPolicy 없음</td>
 <td>Phase 18 에서 그대로</td>
-<td>보안 기본값 강화</td>
+<td>보안 기본값 강화 → <a href="BACKLOG.html">BACKLOG.md</a></td>
 </tr>
 <tr>
 <td>12</td>
 <td>이미지 취약점 스캔·서명 없음</td>
 <td></td>
-<td>Trivy · cosign</td>
+<td>Trivy · cosign → <a href="BACKLOG.html">BACKLOG.md</a></td>
 </tr>
 </tbody></table>
+<hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<details><summary>Q1. pull 기반 배포(GitOps)가 push 기반(CI 가 직접 apply)보다 안전한 이유는?</summary>
+
+<p>push 방식은 클러스터 자격증명이 <strong>CI 러너 쪽</strong>(클러스터 밖, 인터넷에 있는 곳)에 있어야 한다.
+러너는 서드파티 액션도 돌고 워크플로는 PR 로 수정될 수 있으므로, 그 자격증명이 곧 &quot;클러스터를
+지울 수 있는 권한&quot;이 밖으로 나가 있다는 뜻이다(§1-③). pull 방식은 <strong>클러스터 안의 Argo CD</strong> 가
+Git 을 당겨 오므로 자격증명이 안쪽에만 있고, CI(§4-②)는 Git 에 커밋만 할 뿐 클러스터를 아예
+모른다 — &quot;GitOps 승격&quot; 잡에 <code>kubeconfig</code> 가 등장하지 않는 이유다.</p>
+</details>
+
+<details><summary>Q2. selfHeal 이 켜져 있는데 `apply.sh` 를 돌리면 왜 충돌하나?</summary>
+
+<p><code>apply.sh</code> 는 <strong>명령형</strong>으로 <code>kubectl apply -k overlays/local</code> 을 실행하고, Argo CD 의 <code>selfHeal</code> 은
+&quot;클러스터가 Git(=<code>overlays/gitops</code>)과 달라지면 되돌린다&quot;는 <strong>불변식</strong>을 강제한다(§4-①). 서로 다른
+소스(로컬 오버레이 vs Git 의 gitops 오버레이)를 각각 진실로 우기는 셈이라, <code>apply.sh</code> 로 만든 변경은
+<strong>6초 뒤 Argo CD 가 되돌린다</strong>(§7-③ 실측). <code>apply.sh</code> 자신도 이걸 감지해 경고를 출력한다(Argo CD 가
+<code>shopsaga</code> Application 을 관리 중이면 시작할 때 알려 준다) — 바꾸려면 Git(<code>overlays/gitops</code>)을 바꿔야 한다.</p>
+</details>
+
+<details><summary>Q3. prune 이 켜져 있는데도 왜 Phase 18 시절 ConfigMap 이 안 지워졌나?</summary>
+
+<p>Argo CD 는 <strong>자기가 만든 리소스에만</strong> tracking-id 어노테이션을 남기고, prune 도 그 표시가 있는
+것만 대상으로 한다(§6-①). Argo CD 를 붙이기 <strong>전에</strong> <code>kubectl apply -k</code> 로 만들어진 옛 ConfigMap 은
+tracking-id 가 없어 &quot;내가 만든 게 아니다&quot;로 취급돼 절대 지워지지 않는다 — 남의 리소스를 함부로
+안 건드리는 안전장치이기도 하다. 전환 시점의 고아는 <strong>한 번은 손으로</strong> 치워야 한다(§7-④).</p>
+</details>
+
+<details><summary>Q4. Phase 18 의 secretGenerator 를 Phase 19 에서 걷어낸 이유는?</summary>
+
+<p>Argo CD 의 repo-server 는 <strong>Git 을 클론해서</strong> <code>kustomize build</code> 를 돌린다 — 내 노트북의 파일시스템을
+못 본다(§4-④). <code>.secrets/</code> 는 개인키라 <code>.gitignore</code> 대상, 즉 Git 에 없다. Argo CD 는 임의 스크립트도
+실행하지 않으므로(선언만 읽고 명령은 안 읽는 것이 GitOps 의 안전성) 부트스트랩을 대신 돌려 줄 수도
+없다 — 그래서 서명 키는 매니페스트가 아니라 <code>bootstrap-secrets.sh</code> 가 넣는 <strong>클러스터 사전 조건</strong>이
+됐고, 그 대가로 키 교체 시 자동 롤아웃을 잃었다(§8-3).</p>
+</details>
+
 <hr>
 <h2 id="9-용어">9. 용어</h2>
 <table>
@@ -961,6 +998,7 @@ Trivy/cosign 공급망 보안 · 보안 기본값(runAsNonRoot·NetworkPolicy) �
 <li class="toc-h3"><a href="#-기능-회귀-없음">⑦ 기능 회귀 없음</a></li>
 <li class="toc-h3"><a href="#-겪은-결함오진-숨기지-않고-기록">⑧ 겪은 결함·오진 (숨기지 않고 기록)</a></li>
 <li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
 <li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>
 </body>

@@ -477,6 +477,13 @@ code.hljs {
     }
 }
 </code></pre><p><code>OrderService.placeOrder</code>는 <strong>한 글자도 안 바뀌었다</strong> — 여전히 <code>publishOrderEventPort.orderPlaced(...)</code>만 호출한다. 구현이 “직접 Kafka”에서 “outbox 기록”으로 바뀌었을 뿐(포트/어댑터의 힘).</p>
+<blockquote>
+<p>(현재는 이름이 다르다 — Phase 12에서 outbox·inbox가 3개 서비스 공유 라이브러리(<code>shared/outbox</code>)로 승격되며,
+이 클래스는 <code>OrderEventOutboxPublisher</code>로 이름이 바뀌었고 <code>OutboxWriter</code>(공유 라이브러리)에 위임하는 형태로
+다시 쓰였다. 토픽 이름도 <code>order-placed</code>에서 **<code>order-events</code>**로 바뀌었다(order가 발행하는 여러 사실 이벤트를
+한 토픽에 모으는 원칙으로 정리됨). 아래·위 코드의 <code>OutboxOrderEventPublisher</code>·<code>order-placed</code>는 Phase 10 시점
+그대로의 역사적 기록이다. → <a href="PHASE-12-SAGA.html">PHASE-12-SAGA.md</a> §0·§2.)</p>
+</blockquote>
 <h3 id="43-order--릴레이scheduled-ack-후에만-발행완료">4.3 order — 릴레이(@Scheduled): ack 후에만 발행완료</h3>
 <pre><code class="hljs language-java"><span class="hljs-meta">@Component</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">OutboxRelay</span> {
@@ -601,7 +608,7 @@ code.hljs {
 <tr>
 <td><strong>outbox 청소 없음</strong></td>
 <td>발행완료 row가 계속 쌓임</td>
-<td>운영: 주기적 아카이브/삭제 잡(후속)</td>
+<td>운영: 주기적 아카이브/삭제 잡(후속) — <a href="BACKLOG.html">BACKLOG.md</a> §8(감사 2026-08-02에서 미수정 결함으로 재확인)</td>
 </tr>
 <tr>
 <td><strong>릴레이가 트랜잭션 열고 Kafka I/O 블로킹</strong></td>
@@ -615,6 +622,14 @@ code.hljs {
 </tr>
 </tbody></table>
 <hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<ol>
+<li><code>orders</code> INSERT와 Kafka <code>send()</code>를 하나의 <code>@Transactional</code> 안에 넣으면 왜 안 되나? 실패 조합 두 가지는?<details><summary>답</summary>Kafka는 DB 트랜잭션에 참여하지 않는 <b>별도 시스템</b>이라 한 커밋으로 묶을 수 없다. ① 커밋 성공 + 발행 실패 = <b>이벤트 유실</b>(재고가 영원히 안 줄어듦). ② 발행 성공 + 롤백 = <b>유령 이벤트</b>(있지도 않은 주문의 재고가 깎임)(§1).</details></li>
+<li>트랜잭셔널 outbox는 &quot;정확히 한 번(exactly-once)&quot; 전달을 보장하나? 실제로 무엇을 보장하고 무엇은 보장하지 않나?<details><summary>답</summary><b>아니다.</b> outbox+릴레이는 <b>at-least-once</b>만 준다 — ack 표시 직전에 릴레이가 죽으면 같은 row가 다시 발행돼 <b>중복</b>이 생길 수 있다. "정확히 한 번처럼 보이는" 효과(effectively-once)는 outbox가 아니라 <b>소비자의 멱등 처리</b>가 만든다(§2·§6).</details></li>
+<li>inventory가 같은 메시지를 두 번 받으면 재고가 두 번 깎이나? 무엇이 막나?<details><summary>답</summary>안 깎인다. <code>processed_messages.message_id</code>가 <b>PK</b>라서 두 번째 처리 시도가 <code>isAlreadyProcessed</code> 체크에 걸려 부수효과 없이 건너뛴다. 핵심은 dedup 체크·예약·기록이 <b>한 트랜잭션</b>이라는 것 — 기록만 되고 예약이 롤백되면 그 메시지는 영영 처리 안 된 것으로 남는다(§4.5).</details></li>
+<li><code>messageId</code>는 어디서 나와서 어디까지 같은 값으로 흐르나?<details><summary>답</summary><code>outbox.id</code>(발행자가 만든 PK)가 Kafka 헤더 <code>messageId</code>로 실려, 소비자의 <code>processed_messages.message_id</code>까지 <b>같은 값</b>으로 이어진다. 이 상관 ID 하나로 발행-소비 전 구간을 추적할 수 있다(§2·§7).</details></li>
+</ol>
+<hr>
 <h2 id="9-용어사전">9. 용어사전</h2>
 <ul>
 <li><strong>이중 쓰기(dual-write):</strong> DB와 메시지를 한 메서드에서 둘 다 쓰는 안티패턴(원자적일 수 없음).</li>
@@ -625,6 +640,8 @@ code.hljs {
 <li><strong>상관 ID(messageId):</strong> 메시지를 고유 식별하는 값(여기선 outbox.id). 헤더로 실려 소비자 dedup에 쓰임.</li>
 <li><strong>poison 메시지:</strong> 계속 처리 실패하는 메시지(무한 재시도 유발 → DLQ로 격리).</li>
 <li><strong>DLQ(Dead Letter Queue):</strong> 처리 실패 메시지를 보내는 별도 토픽(<code>*.DLT</code>).</li>
+<li><strong>부분 인덱스(partial index):</strong> 조건을 만족하는 행만 걸어 두는 인덱스(<code>WHERE published_at IS NULL</code>). 릴레이가 매번 훑는 대상이 &quot;미발행 row&quot;뿐이라 인덱스도 그만큼만 있으면 된다 — 발행완료 row가 쌓여도 폴링 성능이 안 떨어지는 이유.</li>
+<li><strong>JSONB:</strong> PostgreSQL의 이진 저장 JSON 타입. 텍스트 JSON과 달리 파싱된 형태로 저장돼 <code>payload-&gt;&gt;&#39;orderId&#39;</code>처럼 필드 단위 조회가 가능하다.</li>
 </ul>
 <hr>
 <h2 id="10-참고--상호링크">10. 참고 / 상호링크</h2>
@@ -657,6 +674,7 @@ code.hljs {
 <li class="toc-h2"><a href="#6-원리--트레이드오프">6. 원리 / 트레이드오프</a></li>
 <li class="toc-h2"><a href="#7-검증-실증">7. 검증 (실증)</a></li>
 <li class="toc-h2"><a href="#8-알려진-한계--해결-phase">8. 알려진 한계 → 해결 Phase</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어사전">9. 용어사전</a></li>
 <li class="toc-h2"><a href="#10-참고--상호링크">10. 참고 / 상호링크</a></li></ul></nav></aside>
 </body>

@@ -137,6 +137,11 @@ void on(OrderPlacedEvent event) { projectOrderPlacedUseCase.project(event); }
 ```
 그룹이 다르므로 **오프셋이 따로** 관리된다 → 재고 소비와 무관하게 이 서비스만 offset 0으로 되돌려 재구축할 수 있다.
 
+> (현재는 다르다 — Phase 12에서 이 리스너가 `SagaEventProjectionListener`로 커지며 `order-events`·`inventory-events`·
+> `payment-events` **세 토픽을 모두** 구독한다(상태 전이까지 투영하려면 세 서비스의 사실 이벤트가 다 필요하기 때문 — §8
+> "상태 전이 없음"이 여기서 풀린다). 토픽 이름도 `order-placed`에서 **`order-events`**로 바뀌었다. groupId는
+> `order-query-service`로 **동일**하다. → [PHASE-12-SAGA.md](PHASE-12-SAGA.md) §4.9.)
+
 ### 4.5 조회 API — 쓰기 엔드포인트가 없다
 ```java
 @RestController @RequestMapping("/order-views")
@@ -234,14 +239,29 @@ order-query-mongo:
 |---|---|---|
 | **상태 전이 없음** | 읽기 모델 status가 항상 `CONFIRMED` — 예약/결제 상태 전이가 없다(그 이벤트가 아직 없음) | **Phase 12**(`InventoryReserved`/`PaymentCharged`/취소 이벤트로 전이) |
 | **결과적 일관성 UX** | 주문 직후 읽기 모델 404 가능 | 설계상 트레이드오프(완화: 재조회·낙관적 UI). 근본 해결 없음 |
-| **투영 lag 관측 없음** | 소비 지연을 대시보드로 보지 않음(kafka-ui 수동 확인) | **Phase 14~15**(consumer lag 메트릭·알림) |
+| **투영 lag 관측 없음** | 소비 지연을 대시보드로 보지 않음(kafka-ui 수동 확인) | 미해결(후속) — ⚠️ *과거엔 "Phase 14~15"로 적었으나 오표기였다: Phase 14는 DLT lag를(그것도 대시보드가 아니라 kafka-ui 수동 확인까지만, [PHASE-14-RESILIENCE.md](PHASE-14-RESILIENCE.md) §8), Phase 15는 계약 테스트를 다뤄 이 항목을 풀지 않는다. → [BACKLOG.md](BACKLOG.md)에 "컨슈머/DLT/투영 lag 경보"로 등재(감사 후속).* |
 | **투영 실패 처리 없음** | 투영 중 예외 → 재시도 무한(브로커가 재배달) | **Phase 14**(DLQ·백오프) |
 | **재구축 절차 수동** | 컬렉션 삭제 + 오프셋 리셋을 손으로 함 | 운영: 재구축 잡/스크립트(후속) |
 | **읽기 모델 단일** | 화면별 최적 모델을 더 만들지 않음 | 필요 시 소비자 추가(패턴은 동일) |
-| **Mongo 단일 노드·인증 단순** | 학습용(복제셋 아님, 루트 사용자 사용) | 운영: 복제셋·최소권한 사용자, **Phase 15** |
+| **Mongo 단일 노드·인증 단순** | 학습용(복제셋 아님, 루트 사용자 사용) | 미해결(후속) — ⚠️ *과거엔 "Phase 15"로 적었으나 오표기였다: 실제 Phase 15는 계약 테스트·Config Bus([PHASE-15-CONTRACTS.md](PHASE-15-CONTRACTS.md))이고 Mongo 하드닝을 다루지 않는다. → [BACKLOG.md](BACKLOG.md)의 보안·운영 하드닝 항목과 같은 갈래.* |
 | **시각 정밀도 손실** | 주문 `created_at`은 마이크로초(`…28.033473`)인데 읽기 모델 `placedAt`은 **BSON Date = 밀리초**(`…28.033`)로 절삭 | 결정적 절삭이라 리플레이엔 무해. 정밀도가 중요하면 문자열/Long 저장(후속) |
 | **트레이스 분리(Phase 10 상속)** | outbox 릴레이가 별도 스레드라 주문 요청 트레이스와 투영 트레이스가 끊겨 있음 | **Phase 12**(`traceparent` 저장·재주입) |
-| **투영 순서 의존** | 파티션 1이라 지금은 순서가 보장되지만, 파티션을 늘리면 같은 주문 이벤트가 순서를 잃을 수 있음(key=orderId로 완화 중) | 운영: key 파티셔닝 유지 + 버전/시퀀스 검사(후속) |
+| ~~투영 순서 의존~~ | ~~파티션 1이라 지금은 순서가 보장되지만, 파티션을 늘리면 같은 주문 이벤트가 순서를 잃을 수 있음~~ | ✅ **Phase 12 해결** — 읽기 모델 상태를 `OrderViewStatus.rank`로 매겨 **더 진행된 상태로만** 전이하는 단조(monotonic) 전이를 도입, 파티션이 여럿이라 이벤트 도착 순서가 뒤바뀌어도 최종 상태가 같아지게 만들었다(§4.9). |
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+1. 읽기 모델을 쓰기 모델과 **따로** 두는 이유는? 비정규화의 이득과 대가를 각각 하나씩 들면?
+   <details><summary>답</summary>쓰기(정합성 위한 정규화)와 읽기(조회 편의 위한 비정규화)가 요구하는 모양이 달라서다. 이득: 조회가 <b>조인 0회</b>로 끝난다(문서 1개 읽기). 대가: 같은 사실이 <b>두 DB에 중복 저장</b>된다(§6).</details>
+2. 주문을 만들자마자 `GET /order-views/{id}`를 불렀는데 404가 떴다. 버그인가?
+   <details><summary>답</summary><b>아니다.</b> 쓰기(order-service)와 읽기(order-query-service)가 이벤트로 비동기 연결돼 있어 <b>결과적 일관성</b>이 있다 — outbox 릴레이(≤1s)+Kafka+투영이 끝나야 반영된다. 실측에서도 3초 시점에 200으로 수렴했다(§7).</details>
+3. 투영이 `Instant.now()`를 쓰면 왜 문제가 되나? 결정성이 왜 리플레이의 전제인가?
+   <details><summary>답</summary>같은 이벤트를 재생해도 <code>now()</code> 값이 매번 달라지면 <b>같은 입력 → 다른 결과</b>가 나와 "지우고 재생하면 동일 상태로 복원"이라는 CQRS의 핵심 이점이 깨진다. 그래서 시각도 이벤트가 실어 오는 사실(`occurredAt`)이어야 한다(§6).</details>
+4. `order_views` 컬렉션을 통째로 지우고 오프셋을 0으로 되돌리면 무슨 일이 일어나나? 조건은?
+   <details><summary>답</summary>세 토픽(order/inventory/payment-events)이 처음부터 다시 투영되며 <b>같은 이벤트 스트림 → 같은 최종 상태</b>로 복원된다. 조건은 투영이 <b>결정적</b>이어야 한다는 것 — 실측에서 재구축 결과가 기준값과 완전 일치(`IDENTICAL: True`)했다(§7).</details>
+5. 파티션이 여럿이라 `InventoryReserved`가 `OrderConfirmed`보다 늦게 도착하면 읽기 모델 status가 거꾸로 갈 수 있지 않나? 왜 안 그런가?
+   <details><summary>답</summary><code>OrderViewStatus</code>에 진행 순위(rank)를 매겨, 자기보다 <b>낮은 순위로만</b> 덮어쓰기를 허용하는 단조(monotonic) 전이를 쓰기 때문이다(Phase 12). 도착 순서와 무관하게 최종 상태가 항상 같아진다(§8 "투영 순서 의존" 해결 참고).</details>
 
 ---
 
@@ -256,6 +276,7 @@ order-query-mongo:
 - **upsert:** 있으면 덮어쓰고 없으면 삽입. `@Id`가 있으면 `save()`가 이 동작.
 - **Decimal128:** MongoDB의 10진 타입(`NumberDecimal`) — 금액을 오차 없이 저장·비교.
 - **컨슈머 그룹:** 오프셋 관리 단위. 그룹이 다르면 같은 토픽을 독립적으로 읽는다.
+- **결과적 일관성(eventual consistency):** 쓰기 직후엔 읽기 모델에 아직 반영 안 됐다가, 이벤트가 전파돼 처리되고 나면 잠시 뒤 같은 값으로 수렴하는 성질. 즉시 일관성의 반대(§1·§5).
 
 ---
 

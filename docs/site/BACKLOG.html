@@ -513,9 +513,44 @@ code.hljs {
 <td>CI가 매번 새 커밋 SHA 태그로 빌드해 실질 위험이 낮음(관성적으로 남은 설정)</td>
 </tr>
 <tr>
-<td>격리(quarantine)된 outbox 행 재처리 도구</td>
-<td>Phase 14가 <code>attempts</code> 상한으로 outbox row를 격리는 하지만, 격리된 뒤 재투입하는 도구가 없어 사람이 수동 개입해야 한다</td>
+<td>격리(quarantine)된 outbox 행 재처리 도구 + <code>outbox.stuck</code> 경보 (유래: PHASE-14 §8-5)</td>
+<td>Phase 14가 <code>attempts</code> 상한으로 outbox row를 격리는 하지만, 격리된 뒤 재투입하는 도구도 격리 발생을 알리는 경보도 없어 사람이 대시보드를 봐야 안다</td>
 <td>각 Phase 문서에서 이미 &quot;운영 도구 영역&quot;으로 남긴 항목 — DLQ 재투입 도구(PHASE-13/14 §8)와 같은 갈래</td>
+</tr>
+<tr>
+<td>컨슈머/DLT/투영 lag <strong>경보</strong>(Grafana Alertmanager) (유래: PHASE-11 §8, PHASE-14 §8-4)</td>
+<td>lag·DLT 적재를 지금은 kafka-ui를 사람이 봐야만 안다 — 쌓여도 아무도 모르는 구조</td>
+<td>관측 스택(Phase 8)에 Alertmanager 연동이 빠져 있고, 경보 룰 설계는 별도 학습 주제로 판단해 이연</td>
+</tr>
+<tr>
+<td>가짜 PG stub의 <strong>환불 실연동</strong> — 실제 결제망 환불 실패 시나리오 (유래: PHASE-14 §8-8)</td>
+<td>지금 환불은 stub 내부 상태 변경일 뿐, 외부 결제망 환불이 실패·지연하는 현실 시나리오를 다루지 않는다</td>
+<td>실제 PG 연동 자체가 학습 범위 밖 — 캡스톤 성격의 Phase가 사라지며 목적지를 잃은 항목</td>
+</tr>
+<tr>
+<td>chaos 엔드포인트 운영 제거/권한 강화 (유래: PHASE-14 §8-6)</td>
+<td><code>chaos.enabled</code> 가 기본 켜져 있고 인증만 통과하면 누구나 지연·실패를 주입할 수 있다</td>
+<td>학습 도구로서 의도된 상태 — 운영 프로파일 분리 시점에 함께 처리</td>
+</tr>
+<tr>
+<td><code>/actuator/health</code> <code>show-details</code>를 <code>when-authorized</code>로 (유래: SECURITY.md §8, 감사 인프라 지적)</td>
+<td>게이트웨이 <code>permitAll</code> 경로라 인증 없이 DB·디스크·서킷브레이커 내부 상태가 노출된다</td>
+<td>k8s probe가 같은 엔드포인트를 쓰므로 <code>management.server.port</code> 분리까지 함께 설계해야 안전 — 단순 값 변경으로 끝나지 않아 이연</td>
+</tr>
+<tr>
+<td>게이트웨이 <code>permitAll(/auth/**)</code> → <code>/auth/login</code>만으로 축소 (유래: SECURITY.md §8)</td>
+<td>현재 auth-service에 다른 공개 엔드포인트가 없어 실노출은 없지만, 앞으로 추가될 경로가 의도치 않게 열리는 잠재 위험</td>
+<td>한 줄 수정이지만 실노출이 없어 후순위 — auth 엔드포인트 추가 시점에 반드시 함께 처리</td>
+</tr>
+<tr>
+<td>Flyway <code>connectRetries</code>·Hikari <code>initializationFailTimeout</code> (유래: PHASE-16 §8-10)</td>
+<td>파드 기동 경합 시 DB보다 앱이 먼저 뜨면 CrashLoopBackOff 를 수 회 겪는다 — 재시작으로 수렴은 하지만 기동이 느려지고 로그가 지저분해진다</td>
+<td>k8s 재시작 루프가 결국 수렴해 실사고는 아님 — &quot;기동 품질&quot; 개선 항목으로 이연</td>
+</tr>
+<tr>
+<td>SemVer/릴리스 프로세스 — <code>0.0.1-SNAPSHOT</code> 고정 탈피 (유래: PHASE-17 §8-7)</td>
+<td>jar 버전이 늘 같아 아티팩트만 보고는 버전을 구분할 수 없다(이미지 태그=커밋 SHA가 사실상의 버전 역할)</td>
+<td>커밋 SHA 태깅이 재현성 요구를 이미 충족 — 대외 배포물이 생기는 시점에 도입</td>
 </tr>
 </tbody></table>
 <hr>

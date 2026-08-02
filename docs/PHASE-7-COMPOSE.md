@@ -220,6 +220,25 @@ docker compose -f deploy/compose/compose.yml down            # 정지(-v 붙이�
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. 호스트에서 잘 되던 `localhost:8761` 설정이 컨테이너 안에서는 왜 틀리나?
+   <details><summary>답</summary>컨테이너 안의 `localhost`는 **그 컨테이너 자기 자신**을 가리킨다. discovery-service가 다른 컨테이너에 떠 있으므로, 컨테이너 격리 때문에 서비스명 DNS(`discovery-service:8761`)로 바꿔야 실제로 닿는다(§2.2).</details>
+
+2. 레이어드 jar(`dependencies`/`spring-boot-loader`/`snapshot-dependencies`/`application` 4겹)로 이미지를 만들면 왜 재빌드가 빨라지나?
+   <details><summary>답</summary>변경 빈도가 낮은 레이어(의존성)는 캐시가 그대로 재사용되고, 코드가 바뀌어도 마지막 얇은 `application` 레이어만 다시 빌드·전송하면 되기 때문이다(§2.1).</details>
+
+3. `depends_on: { condition: service_healthy }` 대신 그냥 `depends_on: [config-service]`만 쓰면 뭐가 문제인가?
+   <details><summary>답</summary>일반 `depends_on`은 컨테이너가 **시작만** 하면 충분한 것으로 본다. config-service 프로세스가 뜨는 것과 `/actuator/health`가 실제로 응답 가능해지는 것 사이엔 시간차가 있으므로, `service_healthy` 조건 없이는 order-service가 config-service의 설정 응답 준비 전에 먼저 요청을 시도할 수 있다(§2.3).</details>
+
+4. Eureka에 `hostname: localhost` 대신 `prefer-ip-address: true`로 등록하는 이유는?
+   <details><summary>답</summary>컨테이너 hostname 등록은 다른 컨테이너가 그 이름을 못 풀 수 있다. 컨테이너의 실제 IP(예: 172.18.0.7)로 등록하면 게이트웨이가 `lb://`로 받은 주소가 네트워크에서 실제로 닿는다(§2.5).</details>
+
+5. `SPRING_CONFIG_IMPORT`(Config Server 위치)와 config-service 자신의 `search-locations`는 왜 중앙 config가 아니라 환경변수로 주나?
+   <details><summary>답</summary>둘 다 "Config Server를 어떻게 찾을지/무엇을 읽을지"를 말하는 값이라, 중앙 config 자체가 준비되기 **이전에** 필요하다. 닭-달걀 문제라 이 둘만 예외적으로 env로 부트스트랩한다(§4.4).</details>
+
+---
+
 ## 9. 용어 사전
 - **이미지 / 컨테이너**: 실행 템플릿 / 그 실행 인스턴스.
 - **레이어드 jar / jarmode=tools**: 변경 빈도별로 나눠 캐시 효율을 높이는 Boot 패키징.
@@ -228,6 +247,8 @@ docker compose -f deploy/compose/compose.yml down            # 정지(-v 붙이�
 - **docker 프로파일**: 컨테이너 환경 오버라이드(`SPRING_PROFILES_ACTIVE=docker`).
 - **prefer-ip-address**: Eureka에 컨테이너 IP로 등록.
 - **부트스트랩 값**: Config Server를 가리키는 값 등, 중앙 config보다 먼저 필요한 값(→ env).
+- **`exec java` / PID 1**: 엔트리포인트를 `exec`로 실행해 java 프로세스가 컨테이너의 PID 1이 되게 하는 관례. PID 1이어야 `docker stop`이 보내는 SIGTERM을 JVM이 직접 받아 graceful shutdown이 동작한다(`exec` 없이 `sh -c java ...`만 쓰면 셸이 PID 1이 되어 신호가 java까지 안 간다).
+- **YAML 앵커(`&`/`<<:`)**: compose.yml에서 여러 서비스가 공유하는 설정 블록(`x-app-common`)을 한 번 정의(`&app-common`)해 각 서비스에서 병합(`<<: *app-common`)하는 YAML 기능. 4개 앱 서비스의 공통 environment/네트워크 중복을 없앤다(§4.3).
 
 ---
 

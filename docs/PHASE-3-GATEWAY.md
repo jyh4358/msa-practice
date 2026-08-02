@@ -117,6 +117,12 @@ Phase 2까지 서비스가 두 개(order 8080, payment 8081)가 됐다. 그런�
 > `lb://payment-service`(`lb://`는 특정 host:port 대신 **서비스 이름**을 주면 디스커버리가 실제
 > 인스턴스 주소로 로드밸런싱해 풀어 주는 논리 주소 표기 — 자세한 건 Phase 4 문서 참고)로 바뀐다.
 > 이 문서는 **하드코딩이던 그 당시** 상태를 서술한다.
+>
+> ⚠️ **`payments-route` 자체가 지금은 없다.** 2026-08-02 감사에서 게이트웨이의 `/payments/**` 라우트가
+> 통째로 삭제됐다 — Phase 12부터 결제는 Saga(Kafka 커맨드)로만 구동되므로, 공개 게이트웨이로
+> `POST /payments`를 직접 부를 수 있으면 Saga·멱등성·보상을 우회하는 뒷문이 되기 때문이다
+> ([AUDIT-2026-08.md](AUDIT-2026-08.md) IDOR 항목). 아래 §4.2·§7의 `payments-route`는 **당시 실제로
+> 존재했던** 라우트다.
 
 ---
 
@@ -296,6 +302,12 @@ Spring Cloud Gateway는 서블릿(Tomcat)이 아니라 **Netty 위의 리액티�
 ### 7.1 라우트 로딩 테스트 — `GatewayRoutesTest`
 DB 없이 컨텍스트만 띄워 **라우트가 실제로 로딩됐는지** 단언한다. 이 테스트가 §4.2의 yaml 접두사
 오타를 사실상 보증한다(접두사가 틀리면 라우트 0개 → 단언 실패).
+
+> ⚠️ **아래 코드는 Phase 3 당시 버전이다.** 지금의 `GatewayRoutesTest`는 `payments-route`를
+> `.doesNotContain("payments-route")`로 **없어야 함을 단언**하고(2026-08-02 감사의 회귀 가드),
+> 라우트 목록도 `auth-route`·`orders-route`·`inventory-route`·`order-views-route`로 늘었다
+> (Phase 5 인증·Phase 11 CQRS 반영). `uri`의 스킴도 Phase 16b부터 `lb://`가 아니라 평범한
+> `http`여야 한다는 단언이 추가됐다(→ [SERVICE-DISCOVERY.md](SERVICE-DISCOVERY.md) 상단 배너 참고).
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayRoutesTest {
@@ -328,6 +340,7 @@ curl -s http://localhost:8000/actuator/gateway/routes
 # → orders-route: http://localhost:8080, inventory-route: http://localhost:8080,
 #    payments-route: http://localhost:8081  (이 시점 하드코딩)
 ```
+> (현재는 `payments-route`가 응답에 나타나지 않는다 — §3 각주 참고.)
 
 ### 7.3 end-to-end (게이트웨이 통과)
 ```bash
@@ -357,12 +370,32 @@ curl -s http://localhost:8000/inventory        # → order-service의 재고 조
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. 이 프로젝트의 게이트웨이는 왜 `StripPrefix` 필터가 필요 없나? 필요해지는 경우는 언제인가?
+   <details><summary>답</summary>다운스트림(order-service 등)이 이미 `/orders`, `/inventory` 경로로 서빙하고 있어서 게이트웨이가 경로를 그대로 통과시키면 되기 때문(§2.5). 만약 게이트웨이에서 `/api/orders/**`처럼 접두사를 붙였다면, 다운스트림엔 `/orders`밖에 없으니 `StripPrefix=1`로 `/api`를 떼어내야 한다.</details>
+
+2. north-south와 east-west 중 게이트웨이가 보는 트래픽은 어느 쪽인가? order→payment 호출은?
+   <details><summary>답</summary>게이트웨이는 north-south(바깥 클라이언트 ↔ 시스템)만 담당한다. order→payment는 east-west(내부 서비스 ↔ 서비스)라 게이트웨이를 거치지 않고 직접 호출된다(§2.3).</details>
+
+3. `spring-boot-starter-web`을 게이트웨이 의존성에 실수로 추가하면 왜 문제가 되나?
+   <details><summary>답</summary>게이트웨이는 Netty(WebFlux) 논블로킹 스택 위에서 돈다. `starter-web`은 Tomcat(서블릿/블로킹)을 끌고 오는데, 이게 Netty와 충돌해 게이트웨이 자동설정이 꺼지거나 부팅이 깨진다(§4.1 함정 2).</details>
+
+4. `application.yml`에 라우트를 `spring.cloud.gateway.routes`(구 접두사)로 적으면 어떤 증상이 나타나나?
+   <details><summary>답</summary>에러 없이 조용히 라우트가 0개로 로딩된다. 그러면 모든 요청이 404가 난다 — 2025.0.x부터는 `spring.cloud.gateway.server.webflux.routes`가 맞는 접두사다(§4.2). `GatewayRoutesTest`가 이 오타를 잡아낸다.</details>
+
+5. 어떤 요청도 predicate에 매칭되지 않으면 게이트웨이는 무엇을 반환하나? 다운스트림이 낸 404와는 뭐가 다른가?
+   <details><summary>답</summary>게이트웨이 자신이 404를 낸다(라우트 자체가 없음). 다운스트림 404는 order/payment 서비스가 "그 경로/자원이 없다"고 낸 것 — 문제 원인이 게이트웨이인지 서비스인지가 다르다(§5.2).</details>
+
+---
+
 ## 9. 용어 사전
 
 - **API 게이트웨이**: 외부 클라이언트의 단일 진입점. 요청을 알맞은 내부 서비스로 전달하는 리버스 프록시.
 - **리버스 프록시**: 서버 쪽에 서서 여러 백엔드를 감추고 대신 전달하는 중개자(반대는 포워드 프록시).
 - **라우트(route)**: 게이트웨이 라우팅의 단위. `predicate + uri (+ filter)`로 구성.
 - **predicate**: "이 요청이 이 라우트에 해당하나?" 판단 조건. 여기선 `Path=`(경로 매칭).
+- **filter**: 라우트 구성 요소 중 전달 전/후 요청·응답을 가공하는 선택 항목(`predicate + uri (+ filter)`). Phase 3은 통과 라우팅이라 쓰지 않지만, Phase 14의 `CircuitBreaker` 필터처럼 이후 Phase에서 쓰인다.
 - **통과(pass-through) 라우팅**: 경로를 가공하지 않고 그대로 전달(StripPrefix 등 필터 없음).
 - **StripPrefix**: 전달 전에 경로 앞 세그먼트를 잘라내는 필터(여기선 불필요).
 - **north-south 트래픽**: 바깥(클라이언트) ↔ 시스템. 게이트웨이가 담당.

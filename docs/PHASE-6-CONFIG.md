@@ -262,6 +262,25 @@ order 동시성 테스트는 JPA/Flyway 프로퍼티 명시로 config-service �
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. "우선순위 역전"이란 무엇인가? 옮긴 키를 로컬 `application.yml`에 남겨두면 어떤 버그가 생기나?
+   <details><summary>답</summary>`spring.config.import` 모델에서는 로컬 `application.yml`이 원격(Config Server) 값보다 우선한다(§2.4). 그래서 중앙으로 옮긴 키를 로컬에 지우지 않고 남겨두면, 중앙에서 값을 바꿔도 **로컬 값이 조용히 계속 이겨** 변경이 반영된 것처럼 보이지 않는다.</details>
+
+2. Boot 2.4+ 는 왜 `bootstrap.yml` 대신 `spring.config.import`를 쓰나?
+   <details><summary>답</summary>예전엔 클라이언트가 "부트스트랩 컨텍스트"라는 별도 단계로 설정을 먼저 당겨왔지만, 이 방식이 Boot 2.4+부터 기본 비활성됐다. 대신 일반 `application.yml`의 `spring.config.import: configserver:...` 한 줄로 같은 일을 한다(§2.3).</details>
+
+3. config-service를 내린 채로 order-service를 부팅하면 어떻게 되나? 뜨긴 뜨는데 실제로 뭐가 안 되나?
+   <details><summary>답</summary>`optional:`이라 컨텍스트는 뜬다(부팅 실패 안 함). 하지만 DB 비밀번호가 이제 **중앙에만** 있으므로 Postgres 접속에서 실패한다 — "컨텍스트는 떠도 기능은 안 되는" 상태다(§6).</details>
+
+4. `{cipher}` 암호문을 order-service가 직접 복호화하나? `ENCRYPT_KEY`는 누가 갖고 있나?
+   <details><summary>답</summary>아니다. Config Server가 응답 전에 대칭키(AES)로 복호화해 **평문**으로 넘겨준다. `ENCRYPT_KEY`는 Config Server만 환경변수로 갖고 있고, 클라이언트는 암호문도 키도 보지 않는다(§2.5, §5).</details>
+
+5. 왜 config-service는 discovery-service(Eureka)에 등록하지 않나(config-first)?
+   <details><summary>답</summary>클라이언트가 Config Server를 Eureka로 찾게 하면(discovery-first) "Config Server 위치를 알려면 먼저 Eureka가 있어야 하는데, Eureka 자체 설정도 Config Server에서 온다"는 닭-달걀 순서 문제가 생긴다. config-first는 클라이언트가 **직접 URL**로 Config Server를 찾아 이 의존을 없앤다(§2.6, §3).</details>
+
+---
+
 ## 9. 용어 사전
 - **Config Server / Client**: 설정의 단일 출처 / 그걸 받아쓰는 서비스.
 - **native 백엔드**: 파일시스템 디렉터리에서 설정을 읽는 방식(vs git 백엔드).

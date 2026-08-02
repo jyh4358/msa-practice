@@ -185,6 +185,14 @@ List<OrderView> all() { ... }
 
 ### 4.4 토큰 전파 — order → payment
 
+> ⚠️ **지금은 없다.** order→payment 동기 호출 자체가 Phase 12에서 Kafka Saga로 대체되면서
+> `BearerTokenRelayInterceptor`와 이 절이 쓰던 `RestClient` 인터셉터 배선이 코드베이스에서
+> 삭제됐다(→ [PHASE-2-SPLIT-PAYMENT.md](PHASE-2-SPLIT-PAYMENT.md) §4.6). Saga 커맨드는 Kafka
+> 메시지라 HTTP `Authorization` 헤더가 없고, 서비스 간 신원 검증은 아직 별도로 구현되지 않았다
+> (→ [BACKLOG.md](BACKLOG.md) "서비스 신원" 항목). 다만 order→inventory의 재고 사전 확인(Phase 14,
+> `InventoryRestConfig`)은 동기 호출이지만 **토큰을 전파하지 않는다** — 아래는 Phase 5 당시,
+> order→payment가 아직 동기였을 때의 실제 코드다.
+
 `adapter/out/payment/BearerTokenRelayInterceptor.java`:
 ```java
 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -234,6 +242,11 @@ POST :8000/orders  (Authorization: Bearer <JWT>)
 ```
 토큰이 없거나 위조/만료면 게이트웨이(또는 서비스)가 **401**. 역할이 모자라면 **403**.
 
+> ⚠️ 위 흐름은 Phase 5 당시(order→payment 동기 호출) 기준이다. 지금은 order가 payment를 직접
+> 부르지 않는다 — `POST /orders`는 즉시 `PENDING`(201)을 반환하고, 결제는 Saga가 Kafka 커맨드로
+> 비동기 처리한다. 게이트웨이 엣지 인증·order/payment 각자의 리소스 서버 검증이라는 **원리**는
+> 그대로지만, "payment 호출 시 토큰 전파"라는 구체적 메커니즘은 §4.4 참고.
+
 ---
 
 ## 6. 동작 원리 더 깊게
@@ -261,6 +274,10 @@ POST :8000/orders  (Authorization: Bearer <JWT>)
 9) /actuator/health → 200 (공개)                         ✅
 ```
 > #6(201)과 #7(401)의 조합이 **토큰 전파가 실제로 동작**한다는 결정적 증거다.
+>
+> ⚠️ 이 스모크는 Phase 5 시점 기록이다. 지금 6번을 재현하면 `POST /orders`는 `201 PENDING`을
+> 반환한다(paymentId 없음, 최종 상태는 조회로 확인 — §4.4·§5.2 참고). 7번(`payment` 직접 호출 → 401)은
+> 지금도 그대로 유효하다 — payment-service는 여전히 자체 리소스 서버라 무토큰 호출을 막는다.
 
 데모 계정: `alice/secret`(USER), `admin/admin123`(USER+ADMIN).
 
@@ -275,13 +292,32 @@ POST :8000/orders  (Authorization: Bearer <JWT>)
 | **payment 캡처가 공개 게이트웨이로 노출** — 인증된 USER면 `/payments` 직접 호출로 임의 결제 생성 가능(서비스 신원/스코프 없음) | 인가 깊이(A01/A04) | ✅ **감사(2026-08-02)에서 폐쇄** — 게이트웨이 `payments-route` 삭제(결제는 Saga/Kafka로만 구동). [AUDIT-2026-08.md](AUDIT-2026-08.md) |
 | **소유권 검증 없음(IDOR)** — 아무 인증 사용자나 `GET /orders/{id}`로 남의 주문 조회 가능. 주문이 토큰 subject에 묶이지 않음(customerId를 클라가 지정) | 인가 깊이(A01) | ✅ **감사(2026-08-02)에서 폐쇄** — customerId를 JWT subject에서 유도 + 본인/ADMIN만 조회 허용(403). [AUDIT-2026-08.md](AUDIT-2026-08.md) |
 | JWT **issuer/audience 미검증**(서명·만료만 검증) — 방어 심화 부족 | 하드닝 | → [BACKLOG.md](BACKLOG.md) |
-| 게이트웨이 `permitAll(/auth/**)`가 `/auth/login`보다 넓음(현재 노출 없음, 잠재적) | 하드닝 | **Phase 15** (정확히 `/auth/login`만) |
-| `/actuator/health` `show-details: always` 공개 | 하드닝/관측성 | **Phase 8/15** |
+| 게이트웨이 `permitAll(/auth/**)`가 `/auth/login`보다 넓음(현재 노출 없음, 잠재적) | 하드닝 | → [BACKLOG.md](BACKLOG.md) (Phase 15는 계약 테스트·Bus였고 이 항목을 다루지 않음 — 감사에서 화살표 정정) |
+| `/actuator/health` `show-details: always` 공개 — 인증 없이 DB·디스크·서킷 상태가 보임 | 하드닝/관측성 | → [BACKLOG.md](BACKLOG.md) (Phase 8/15 어느 쪽도 다루지 않음 — 감사에서 화살표 정정) |
 | DB 비밀번호·인메모리 키가 코드/설정에 하드코딩(재시작 시 키 회전) | 시크릿 관리 | → [BACKLOG.md](BACKLOG.md) |
 | 서비스간 호출이 사용자 토큰 재전파에 의존(서비스 자체 신원 없음) | 서비스 인증 | → [BACKLOG.md](BACKLOG.md) |
 
 > 리뷰에서 **정상 확인**된 것들: 리액티브/서블릿 배선, CSRF off+stateless 적절, `@ConditionalOnWebApplication`이
 > 운영 보안을 끄지 않음, auth-service가 리소스 서버로 오작동하지 않음, 토큰 전파 스레드 안전성.
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+1. HS256(대칭키) 대신 RS256(비대칭키)을 쓴 이유는? 검증 서비스가 늘어날수록 왜 더 중요해지나?
+   <details><summary>답</summary>HS256은 발급자·검증자가 같은 비밀키를 공유해야 하는데, 검증 서비스(gateway·order·payment)가 늘수록 그 비밀키가 여러 곳에 복사돼 유출 위험이 커진다. RS256은 검증자가 공개키만 가지므로 서명 자체는 못 하고 검증만 할 수 있어 더 안전하다(§2.3).</details>
+
+2. 토큰의 `roles` 클레임엔 `"USER"`처럼 접두사가 없는데, `hasRole('ADMIN')`은 왜 동작하나?
+   <details><summary>답</summary>Spring Security의 `hasRole()`은 내부적으로 `ROLE_ADMIN`을 찾는다. 토큰엔 순수 역할명만 담고, **검증하는 쪽**(`JwtGrantedAuthoritiesConverter`)이 `ROLE_` 접두사를 붙이도록 설정했기 때문이다(§2.5, §4.3).</details>
+
+3. 게이트웨이 보안 설정은 `ServerHttpSecurity`/`authorizeExchange`를 쓰고 order/payment는 `HttpSecurity`/`authorizeHttpRequests`를 쓴다. 왜 API가 다른가? 검증 개념도 다른가?
+   <details><summary>답</summary>게이트웨이는 리액티브(WebFlux) 스택, order/payment는 서블릿(MVC) 스택이라 설정 API 이름만 다르다. 개념(JWKS로 서명 검증하는 Resource Server)은 완전히 동일하다(§2.4).</details>
+
+4. auth-service가 재시작돼 새 `kid`로 토큰을 발급했다. order-service를 재시작하지 않아도 그 토큰을 검증할 수 있나?
+   <details><summary>답</summary>있다. 리소스 서버는 모르는 `kid`가 오면 JWKS를 다시 가져와 캐시를 갱신한다(lazy fetch, §6). 그래서 auth-service가 부팅 시 잠깐 꺼져 있어도 다른 서비스는 정상 기동하고, 새 키가 필요해지는 시점에 알아서 받아온다.</details>
+
+5. 이 프로젝트는 왜 CSRF 보호를 꺼두나(`csrf().disable()`)? 이게 보안 후퇴 아닌가?
+   <details><summary>답</summary>CSRF는 브라우저가 쿠키 기반 세션을 자동으로 실어 보내는 상황을 노린 공격이다. 이 프로젝트는 `stateless`(세션 없음) + Bearer 토큰(요청마다 명시적으로 헤더에 실음) 방식이라 애초에 CSRF의 공격 전제(쿠키 자동 첨부)가 성립하지 않는다 — Bearer 토큰 API의 정석이다(§6).</details>
 
 ---
 
@@ -292,6 +328,9 @@ POST :8000/orders  (Authorization: Bearer <JWT>)
 - **Resource Server**: JWT를 검증해 접근을 보호하는 서비스.
 - **엣지 인증**: 진입점(게이트웨이)에서의 1차 인증.
 - **토큰 전파(relay)**: 인바운드 토큰을 다운스트림 호출로 넘김.
+- **defense in depth(심층 방어)**: 앞단(게이트웨이) 하나만 믿지 않고 각 서비스도 자체적으로 다시 검증하는 원칙. 게이트웨이가 우회되거나 뚫려도 뒷단이 방어선이 된다.
+- **`ROLE_` 접두사 규약**: 토큰에는 순수 역할명(`USER`, `ADMIN`)만 담고, 검증하는 쪽이 `hasRole()`이 찾는 `ROLE_` 접두사를 붙인다(§2.5).
+- **메서드 시큐리티(`@PreAuthorize`)**: 컨트롤러 메서드 단위로 권한을 선언하는 방식(`@EnableMethodSecurity`로 활성화). URL 경로가 아니라 메서드에 규칙을 건다.
 - **stateless**: 서버가 세션을 저장하지 않음(토큰이 상태).
 - **인증/인가**: 누구인지 / 무엇을 할 수 있는지.
 - **IDOR**: 소유권 검증 없이 ID로 남의 자원 접근.

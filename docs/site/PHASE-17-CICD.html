@@ -565,13 +565,28 @@ Phase 16b 에서 겪은 &quot;테스트가 사본을 검증하던 문제&quot;�
 </code></pre><blockquote>
 <p>⚠️ <code>sed</code> 로 매니페스트를 고치는 건 정석이 아니다. Kustomize 의 <code>images:</code> 오버레이가 이 일을 위해 있다.
 지금은 Kustomize 를 도입하지 않았으므로(Phase 18 과제) 가장 단순한 방법을 택했다 — 한계표 #1.</p>
+<p>⚠️ <strong>정정(요지 — 이후 변경, 현재 파일 참고).</strong> 위 코드 블록은 Phase 17 시점의 것이다. Phase 18 에서
+<code>apply.sh</code> 가 오버레이 인자를 받도록 바뀌면서, 지금 CI 는 <code>run: ./deploy/k8s/apply.sh ci</code> 로
+<strong>오버레이를 명시</strong>해 호출한다(인자를 생략하면 기본값인 <code>local</code> 오버레이가 적용되어 로컬 이미지를
+찾다가 깨진다). 위 <code>sed</code> 도 Phase 18 이후 Kustomize 의 <code>images:</code> 변환기로 대체됐다
+(<a href="PHASE-18-KUSTOMIZE.html">PHASE-18-KUSTOMIZE.md</a> §4-④).</p>
 </blockquote>
 <h3 id="-권한은-최소로">⑤ 권한은 최소로</h3>
 <pre><code class="hljs language-yaml">    <span class="hljs-attr">permissions:</span>
       <span class="hljs-attr">contents:</span> <span class="hljs-string">read</span>
       <span class="hljs-attr">packages:</span> <span class="hljs-string">write</span>        <span class="hljs-comment"># GHCR push 에 필요. 기본 GITHUB_TOKEN 은 read 만 갖는다.</span>
-</code></pre><p><code>GITHUB_TOKEN</code> 은 실행이 끝나면 폐기되는 임시 토큰이다. 기본값은 읽기 전용이고,
-필요한 잡에만 <code>packages: write</code> 를 준다. 스모크 잡은 pull 만 하므로 <code>packages: read</code> 다.</p>
+</code></pre><p><code>GITHUB_TOKEN</code> 은 실행이 끝나면 폐기되는 임시 토큰이다. 잡마다 필요한 만큼만 권한을 준다 —
+이미지 잡에만 <code>packages: write</code>, 스모크 잡은 pull 만 하므로 <code>packages: read</code> 다.</p>
+<blockquote>
+<p>⚠️ <strong>정정(2026-08-02 감사).</strong> 이 절은 원래 &quot;<code>GITHUB_TOKEN</code> 의 기본값은 읽기 전용이고&quot; 라고 적었는데
+그건 부정확했다. <code>permissions</code> 를 아예 안 적은 잡은 <strong>저장소 설정의 기본값</strong>을 물려받고, 그 기본값은
+저장소마다 다르게 설정할 수 있다(조직 정책에 따라 read/write 가 기본일 수도 있다) — <strong>보장되지 않는다.</strong>
+감사는 워크플로 최상단에 <code>permissions: { contents: read }</code> 를 명시적으로 못 박아, <code>permissions</code> 를
+안 적은 잡(<code>빌드·테스트</code> 등)도 항상 읽기 전용에서 시작하도록 고쳤다(현재 <code>ci.yml</code> 48~49행).
+이유: <code>./gradlew build</code> 가 실행하는 서드파티 코드(Gradle 플러그인·Testcontainers)가 저장소 기본값이
+read/write 인 경우 이론상 <code>main</code> 에 push 할 수 있었고, Phase 19 의 Argo CD <code>selfHeal</code> 이 <code>main</code> 을
+그대로 신뢰하므로 이는 곧 클러스터 장악 경로가 될 수 있었다.</p>
+</blockquote>
 <p>클러스터가 이미지를 받아올 자격증명은 이렇게 넣는다:</p>
 <pre><code class="hljs language-bash">kubectl create secret docker-registry ghcr -n shopsaga \
   --docker-server=ghcr.io --docker-username=<span class="hljs-variable">${{ github.actor }</span>} \
@@ -905,7 +920,7 @@ CI 진행 상황을 자주 확인하다 한도를 소진했다. <code>gh auth lo
 <td>2</td>
 <td><strong>CD 가 없다 — 배포는 여전히 수동</strong></td>
 <td>CI 는 &quot;배포 가능함&quot;만 증명한다. 실제 클러스터에 반영하는 건 사람이다</td>
-<td>Phase 18 (Argo CD/Flux 같은 GitOps)</td>
+<td><strong>Phase 19</strong>(Argo CD 로 GitOps 도입 — <strong>정정</strong>: Phase 18 은 Kustomize/Helm 전환만 다루고 이 항목은 다루지 않았다)</td>
 </tr>
 <tr>
 <td>3</td>
@@ -935,7 +950,7 @@ CI 진행 상황을 자주 확인하다 한도를 소진했다. <code>gh auth lo
 <td>7</td>
 <td><strong>버전이 <code>0.0.1-SNAPSHOT</code> 고정</strong></td>
 <td>릴리스 개념이 없다. 태그·체인지로그·시맨틱 버저닝 부재</td>
-<td>Phase 18</td>
+<td>미해결 — <strong>정정</strong>: Phase 18·19 모두 이 항목을 다루지 않았다 → <a href="BACKLOG.html">BACKLOG.md</a> (SemVer/릴리스 프로세스)</td>
 </tr>
 <tr>
 <td>8</td>
@@ -950,6 +965,38 @@ CI 진행 상황을 자주 확인하다 한도를 소진했다. <code>gh auth lo
 <td>경로 필터·야간 배치로 분리</td>
 </tr>
 </tbody></table>
+<hr>
+<h2 id="복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</h2>
+<details><summary>Q1. "빌드는 한 번, 포장은 아키텍처별"은 무슨 뜻이고 왜 그렇게 하나?</summary>
+
+<p>Java 바이트코드는 CPU 아키텍처를 타지 않는다 — 아키텍처마다 달라지는 건 <strong>베이스 이미지(JRE)</strong> 뿐이다.
+그래서 컴파일·테스트(87개)는 <code>빌드·테스트</code> 잡에서 <strong>한 번만</strong> 돌리고 jar 을 artifact 로 넘긴 뒤,
+<code>이미지(amd64)</code>·<code>이미지(arm64)</code> 두 잡은 그 jar 을 각자 네이티브 러너에서 <strong>포장만</strong> 한다(§4-①).
+컴파일을 두 번 하지 않아 시간이 절반이고, 두 아키텍처가 <strong>정확히 같은 코드</strong>임이 보장된다.</p>
+</details>
+
+<details><summary>Q2. 이미지 태그가 커밋 SHA 라는 것은 무엇을 보장하나?</summary>
+
+<p><code>:latest</code> 만 쓰면 &quot;지금 클러스터에 떠 있는 게 어느 커밋인지&quot; 아무도 모른다(§1-①, Phase 16 의 문제).
+<code>:&lt;커밋SHA&gt;</code> 태그는 <strong>떠 있는 이미지 → 소스 커밋</strong>을 1:1 로 잇는다 — 버그를 발견했을 때 그 이미지가
+어느 소스로 만들어졌는지 즉시 답할 수 있고, 롤백도 &quot;그 커밋 태그로 되돌아가기&quot;로 명확해진다(§3).</p>
+</details>
+
+<details><summary>Q3. 잡을 나누면 "파일이 공유되지 않는다"는 게 왜 문제가 되고, 어떻게 해결하나?</summary>
+
+<p>한 워크플로 안이라도 <strong>잡마다 새 VM 을 받는다</strong>(§6-①). <code>빌드·테스트</code> 잡이 만든 jar 은
+<code>이미지</code> 잡의 파일시스템에 없다 — 그래서 <code>upload-artifact</code>/<code>download-artifact</code> 로 명시적으로 넘긴다.
+같은 잡 안의 <strong>스텝</strong>끼리는 파일이 공유된다는 점과 대비된다.</p>
+</details>
+
+<details><summary>Q4. CI 가 빨라지면서 오히려 실패한 사건(§7-⑦)은 무엇을 말해주나?</summary>
+
+<p>느릴 때는 이미지 pull·의존성 다운로드가 시간을 벌어줘 admission webhook 준비를 기다리는 경쟁을
+우연히 피해 갔다. Gradle 캐시로 빨라지자 그 창에 정확히 들어가 실패했다 — <strong>성능 개선이 잠재
+결함을 드러낸</strong> 사례다. 로컬에서는 사람이 명령을 하나씩 치는 동안 시간이 흐르므로 이 경쟁을 절대
+볼 수 없다는 점도 함께 기억할 것.</p>
+</details>
+
 <hr>
 <h2 id="9-용어">9. 용어</h2>
 <ul>
@@ -1014,6 +1061,7 @@ CI 진행 상황을 자주 확인하다 한도를 소진했다. <code>gh auth lo
 <li class="toc-h3"><a href="#--2차-실행이-깨졌다--ci-가-빨라지자-드러난-경쟁-상태">⑦ ★ 2차 실행이 깨졌다 — CI 가 빨라지자 드러난 경쟁 상태</a></li>
 <li class="toc-h3"><a href="#-겪은-문제--워크플로-파일은-그냥-푸시되지-않는다">⑧ 겪은 문제 — 워크플로 파일은 그냥 푸시되지 않는다</a></li>
 <li class="toc-h2"><a href="#8-이번-단계의-한계--어디서-해결되나">8. 이번 단계의 한계 → 어디서 해결되나</a></li>
+<li class="toc-h2"><a href="#복습-포인트-스스로-답해보기">복습 포인트 (스스로 답해보기)</a></li>
 <li class="toc-h2"><a href="#9-용어">9. 용어</a></li>
 <li class="toc-h2"><a href="#10-참고">10. 참고</a></li></ul></nav></aside>
 </body>

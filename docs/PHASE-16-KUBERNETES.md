@@ -547,16 +547,57 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 |---|---|---|---|
 | 1 | **Eureka·Config Server 가 아직 코드에 남아 있다** | 16a 는 `enabled: false` 로 끄기만 했다. 의존성·설정이 그대로라 "플랫폼으로 이동"이 절반이다 | **Phase 16b** — 삭제 |
 | 2 | **서비스 3개뿐** — Kafka·Saga·CQRS·관측성이 없다 | 주문이 `PENDING` 에서 멈춘다(outbox 미발행 2건) | **Phase 16b** |
-| 3 | **Secret 은 암호화가 아니다** | `data:` 는 base64 일 뿐이고 etcd 에도 기본은 평문. RBAC 이 유일한 방어선 | Phase 18(External Secrets/SOPS) — 학습 범위 밖 |
+| 3 | **Secret 은 암호화가 아니다** | `data:` 는 base64 일 뿐이고 etcd 에도 기본은 평문. RBAC 이 유일한 방어선 | → [BACKLOG.md](BACKLOG.md)(Sealed Secrets/External Secrets Operator — **정정**: Phase 18 은 이 항목을 다루지 않고 그대로 넘겼다) |
 | 4 | **auth-service 를 복제할 수 없다** | RS256 키쌍을 기동 시 메모리에 생성 → 파드마다 키가 다르다. replicas 2 면 산발적 401 | **Phase 16b**(키를 Secret 으로) |
 | 5 | **`kubectl apply -f` 를 7번 친다** | 순서·중복·환경별 차이를 사람이 관리한다. 값 하나 바꾸려면 YAML 을 직접 고친다 | Phase 18(Helm/Kustomize) |
 | 6 | **이미지 배포가 수동**(`kind load`) | 사람이 빌드하고 사람이 밀어 넣는다. 어느 커밋이 떠 있는지 추적 불가 | **Phase 17**(CI/CD + 레지스트리) |
 | 7 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·NetworkPolicy 등 보안 기본값이 없다 | → [BACKLOG.md](BACKLOG.md) |
 | 8 | **PVC 가 `local-path`** | 노드의 로컬 디렉터리다. 노드가 죽으면 데이터도 죽고, 멀티노드에선 파드가 그 노드에 묶인다 | 학습 범위 밖(운영은 CSI 스토리지) |
 | 9 | **DB 가 Deployment** | 원래 StatefulSet 이 맞다(안정적 이름·순서·파드별 볼륨). `Recreate` 로 우회 중 | 학습 범위 밖 |
-| 10 | **기동 시 CrashLoopBackOff 3회** | 정상 동작이지만 운영에선 알람이 울린다. 앱이 DB 연결을 재시도하는 게 낫다 | Phase 18(Flyway `connectRetries`) |
-| 11 | **`kubectl top` 이 안 된다** | metrics-server 미설치 → HPA(자동 스케일)도 불가 | **Phase 16b** 또는 Phase 18 |
+| 10 | **기동 시 CrashLoopBackOff 3회** | 정상 동작이지만 운영에선 알람이 울린다. 앱이 DB 연결을 재시도하는 게 낫다 | 미해결 — **정정**: Phase 18 은 이 항목을 다루지 않았다 → [BACKLOG.md](BACKLOG.md) (Flyway `connectRetries`/Hikari `initializationFailTimeout`) |
+| 11 | **`kubectl top` 이 안 된다** | metrics-server 미설치 → HPA(자동 스케일)도 불가 | → [BACKLOG.md](BACKLOG.md)(**정정**: 16b·Phase 18 모두 이 항목을 다루지 않았다 — §17-#9 참고) |
 | 12 | **auth-service 가 밖에서 안 보인다** | ClusterIP 라 토큰 받으려면 `port-forward` 가 필요하다 | **Phase 16b**(Ingress) |
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+<details><summary>Q1. 왜 Service 가 필요한가 — 파드 IP 를 클라이언트가 직접 들고 있으면 왜 안 되나?</summary>
+
+파드는 재시작·재스케줄될 때마다 **IP 가 바뀐다**(§6-③). Eureka 가 없는 세계에서 클라이언트가 파드 IP 를
+캐시해 두면, 파드가 죽고 새로 뜨는 순간 그 캐시는 유효하지 않다. Service 는 **고정된 이름 + ClusterIP**
+를 파드 묶음 앞에 세워, 뒤의 파드가 몇 개든 몇 번을 다시 뜨든 클라이언트는 항상 같은 주소로 붙을 수 있게
+한다 — kube-proxy 가 그 주소를 **살아있는(ready) 파드**로 DNAT 해 준다(§6-②).
+</details>
+
+<details><summary>Q2. liveness 와 readiness 를 섞으면(둘 다에 db 를 넣으면) 왜 위험한가?</summary>
+
+DB 가 잠깐 끊겼다고 하자. liveness 에 db 가 들어 있으면 **모든 파드가 동시에** 재시작 루프에 빠지고,
+DB 가 살아난 순간 방금 재시작한 파드 수십 개가 동시에 커넥션 풀을 채우려 들어 DB 를 다시 눕힌다(§2·§8-⑥).
+반대로 readiness 만 실패시키면 파드는 살아 있고(캐시·JIT 워밍업 유지) 트래픽만 끊기며, DB 가 돌아오면
+**재시작 없이** 즉시 복귀한다 — §7-⑥ 에서 실측했다.
+</details>
+
+<details><summary>Q3. startupProbe 가 없으면 어떤 문제가 생기나?</summary>
+
+startup 이 성공하기 전까지 liveness/readiness 는 아예 평가되지 않는다. startupProbe 없이 liveness 를
+짧고 민감하게 두면 JVM 이 뜨는 동안(Flyway 마이그레이션 포함) 오탐으로 재시작될 수 있고, 반대로
+`initialDelaySeconds` 를 크게 잡으면 **정상 파드도** 그만큼 늦게 트래픽을 받는다(§4-③).
+</details>
+
+<details><summary>Q4. k8s 에는 왜 depends_on 이 없나 — 그게 compose 보다 나은 점은?</summary>
+
+순서 보장은 **기동 시점에만** 유효하고 운영 중 장애에는 무력하다(§1-②). k8s 는 대신 "실패하면
+물러났다 다시 하라"(exponential backoff)를 택했다 — 기동 실패든 운영 중 장애든 **같은 메커니즘**이
+동작한다(§6-①). 대가로 처음 몇 번의 `CrashLoopBackOff` 는 정상 동작이라는 것을 받아들여야 한다.
+</details>
+
+<details><summary>Q5. ConfigMap 을 고쳐도 파드가 바로 반영하지 않는 이유는?</summary>
+
+kubelet 이 마운트된 파일 내용은 최대 ~70초 안에 갱신해 주지만, **Spring 은 이미 읽은 프로퍼티를
+다시 바인딩하지 않는다**(§6-④). 그래서 `rollout restart`·`/actuator/refresh`·(Phase 18 부터는)
+ConfigMap 이름에 해시를 붙여 파드 템플릿 자체를 바꾸는 방법 중 하나가 필요하다.
+</details>
 
 ---
 
@@ -574,6 +615,8 @@ Mem:            11Gi   2.4Gi  4.5Gi      9.2Gi     ← 컨트롤플레인 + 파�
 - **Downward API** — 파드가 자기 메타데이터(이름·노드·라벨)를 환경변수/파일로 받는 방법.
 - **CrashLoopBackOff** — 컨테이너가 반복해서 죽어 k8s 가 재시작 간격을 늘려가며 물러난 상태(최대 5분).
 - **ImagePullBackOff** — 이미지를 받아오지 못해 물러난 상태.
+- **RWO(ReadWriteOnce)** — PVC 의 accessMode 하나. 한 번에 노드 하나에서만 마운트할 수 있다.
+  롤링 업데이트가 새 파드를 **먼저** 띄우면 헌 파드와 볼륨을 동시에 못 잡아 `Pending` 에 걸린다(§4-④).
 - **requests / limits** — 스케줄러가 예약해 주는 양 / 넘으면 안 되는 상한.
   메모리가 limits 를 넘으면 **OOMKilled**(경고 없이 즉사), CPU 는 스로틀링만 된다.
 
@@ -679,6 +722,13 @@ spring:
   kafka:
     bootstrap-servers: kafka:19092
 ```
+
+> ⚠️ **정정(요지 — 2026-08-02 감사 이후 파일이 바뀌었다, 현재 파일 참고).** 위 인용은 16b 작성 시점의 것이다.
+> 감사에서 게이트웨이의 `payments-route` 를 삭제하면서(§보안: IDOR 방지 — 결제는 오직 Saga/Kafka 커맨드로만
+> 구동) `deploy/config/common.yml` 의 `payment:` 항목도 함께 지워졌다. 지금 실제 파일에는 그 줄이
+> `# payment 주소 없음 — 결제는 Saga(Kafka)로만 구동, 게이트웨이 라우트 제거(감사 2026-08-02)` 라는
+> 주석으로 남아 있다 — [deploy/config/common.yml](../deploy/config/common.yml) 참고. `auth`·`order`·
+> `inventory`·`orderQuery` 네 개는 그대로다.
 
 이것 자체가 Phase 16 의 논지다 — **디스커버리는 애플리케이션이 아니라 플랫폼의 일**이므로,
 플랫폼만 바뀌고 애플리케이션 설정은 그대로다.
@@ -1111,7 +1161,7 @@ Phase 6 에서 라우트가 config-repo 로 옮겨갔을 때 "테스트가 Confi
 |---|---|---|---|
 | 1 | **`kubectl apply -f` + 셸 스크립트로 배포** | 환경별 차이(dev/stage/prod)를 표현할 방법이 없다. `apply.sh` 가 명령형이라 선언성이 깨진다 | Phase 18 (Helm/Kustomize) |
 | 2 | **이미지 배포가 수동**(`kind load`) | 어느 커밋이 떠 있는지 추적 불가. 롤백도 수동 | **Phase 17** (CI/CD + 레지스트리) |
-| 3 | **Secret 이 암호화가 아니다** | base64 일 뿐이고 etcd 에도 평문. dev 비밀번호가 리포지토리에 있다 | Phase 18 (External Secrets/SOPS) |
+| 3 | **Secret 이 암호화가 아니다** | base64 일 뿐이고 etcd 에도 평문. dev 비밀번호가 리포지토리에 있다 | → [BACKLOG.md](BACKLOG.md)(**정정**: Phase 18 은 이 항목을 다루지 않았다) |
 | 4 | **컨테이너가 root 로 돈다** | `runAsNonRoot`·`readOnlyRootFilesystem`·`seccompProfile` 없음 | → [BACKLOG.md](BACKLOG.md) |
 | 5 | **NetworkPolicy 가 없다** | 모든 파드가 모든 파드에 접근 가능. DB 도 클러스터 안에서 무방비 | → [BACKLOG.md](BACKLOG.md) |
 | 6 | **DB·Kafka 가 Deployment** | StatefulSet 이 정석(안정적 신원·순서·파드별 볼륨). 지금은 `Recreate` 로 우회 | 학습 범위 밖 |
@@ -1120,7 +1170,7 @@ Phase 6 에서 라우트가 config-repo 로 옮겨갔을 때 "테스트가 Confi
 | 9 | **`kubectl top`·HPA 불가** | metrics-server 미설치 → 자동 스케일을 실습할 수 없다 | → [BACKLOG.md](BACKLOG.md) |
 | 10 | **ConfigMap 반영이 최대 ~70초** | "바꿨는데 왜 안 바뀌지"의 흔한 원인 | 구조적 특성(rollout restart 로 우회) |
 | 11 | **Kafka 단일 브로커·replication 1** | 브로커가 죽으면 이벤트 유실. ISR·리더 선출을 볼 수 없다 | 학습 범위 밖 |
-| 12 | **격리된 outbox 8건이 남아 있다** | 실제 유실분. 재처리(replay) 도구가 없다 | 운영 과제 — Phase 18 후보 |
+| 12 | **격리된 outbox 8건이 남아 있다** | 실제 유실분. 재처리(replay) 도구가 없다 | → [BACKLOG.md](BACKLOG.md)(재처리 도구 — Phase 18 은 만들지 않았다) |
 | 13 | **관측성 데이터가 휘발** | otel-lgtm 에 PVC 없음 → 파드 재생성 시 트레이스 소실 | 의도적(학습용) |
 
 ---

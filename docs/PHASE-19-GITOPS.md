@@ -482,16 +482,55 @@ $ git push
 |---|---|---|---|
 | 1 | **Argo CD UI 가 Ingress 에 없다** | port-forward 로만 접근(업스트림 이슈 §7-⑧a) | 이슈 해결 대기 · 또는 전용 호스트명 |
 | 2 | **폴링 60초** | 즉시 반영 아님 | GitHub webhook — 단 클러스터가 인터넷에 노출돼야 한다 |
-| 3 | **키 교체 시 자동 롤아웃 없음** | secretGenerator 를 잃어 해시 접미사가 없다 | **Sealed Secrets / External Secrets Operator** |
-| 4 | **DB 비밀번호가 Git 에 평문** | dev 값이라 감수 | 위와 같음 |
+| 3 | **키 교체 시 자동 롤아웃 없음** | secretGenerator 를 잃어 해시 접미사가 없다 | **Sealed Secrets / External Secrets Operator** → [BACKLOG.md](BACKLOG.md) |
+| 4 | **DB 비밀번호가 Git 에 평문** | dev 값이라 감수 | 위와 같음 → [BACKLOG.md](BACKLOG.md) |
 | 5 | **부트스트랩이 여전히 명령형** | `bootstrap-secrets.sh` · ingress-nginx · Argo CD 자신 | 클러스터 프로비저닝 도구(Terraform/Crossplane) |
 | 6 | **봇 커밋이 main 을 흔든다** | 매번 `git pull --rebase` 필요 | 설정 저장소 분리(app repo ↔ config repo) |
 | 7 | **환경이 하나뿐** | `gitops` 오버레이 하나 = 사실상 prod | staging/prod 분리 + ApplicationSet |
 | 8 | **롤백을 안 해 봤다** | `git revert` 로 될 것이나 **미검증** | 다음 기회에 실측 |
 | 9 | Argo CD 가 **단일 장애점** | 죽으면 드리프트가 방치된다 | HA 모드(복제본 증가) |
 | 10 | 전환 시점 **고아 리소스** | prune 이 안 건드림(§7-④) | 1회 수동 정리(했음) |
-| 11 | 컨테이너 root 실행 · NetworkPolicy 없음 | Phase 18 에서 그대로 | 보안 기본값 강화 |
-| 12 | 이미지 취약점 스캔·서명 없음 | | Trivy · cosign |
+| 11 | 컨테이너 root 실행 · NetworkPolicy 없음 | Phase 18 에서 그대로 | 보안 기본값 강화 → [BACKLOG.md](BACKLOG.md) |
+| 12 | 이미지 취약점 스캔·서명 없음 | | Trivy · cosign → [BACKLOG.md](BACKLOG.md) |
+
+---
+
+## 복습 포인트 (스스로 답해보기)
+
+<details><summary>Q1. pull 기반 배포(GitOps)가 push 기반(CI 가 직접 apply)보다 안전한 이유는?</summary>
+
+push 방식은 클러스터 자격증명이 **CI 러너 쪽**(클러스터 밖, 인터넷에 있는 곳)에 있어야 한다.
+러너는 서드파티 액션도 돌고 워크플로는 PR 로 수정될 수 있으므로, 그 자격증명이 곧 "클러스터를
+지울 수 있는 권한"이 밖으로 나가 있다는 뜻이다(§1-③). pull 방식은 **클러스터 안의 Argo CD** 가
+Git 을 당겨 오므로 자격증명이 안쪽에만 있고, CI(§4-②)는 Git 에 커밋만 할 뿐 클러스터를 아예
+모른다 — "GitOps 승격" 잡에 `kubeconfig` 가 등장하지 않는 이유다.
+</details>
+
+<details><summary>Q2. selfHeal 이 켜져 있는데 `apply.sh` 를 돌리면 왜 충돌하나?</summary>
+
+`apply.sh` 는 **명령형**으로 `kubectl apply -k overlays/local` 을 실행하고, Argo CD 의 `selfHeal` 은
+"클러스터가 Git(=`overlays/gitops`)과 달라지면 되돌린다"는 **불변식**을 강제한다(§4-①). 서로 다른
+소스(로컬 오버레이 vs Git 의 gitops 오버레이)를 각각 진실로 우기는 셈이라, `apply.sh` 로 만든 변경은
+**6초 뒤 Argo CD 가 되돌린다**(§7-③ 실측). `apply.sh` 자신도 이걸 감지해 경고를 출력한다(Argo CD 가
+`shopsaga` Application 을 관리 중이면 시작할 때 알려 준다) — 바꾸려면 Git(`overlays/gitops`)을 바꿔야 한다.
+</details>
+
+<details><summary>Q3. prune 이 켜져 있는데도 왜 Phase 18 시절 ConfigMap 이 안 지워졌나?</summary>
+
+Argo CD 는 **자기가 만든 리소스에만** tracking-id 어노테이션을 남기고, prune 도 그 표시가 있는
+것만 대상으로 한다(§6-①). Argo CD 를 붙이기 **전에** `kubectl apply -k` 로 만들어진 옛 ConfigMap 은
+tracking-id 가 없어 "내가 만든 게 아니다"로 취급돼 절대 지워지지 않는다 — 남의 리소스를 함부로
+안 건드리는 안전장치이기도 하다. 전환 시점의 고아는 **한 번은 손으로** 치워야 한다(§7-④).
+</details>
+
+<details><summary>Q4. Phase 18 의 secretGenerator 를 Phase 19 에서 걷어낸 이유는?</summary>
+
+Argo CD 의 repo-server 는 **Git 을 클론해서** `kustomize build` 를 돌린다 — 내 노트북의 파일시스템을
+못 본다(§4-④). `.secrets/` 는 개인키라 `.gitignore` 대상, 즉 Git 에 없다. Argo CD 는 임의 스크립트도
+실행하지 않으므로(선언만 읽고 명령은 안 읽는 것이 GitOps 의 안전성) 부트스트랩을 대신 돌려 줄 수도
+없다 — 그래서 서명 키는 매니페스트가 아니라 `bootstrap-secrets.sh` 가 넣는 **클러스터 사전 조건**이
+됐고, 그 대가로 키 교체 시 자동 롤아웃을 잃었다(§8-3).
+</details>
 
 ---
 

@@ -438,6 +438,25 @@ curl -s http://localhost:8080/inventory/22222222-2222-2222-2222-222222222222
 
 ---
 
+## 복습 포인트 (스스로 답해보기)
+
+1. `@Transactional` 하나가 재고 차감·결제 캡처·주문 저장을 감싸면 왜 원자성이 "공짜"로 생기나? 이 공짜는 언제 사라지나?
+   <details><summary>답</summary>세 작업이 **같은 DB의 같은 커넥션·같은 트랜잭션**을 쓰기 때문에 DB가 커밋/롤백을 원자적으로 보장해준다(§6). Phase 2에서 결제가 원격(다른 서비스·다른 DB)으로 나가는 순간, 로컬 트랜잭션이 원격 호출을 감싸지 못해 이 공짜가 사라진다.</details>
+
+2. 여러 상품을 주문할 때 상품ID를 `TreeMap`으로 정렬한 뒤 재고를 차감하는 이유는?
+   <details><summary>답</summary>두 주문이 상품 A·B를 서로 다른 순서로 잠그면 교착(deadlock)이 생길 수 있다. 항상 같은(정렬된) 순서로 잠그면 모든 트랜잭션이 동일한 순서를 지키게 되어 교착이 구조적으로 방지된다(§4.1, §6).</details>
+
+3. `StockPersistenceAdapter.reserve`는 왜 새 엔티티를 만들어 `merge`하지 않고 managed 엔티티를 직접 수정하나?
+   <details><summary>답</summary>`merge`는 락과 무관한 별도 경로라 "락을 잡은 행"과 "실제로 쓰는 행"이 분리될 위험이 있다. load-then-mutate(잠근 그 managed 엔티티를 직접 고쳐 dirty checking으로 UPDATE)는 락↔UPDATE 결합을 구조적으로 보장한다(§4.3).</details>
+
+4. 비관적 락과 낙관적 락 중 Phase 1은 왜 비관적 락을 골랐나? 그 대가는?
+   <details><summary>답</summary>비관적 락(`SELECT … FOR UPDATE`)은 읽는 순간부터 잠가 정확성이 확실하지만, 잠긴 행을 노리는 다른 트랜잭션이 직렬화(줄서기)돼 처리량이 떨어진다. Phase 1은 인기 상품 병목보다 **정확성·단순성**을 우선했다(§6).</details>
+
+5. `open-in-view: false`인데 왜 엔티티→DTO 변환을 서비스의 `@Transactional` 메서드 **안**에서 끝내야 하나?
+   <details><summary>답</summary>트랜잭션이 끝나면 영속성 세션도 닫혀 LAZY(지연 로딩) 연관을 더 이상 읽을 수 없다(`LazyInitializationException`). 트랜잭션이 열려 있는 동안(서비스 메서드 안에서) 필요한 데이터를 다 읽어 뷰로 변환해야 한다(§6, §7의 실제 함정).</details>
+
+---
+
 ## 9. 용어 사전
 
 - **트랜잭션 / ACID**: 여러 DB 작업을 하나로 묶는 단위. 원자성·일관성·격리성·지속성.
